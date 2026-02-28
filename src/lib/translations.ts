@@ -76,6 +76,7 @@ export const translations = {
       drawingActive: 'Grafite Motor Ativo',
       rhythmActive: 'Sinfonia Ativa',
       accessibility: 'Acessibilidade e Sons',
+      chooseMission: 'Missão do Dia',
     },
     dashboard: {
       studioTitle: 'Estúdio Ludo',
@@ -169,6 +170,7 @@ export const translations = {
       configTitle: 'Your Identity',
       accessibility: 'Accessibility & Sounds',
       syncPlayground: 'Create Identity & Play',
+      chooseMission: 'Mission of the Day',
     }
   },
   es: {
@@ -187,7 +189,7 @@ export const translations = {
     },
     home: {
       heroTitle: 'Mueve tu alma en la ciudad',
-      heroSubtitle: 'Convierte las aceras en pistas y los muros en desafíos. Tecnología de 2026 en tu bolsillo.',
+      heroSubtitle: 'Convierte las aceras en pistas e los muros en desafíos. Tecnología de 2026 en tu bolsillo.',
       tagline: 'Psicomotricidade em Movimento',
       startJourney: 'Iniciar Viaje',
       exploreTech: 'Explorar Tech',
@@ -215,6 +217,7 @@ export const translations = {
       configTitle: 'Tu Identidad',
       accessibility: 'Accesibilidad y Sonidos',
       syncPlayground: 'Crear Identidad y Jugar',
+      chooseMission: 'Misión del Día',
     }
   }
 };

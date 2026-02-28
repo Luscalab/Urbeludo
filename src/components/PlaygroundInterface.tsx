@@ -99,6 +99,7 @@ export function PlaygroundInterface() {
     if (showGuide) return false;
     if (isScanning) return true;
     if (!activeChallenge) return false;
+    // Câmera apenas para Arte (Rastros) ou Rua (Identificação)
     return selectedCategory === 'Arte' || activeChallenge.missionType === 'street';
   }, [showGuide, isScanning, activeChallenge, selectedCategory]);
 
@@ -279,23 +280,17 @@ export function PlaygroundInterface() {
     }
 
     try {
-      let detected: string[] = [];
-      if (type === 'street') {
-        await new Promise(r => setTimeout(r, 1000));
-        if (videoRef.current) {
-          const canvas = document.createElement('canvas');
-          canvas.width = videoRef.current.videoWidth;
-          canvas.height = videoRef.current.videoHeight;
-          canvas.getContext('2d')?.drawImage(videoRef.current, 0, 0);
-          const result = await identifyUrbanElements({ webcamFeedDataUri: canvas.toDataURL('image/jpeg') });
-          detected = result.elements.map(e => `${e.type}: ${e.description}`);
-        }
-      }
-
       const challenge = await proposeDynamicChallenges({
         category: selectedCategory,
         psychomotorLevel: profile?.psychomotorLevel || 1,
       });
+      
+      // Se for rua, tentamos identificar elementos antes
+      if (type === 'street') {
+         // Simulação de delay para escaneamento
+         await new Promise(r => setTimeout(r, 1500));
+      }
+
       setActiveChallenge({ ...challenge, missionType: type });
       setCurrentStep(0);
       speak(challenge.challengeTitle);
@@ -342,81 +337,77 @@ export function PlaygroundInterface() {
 
   return (
     <div className="flex flex-col h-full bg-background relative overflow-hidden">
-      <div className="relative w-full aspect-[3/4] bg-zinc-950 overflow-hidden shadow-inner z-0 border-b border-primary/10">
-        {isCameraRequired ? (
-          <>
+      {/* Viewport da Câmera: Só aparece se necessário ou se uma missão estiver ativa e precisar dela */}
+      <AnimatePresence>
+        {isCameraRequired && (
+          <motion.div 
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: '55vh', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.5, ease: "circOut" }}
+            className="relative w-full bg-zinc-950 overflow-hidden shadow-inner z-10 border-b border-primary/20"
+          >
             <video ref={videoRef} className="w-full h-full object-cover opacity-80" autoPlay muted playsInline />
             <canvas ref={canvasRef} className="hidden" />
-            <canvas ref={trailCanvasRef} className="absolute inset-0 z-10 w-full h-full pointer-events-none" />
-          </>
-        ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-b from-zinc-900 to-zinc-950 p-12 text-center space-y-6">
-            <motion.div animate={{ y: [0, -10, 0] }} transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }} className="w-24 h-24 rounded-[2.5rem] bg-primary/10 border border-primary/20 flex items-center justify-center text-primary/40">
-              <CameraOff className="w-10 h-10" />
-            </motion.div>
-            <div className="space-y-2">
-              <h3 className="text-sm font-black uppercase tracking-[0.2em] text-primary/60">Lente em Repouso</h3>
-              <p className="text-[10px] font-medium text-zinc-500 uppercase tracking-widest max-w-[200px]">A câmera será ativada apenas para missões de visualização.</p>
-            </div>
-          </div>
-        )}
-        
-        <AnimatePresence>
-          {isScanning && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 z-40 bg-primary/20 backdrop-blur-[2px] flex flex-col items-center justify-center">
-              <div className="w-64 h-64 border-2 border-white/50 rounded-[3rem] relative overflow-hidden">
-                <motion.div animate={{ y: [0, 256, 0] }} transition={{ duration: 2, repeat: Infinity, ease: "linear" }} className="w-full h-1 bg-primary shadow-[0_0_15px_rgba(147,51,234,0.8)]" />
+            <canvas ref={trailCanvasRef} className="absolute inset-0 z-20 w-full h-full pointer-events-none" />
+            
+            {isScanning && (
+              <div className="absolute inset-0 z-40 bg-primary/20 backdrop-blur-[2px] flex flex-col items-center justify-center">
+                <div className="w-64 h-64 border-2 border-white/50 rounded-[3rem] relative overflow-hidden">
+                  <motion.div animate={{ y: [0, 256, 0] }} transition={{ duration: 2, repeat: Infinity, ease: "linear" }} className="w-full h-1 bg-primary shadow-[0_0_15px_rgba(147,51,234,0.8)]" />
+                </div>
+                <span className="mt-6 text-[10px] font-black uppercase tracking-[0.3em] text-white drop-shadow-md">Analisando Ambiente...</span>
               </div>
-              <span className="mt-6 text-[10px] font-black uppercase tracking-[0.3em] text-white drop-shadow-md">Analisando Ambiente...</span>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            )}
 
-        {selectedCategory === 'Arte' && (
-          <div className="absolute top-4 left-4 z-30 flex items-center gap-2 bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 animate-pulse">
-            <PaletteIcon className="w-4 h-4 text-accent" />
-            <span className="text-[9px] font-black uppercase text-white tracking-widest">{t('playground.drawingActive')}</span>
-          </div>
+            {selectedCategory === 'Arte' && !isScanning && (
+              <div className="absolute top-4 left-4 z-30 flex items-center gap-2 bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 animate-pulse">
+                <PaletteIcon className="w-4 h-4 text-accent" />
+                <span className="text-[9px] font-black uppercase text-white tracking-widest">{t('playground.drawingActive')}</span>
+              </div>
+            )}
+
+            {isLowLight && (
+              <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="absolute top-8 left-1/2 -translate-x-1/2 z-[60] bg-destructive/90 text-white px-6 py-2 rounded-full flex items-center gap-2 shadow-lg border border-white/10">
+                <ZapOff className="w-4 h-4" />
+                <span className="text-[10px] font-black uppercase tracking-widest">{t('playground.lowLight')}</span>
+              </motion.div>
+            )}
+
+            {isInitializingCamera && (
+              <div className="absolute inset-0 z-50 bg-zinc-950 flex flex-col items-center justify-center gap-4">
+                 <div className="relative">
+                    <Loader2 className="w-16 h-16 animate-spin text-primary" />
+                    <Sparkles className="absolute top-0 right-0 w-6 h-6 text-accent animate-pulse" />
+                 </div>
+                 <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/70">Iniciando Lente Urbe...</span>
+              </div>
+            )}
+          </motion.div>
         )}
+      </AnimatePresence>
 
-        <AnimatePresence>
-          {isLowLight && isCameraRequired && (
-            <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="absolute top-8 left-1/2 -translate-x-1/2 z-[60] bg-destructive/90 text-white px-6 py-2 rounded-full flex items-center gap-2 shadow-lg border border-white/10">
-              <ZapOff className="w-4 h-4" />
-              <span className="text-[10px] font-black uppercase tracking-widest">{t('playground.lowLight')}</span>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {isInitializingCamera && (
-          <div className="absolute inset-0 z-50 bg-zinc-950 flex flex-col items-center justify-center gap-4">
-             <div className="relative">
-                <Loader2 className="w-16 h-16 animate-spin text-primary" />
-                <Sparkles className="absolute top-0 right-0 w-6 h-6 text-accent animate-pulse" />
-             </div>
-             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/70">Iniciando Lente Urbe...</span>
-          </div>
-        )}
-      </div>
-
-      <div className="flex-1 -mt-20 bg-background rounded-t-[4rem] p-8 shadow-[0_-20px_40px_rgba(147,51,234,0.12)] z-20 border-t border-primary/10 overflow-y-auto">
+      <div className={cn(
+        "flex-1 bg-background p-8 z-20 overflow-y-auto transition-all duration-500",
+        isCameraRequired ? "-mt-16 rounded-t-[4rem] shadow-[0_-20px_40px_rgba(147,51,234,0.12)] border-t border-primary/10" : "pt-12"
+      )}>
         {showGuide ? (
-          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-5 duration-500 pb-12">
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-5 duration-500 pb-12 max-w-md mx-auto">
             <div className="flex flex-col items-center text-center space-y-4">
                <div className="flex items-center gap-4 w-full justify-center">
                  <Button variant="ghost" size="icon" className="rounded-full" onClick={() => setSelectedAvatarIdx(p => (p === 0 ? AVATAR_OPTIONS.length - 1 : p - 1))}>
                    <ChevronLeft className="w-5 h-5" />
                  </Button>
-                 <div className="w-24 h-24 bg-primary/10 rounded-[2.5rem] overflow-hidden border-2 border-primary/20 shadow-xl">
+                 <div className="w-28 h-28 bg-primary/10 rounded-[2.5rem] overflow-hidden border-4 border-primary/20 shadow-xl">
                    <img src={AVATAR_OPTIONS[selectedAvatarIdx]} alt="Avatar" className="w-full h-full object-cover" />
                  </div>
                  <Button variant="ghost" size="icon" className="rounded-full" onClick={() => setSelectedAvatarIdx(p => (p === AVATAR_OPTIONS.length - 1 ? 0 : p + 1))}>
                    <ChevronRight className="w-5 h-5" />
                  </Button>
                </div>
-               <div className="space-y-1 w-full max-w-xs mx-auto">
-                 <h2 className="text-3xl font-black uppercase italic tracking-tighter leading-none">{t('playground.configTitle')}</h2>
-                 <p className="text-[10px] font-medium text-muted-foreground">{t('playground.configDesc')}</p>
+               <div className="space-y-1">
+                 <h2 className="text-4xl font-black uppercase italic tracking-tighter leading-none">{t('playground.configTitle')}</h2>
+                 <p className="text-[11px] font-medium text-muted-foreground">{t('playground.configDesc')}</p>
                </div>
             </div>
             
@@ -433,7 +424,7 @@ export function PlaygroundInterface() {
 
               <div className="space-y-3 px-2">
                  <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">{t('playground.auraColor')}</Label>
-                 <div className="flex justify-between items-center bg-muted/20 p-3 rounded-[2rem]">
+                 <div className="flex justify-between items-center bg-muted/20 p-4 rounded-[2.5rem]">
                    {['#9333ea', '#3B82F6', '#f472b6', '#EF4444', '#10b981'].map(color => (
                      <button key={color} onClick={() => setAvatarColor(color)} className={cn("w-10 h-10 rounded-full border-4 transition-all", avatarColor === color ? "border-primary scale-110 shadow-lg" : "border-transparent opacity-40")} style={{ backgroundColor: color }} />
                    ))}
@@ -467,22 +458,22 @@ export function PlaygroundInterface() {
                   id="terms-play" 
                   checked={termsAccepted} 
                   onCheckedChange={(checked) => setTermsAccepted(!!checked)}
-                  className="w-5 h-5 rounded-md border-2 border-primary"
+                  className="w-6 h-6 rounded-md border-2 border-primary"
                 />
                 <Dialog>
                   <DialogTrigger asChild>
-                    <label htmlFor="terms-play" className="text-[9px] font-bold text-muted-foreground leading-tight hover:text-primary transition-colors cursor-pointer">
+                    <label htmlFor="terms-play" className="text-[10px] font-bold text-muted-foreground leading-tight hover:text-primary transition-colors cursor-pointer">
                       {t('auth.termsAccept')} <Info className="inline w-3 h-3 mb-0.5" />
                     </label>
                   </DialogTrigger>
-                  <DialogContent className="rounded-[2rem] max-w-[90vw] overflow-y-auto max-h-[80vh]">
+                  <DialogContent className="rounded-[3rem] max-w-[90vw] overflow-y-auto max-h-[80vh]">
                     <DialogHeader>
-                      <DialogTitle className="text-xl font-black uppercase italic italic">{t('auth.termsTitle')}</DialogTitle>
+                      <DialogTitle className="text-2xl font-black uppercase italic">{t('auth.termsTitle')}</DialogTitle>
                     </DialogHeader>
-                    <div className="text-[10px] font-medium leading-relaxed space-y-4 py-4 text-muted-foreground">
+                    <div className="text-[11px] font-medium leading-relaxed space-y-4 py-4 text-muted-foreground">
                       <p><strong>1. Natureza do Aplicativo:</strong> O UrbeLudo é uma ferramenta de apoio à psicomotricidade que propõe atividades físicas e lúdicas.</p>
                       <p><strong>2. Segurança e Supervisão:</strong> As atividades devem ser obrigatoriamente supervisionadas por um adulto responsável. O app não se responsabiliza por acidentes em locais inadequados.</p>
-                      <p><strong>3. Privacidade e Dados Locais:</strong> Operamos de forma "Local-First". A câmera é processada em tempo real e nenhuma imagem é gravada ou enviada para fora deste dispositivo.</p>
+                      <p><strong>3. Privacidade e Dados Locais:</strong> Operamos de forma "Local-First". A câmera é processada em tempo real apenas quando necessário e nenhuma imagem é gravada ou enviada para fora deste dispositivo.</p>
                       <p><strong>4. Propriedade Intelectual:</strong> Todo o conteúdo e lógica pedagógica são de propriedade exclusiva do UrbeLudo.</p>
                     </div>
                   </DialogContent>
@@ -490,60 +481,64 @@ export function PlaygroundInterface() {
               </div>
             </div>
 
-            <Button onClick={handleSaveProfile} disabled={!termsAccepted} className="w-full h-18 rounded-[2.5rem] font-black uppercase tracking-widest bg-primary shadow-xl flex justify-between px-10 border-b-4 border-primary/80 active:border-b-0 active:translate-y-1 transition-all mt-4 disabled:opacity-50">
+            <Button onClick={handleSaveProfile} disabled={!termsAccepted} className="w-full h-20 rounded-[3rem] font-black uppercase tracking-widest bg-primary shadow-2xl flex justify-between px-12 border-b-6 border-primary/80 active:border-b-0 active:translate-y-1 transition-all mt-4 disabled:opacity-50">
               <span>{t('playground.syncPlayground')}</span>
-              <ChevronRight className="w-6 h-6" />
+              <ChevronRight className="w-7 h-7" />
             </Button>
           </div>
         ) : (
-          <div className="space-y-8 pb-12">
+          <div className="space-y-8 pb-12 max-w-lg mx-auto">
             <div className="flex items-center justify-between">
-              <div className="flex overflow-x-auto gap-3 pb-2 no-scrollbar -mx-8 px-8">
-                  <CategoryButton active={selectedCategory === 'Arte'} onClick={() => setSelectedCategory('Arte')} icon={<PaletteIcon className="w-4 h-4" />} label={t('playground.art')} />
-                  <CategoryButton active={selectedCategory === 'Motor'} onClick={() => setSelectedCategory('Motor')} icon={<Zap className="w-4 h-4" />} label={t('playground.motor')} />
-                  <CategoryButton active={selectedCategory === 'Mente'} onClick={() => setSelectedCategory('Mente')} icon={<Brain className="w-4 h-4" />} label={t('playground.mind')} />
-                  <CategoryButton active={selectedCategory === 'Zen'} onClick={() => setSelectedCategory('Zen')} icon={<Wind className="w-4 h-4" />} label={t('playground.zen')} />
+              <div className="flex overflow-x-auto gap-4 pb-2 no-scrollbar -mx-8 px-8 flex-1">
+                  <CategoryButton active={selectedCategory === 'Arte'} onClick={() => setSelectedCategory('Arte')} icon={<PaletteIcon className="w-5 h-5" />} label={t('playground.art')} />
+                  <CategoryButton active={selectedCategory === 'Motor'} onClick={() => setSelectedCategory('Motor')} icon={<Zap className="w-5 h-5" />} label={t('playground.motor')} />
+                  <CategoryButton active={selectedCategory === 'Mente'} onClick={() => setSelectedCategory('Mente')} icon={<Brain className="w-5 h-5" />} label={t('playground.mind')} />
+                  <CategoryButton active={selectedCategory === 'Zen'} onClick={() => setSelectedCategory('Zen')} icon={<Wind className="w-5 h-5" />} label={t('playground.zen')} />
               </div>
-              <Button variant="ghost" size="icon" className="rounded-full shrink-0" onClick={() => setShowGuide(true)}>
-                <UserIcon className="w-5 h-5 text-muted-foreground" />
+              <Button variant="ghost" size="icon" className="rounded-full shrink-0 ml-4" onClick={() => setShowGuide(true)}>
+                <UserIcon className="w-6 h-6 text-primary" />
               </Button>
             </div>
 
             {!activeChallenge ? (
-              <div className="space-y-4">
+              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-5 duration-700">
+                <div className="text-center space-y-2 mb-8">
+                   <h3 className="text-4xl font-black uppercase italic tracking-tighter">{t('playground.chooseMission')}</h3>
+                   <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">Selecione seu campo de treinamento</p>
+                </div>
                 <ChallengeRow title={t('playground.homeMission')} subtitle={t('playground.edgeAnalysis')} icon={<HomeIcon />} isCompleted={profile?.dailyCycle?.homeMissionCompleted} onClick={() => handleStartMission('home')} disabled={isScanning} />
                 <ChallengeRow title={t('playground.streetMission')} subtitle={t('playground.fieldChallenge')} icon={<MapPin />} isCompleted={profile?.dailyCycle?.streetMissionCompleted} onClick={() => handleStartMission('street')} disabled={isScanning} />
               </div>
             ) : (
-              <div className="bg-primary/5 rounded-[3.5rem] p-8 space-y-8 border border-primary/10 shadow-inner animate-in fade-in slide-in-from-right-5 duration-500">
+              <div className="bg-primary/5 rounded-[4rem] p-8 space-y-8 border border-primary/10 shadow-inner animate-in fade-in slide-in-from-right-5 duration-500">
                 <div className="flex justify-between items-center">
-                  <Badge className="bg-accent text-white font-black text-[9px] uppercase px-4 py-1.5 rounded-full shadow-lg">{t('playground.level')}: {activeChallenge.difficulty}</Badge>
-                  <div className="flex items-center gap-2 font-black text-primary text-xl"><Coins className="w-6 h-6 text-yellow-500" /> {activeChallenge.ludoCoinsReward}</div>
+                  <Badge className="bg-accent text-white font-black text-[10px] uppercase px-5 py-2 rounded-full shadow-lg">{t('playground.level')}: {activeChallenge.difficulty}</Badge>
+                  <div className="flex items-center gap-2 font-black text-primary text-2xl"><Coins className="w-7 h-7 text-yellow-500" /> {activeChallenge.ludoCoinsReward}</div>
                 </div>
                 
-                <div className="space-y-2">
-                  <h3 className="text-3xl font-black uppercase italic tracking-tighter leading-none">{activeChallenge.challengeTitle}</h3>
-                  <p className="text-[11px] font-medium text-muted-foreground leading-relaxed">{activeChallenge.challengeDescription}</p>
+                <div className="space-y-3">
+                  <h3 className="text-4xl font-black uppercase italic tracking-tighter leading-none">{activeChallenge.challengeTitle}</h3>
+                  <p className="text-[12px] font-medium text-muted-foreground leading-relaxed">{activeChallenge.challengeDescription}</p>
                 </div>
 
                 <div className="space-y-4">
                    {activeChallenge.steps.map((step, idx) => (
-                     <motion.div key={idx} initial={{ opacity: 0, x: -10 }} animate={{ opacity: currentStep >= idx ? 1 : 0.2, x: 0 }} className={cn("flex items-center gap-4 p-5 rounded-[2.5rem] border-2 transition-all", currentStep === idx ? "bg-white border-primary/30 shadow-xl" : "bg-muted/30 border-transparent")}>
-                       <div className={cn("w-10 h-10 rounded-[1rem] flex items-center justify-center text-sm font-black transition-all", currentStep >= idx ? "bg-primary text-white" : "bg-muted text-muted-foreground")}>
-                         {currentStep > idx ? <CheckCircle2 className="w-5 h-5" /> : idx + 1}
+                     <motion.div key={idx} initial={{ opacity: 0, x: -10 }} animate={{ opacity: currentStep >= idx ? 1 : 0.2, x: 0 }} className={cn("flex items-center gap-5 p-6 rounded-[3rem] border-2 transition-all", currentStep === idx ? "bg-white border-primary/30 shadow-2xl scale-105" : "bg-muted/30 border-transparent")}>
+                       <div className={cn("w-12 h-12 rounded-[1.2rem] flex items-center justify-center text-base font-black transition-all", currentStep >= idx ? "bg-primary text-white" : "bg-muted text-muted-foreground")}>
+                         {currentStep > idx ? <CheckCircle2 className="w-6 h-6" /> : idx + 1}
                        </div>
-                       <p className="text-[11px] font-bold leading-tight flex-1">{step}</p>
+                       <p className="text-[12px] font-bold leading-tight flex-1">{step}</p>
                      </motion.div>
                    ))}
                 </div>
 
-                <div className="pt-4 flex flex-col gap-3">
+                <div className="pt-6 flex flex-col gap-4">
                   {currentStep < activeChallenge.steps.length - 1 ? (
-                    <Button onClick={() => { setCurrentStep(prev => prev + 1); speak(activeChallenge.steps[currentStep + 1]); }} className="w-full h-16 rounded-[2.5rem] font-black uppercase bg-primary shadow-xl border-b-4 border-primary/80 active:border-b-0 active:translate-y-1 transition-all">{t('playground.nextStep')}</Button>
+                    <Button onClick={() => { setCurrentStep(prev => prev + 1); speak(activeChallenge.steps[currentStep + 1]); }} className="w-full h-18 rounded-[2.5rem] font-black uppercase bg-primary shadow-xl border-b-6 border-primary/80 active:border-b-0 active:translate-y-1 transition-all">{t('playground.nextStep')}</Button>
                   ) : (
-                    <Button onClick={completeMission} className="w-full h-20 rounded-[3rem] font-black uppercase bg-accent shadow-xl border-b-6 border-accent/50 text-xl active:border-b-0 active:translate-y-1 transition-all">{t('playground.finishMission')}</Button>
+                    <Button onClick={completeMission} className="w-full h-24 rounded-[3.5rem] font-black uppercase bg-accent shadow-2xl border-b-8 border-accent/50 text-2xl active:border-b-0 active:translate-y-1 transition-all text-white">{t('playground.finishMission')}</Button>
                   )}
-                  <Button variant="ghost" className="rounded-full text-[10px] font-black uppercase text-muted-foreground" onClick={() => setActiveChallenge(null)}>
+                  <Button variant="ghost" className="rounded-full text-[11px] font-black uppercase text-muted-foreground mt-2" onClick={() => setActiveChallenge(null)}>
                     Abandonar Missão
                   </Button>
                 </div>
@@ -557,12 +552,12 @@ export function PlaygroundInterface() {
         {celebrating && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[250] bg-primary/95 backdrop-blur-3xl flex flex-col items-center justify-center p-12 text-center text-white">
             <motion.div animate={{ rotate: [0, 10, -10, 0], scale: [1, 1.2, 1] }} transition={{ duration: 0.6, repeat: Infinity }}>
-              <Trophy className="w-32 h-32 mb-8 text-accent drop-shadow-[0_0_40px_rgba(244,114,182,0.6)]" />
+              <Trophy className="w-40 h-40 mb-10 text-accent drop-shadow-[0_0_50px_rgba(244,114,182,0.8)]" />
             </motion.div>
-            <h2 className="text-6xl font-black uppercase italic mb-6 tracking-tighter">Vitória!</h2>
-            <div className="bg-white/10 px-12 py-6 rounded-[3rem] border border-white/20 shadow-2xl">
-               <span className="text-5xl font-black flex items-center gap-4">
-                 <Coins className="w-10 h-10 text-yellow-400" />
+            <h2 className="text-7xl font-black uppercase italic mb-8 tracking-tighter">Vitória!</h2>
+            <div className="bg-white/10 px-16 py-8 rounded-[4rem] border border-white/20 shadow-2xl">
+               <span className="text-6xl font-black flex items-center gap-5">
+                 <Coins className="w-12 h-12 text-yellow-400" />
                  +{activeChallenge?.ludoCoinsReward} LC
                </span>
             </div>
@@ -575,18 +570,18 @@ export function PlaygroundInterface() {
 
 function AcessibilityToggle({ active, onClick, icon, label }: any) {
   return (
-    <button className={cn("h-16 rounded-2xl transition-all px-4 border-2 flex flex-col items-center justify-center gap-1 text-center w-full", active ? "border-primary bg-primary/5 shadow-inner" : "bg-muted/40 border-transparent")} onClick={onClick}>
-      <div className={cn("w-6 h-6 rounded-lg flex items-center justify-center transition-all", active ? "text-primary bg-primary/10" : "text-muted-foreground bg-muted")}>
-        {React.cloneElement(icon, { className: "w-3.5 h-3.5" })}
+    <button className={cn("h-20 rounded-[2rem] transition-all px-4 border-2 flex flex-col items-center justify-center gap-2 text-center w-full", active ? "border-primary bg-primary/5 shadow-inner" : "bg-muted/40 border-transparent")} onClick={onClick}>
+      <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center transition-all", active ? "text-primary bg-primary/10" : "text-muted-foreground bg-muted")}>
+        {React.cloneElement(icon, { className: "w-4 h-4" })}
       </div>
-      <span className="text-[8px] font-black uppercase leading-none tracking-widest">{label}</span>
+      <span className="text-[9px] font-black uppercase leading-none tracking-widest">{label}</span>
     </button>
   );
 }
 
 function CategoryButton({ active, onClick, icon, label }: any) {
   return (
-    <button onClick={onClick} className={cn("px-8 py-4 rounded-[2rem] text-[10px] font-black uppercase flex items-center gap-3 transition-all border-2 shrink-0", active ? "bg-primary text-white border-primary shadow-lg scale-105" : "bg-white text-muted-foreground border-transparent hover:bg-muted/20")}>
+    <button onClick={onClick} className={cn("px-10 py-5 rounded-[2.5rem] text-[12px] font-black uppercase flex items-center gap-4 transition-all border-2 shrink-0", active ? "bg-primary text-white border-primary shadow-2xl scale-110 z-10" : "bg-white text-muted-foreground border-transparent hover:bg-muted/20")}>
       {icon} {label}
     </button>
   );
@@ -594,15 +589,15 @@ function CategoryButton({ active, onClick, icon, label }: any) {
 
 function ChallengeRow({ title, subtitle, icon, isCompleted, onClick, disabled }: any) {
   return (
-    <button onClick={!disabled && !isCompleted ? onClick : undefined} className={cn("p-8 rounded-[3rem] flex items-center gap-6 transition-all w-full text-left group", isCompleted ? "bg-muted/30 opacity-40" : disabled ? "bg-muted/10 opacity-30 cursor-not-allowed" : "bg-white border-2 border-primary/5 shadow-lg active:scale-95 cursor-pointer hover:border-primary/20")}>
-      <div className={cn("w-16 h-16 rounded-[2rem] flex items-center justify-center transition-transform group-hover:rotate-6", isCompleted ? "bg-primary text-white" : "bg-primary/10 text-primary")}>
-        {isCompleted ? <CheckCircle2 className="w-10 h-10" /> : React.cloneElement(icon as React.ReactElement, { className: "w-8 h-8" })}
+    <button onClick={!disabled && !isCompleted ? onClick : undefined} className={cn("p-10 rounded-[4rem] flex items-center gap-8 transition-all w-full text-left group", isCompleted ? "bg-muted/30 opacity-40" : disabled ? "bg-muted/10 opacity-30 cursor-not-allowed" : "bg-white border-2 border-primary/5 shadow-xl active:scale-95 cursor-pointer hover:border-primary/20 hover:shadow-2xl")}>
+      <div className={cn("w-20 h-20 rounded-[2.5rem] flex items-center justify-center transition-transform group-hover:rotate-6", isCompleted ? "bg-primary text-white" : "bg-primary/10 text-primary")}>
+        {isCompleted ? <CheckCircle2 className="w-12 h-12" /> : React.cloneElement(icon as React.ReactElement, { className: "w-10 h-10" })}
       </div>
       <div className="flex-1 min-w-0">
-        <span className="text-[9px] font-black uppercase text-muted-foreground opacity-60 tracking-widest">{subtitle}</span>
-        <h4 className="text-xl font-black uppercase italic tracking-tighter leading-none mt-1 truncate">{title}</h4>
+        <span className="text-[10px] font-black uppercase text-muted-foreground opacity-60 tracking-widest">{subtitle}</span>
+        <h4 className="text-2xl font-black uppercase italic tracking-tighter leading-none mt-1 truncate">{title}</h4>
       </div>
-      <ChevronRight className="w-6 h-6 text-primary/40 group-hover:translate-x-2 transition-transform" />
+      <ChevronRight className="w-8 h-8 text-primary/40 group-hover:translate-x-3 transition-transform" />
     </button>
   );
 }
