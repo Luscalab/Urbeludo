@@ -4,6 +4,7 @@ import { StudioItem } from './types';
 /**
  * Catálogo Central de Ativos da Studio Update.
  * Todos os caminhos apontam para a pasta /public/assets/studio/
+ * Os nomes dos arquivos devem ser exatamente os que estão na pasta.
  */
 export const STUDIO_CATALOG: StudioItem[] = [
   {
