@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState } from 'react';
@@ -55,7 +56,7 @@ export function StudioItem({ data, onUpdate, onStore, onSell, isEditing, auraCol
         opacity: 0, 
         scale: 1.5, 
         filter: 'blur(10px)',
-        transition: { duration: 0.3, ease: "circOut" } 
+        transition: { duration: 0.4, ease: "backIn" } 
       }}
       whileDrag={{ 
         scale: 1.1,
@@ -74,7 +75,7 @@ export function StudioItem({ data, onUpdate, onStore, onSell, isEditing, auraCol
       }}
     >
       <div className="relative group">
-        {/* Efeito Visual de Fumaça (Poof) ao sair */}
+        {/* Visual do Móvel Isométrico */}
         <div 
           className="relative flex items-center justify-center"
           style={{ 
@@ -86,19 +87,22 @@ export function StudioItem({ data, onUpdate, onStore, onSell, isEditing, auraCol
             src={itemInfo.assetPath} 
             alt={itemInfo.name}
             className="w-full h-full object-contain pointer-events-none drop-shadow-md"
-            onError={(e) => {
-              e.currentTarget.style.display = 'none';
-              const span = e.currentTarget.parentElement?.querySelector('.fallback-emoji');
-              if (span) (span as HTMLElement).style.display = 'block';
-            }}
           />
           
-          <span className="fallback-emoji hidden text-4xl drop-shadow-md select-none">
-            {itemInfo.category === 'Ativo' ? '🧘' : itemInfo.category === 'Essencial' ? '🛏️' : '🌿'}
-          </span>
+          {/* Sombra de Fumaça no Exit (Poof) */}
+          <AnimatePresence>
+            {!isSelected && isEditing && (
+               <motion.div 
+                 exit={{ opacity: [0, 1, 0], scale: [1, 2, 0.5] }}
+                 className="absolute inset-0 flex items-center justify-center pointer-events-none"
+               >
+                 <Cloud className="w-12 h-12 text-zinc-100 opacity-0" />
+               </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
-        {/* Menu de Ações (Guardar / Vender) */}
+        {/* Menu de Ações Flutuante */}
         <AnimatePresence>
           {isEditing && isSelected && (
             <motion.div 
@@ -110,7 +114,6 @@ export function StudioItem({ data, onUpdate, onStore, onSell, isEditing, auraCol
               <button 
                 onClick={(e) => { e.stopPropagation(); onStore(data.instanceId); }}
                 className="bg-blue-50 text-blue-600 p-2 rounded-xl flex items-center gap-1.5 hover:bg-blue-100 transition-colors"
-                title="Guardar no Inventário"
               >
                 <Package className="w-4 h-4" />
                 <span className="text-[9px] font-black uppercase">Guardar</span>
@@ -118,7 +121,6 @@ export function StudioItem({ data, onUpdate, onStore, onSell, isEditing, auraCol
               <button 
                 onClick={(e) => { e.stopPropagation(); onSell(data.instanceId); }}
                 className="bg-red-50 text-red-600 p-2 rounded-xl flex items-center gap-1.5 hover:bg-red-100 transition-colors"
-                title="Vender Item"
               >
                 <Coins className="w-4 h-4" />
                 <span className="text-[9px] font-black uppercase">Vender</span>

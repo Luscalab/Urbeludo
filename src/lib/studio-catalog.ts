@@ -1,8 +1,9 @@
+
 import { StudioItem } from './types';
 
 /**
  * Catálogo Central de Ativos da Studio Update.
- * Mapeia os arquivos PNG transparentes da pasta "studio update".
+ * Todos os caminhos apontam para a pasta /public/assets/studio/studio update/
  */
 export const STUDIO_CATALOG: StudioItem[] = [
   {
@@ -22,7 +23,7 @@ export const STUDIO_CATALOG: StudioItem[] = [
     price: 150,
     description: 'Aumenta a precisão dos seus movimentos em missões domésticas.',
     assetPath: '/assets/studio/studio update/tapete_psicomotor.png',
-    dimensions: { width: 120, height: 80 },
+    dimensions: { width: 140, height: 100 },
     gridSize: { w: 2, h: 1 }
   },
   {
@@ -32,7 +33,7 @@ export const STUDIO_CATALOG: StudioItem[] = [
     price: 300,
     description: 'Equipamento essencial para treinos de força e postura.',
     assetPath: '/assets/studio/studio update/espaldar_madeira.png',
-    dimensions: { width: 80, height: 160 },
+    dimensions: { width: 100, height: 180 },
     gridSize: { w: 1, h: 1 }
   },
   {
@@ -42,7 +43,7 @@ export const STUDIO_CATALOG: StudioItem[] = [
     price: 50,
     description: 'Um toque de natureza e frescor para o seu lar digital.',
     assetPath: '/assets/studio/studio update/vaso_hortela.png',
-    dimensions: { width: 40, height: 60 },
+    dimensions: { width: 60, height: 80 },
     gridSize: { w: 1, h: 1 }
   }
 ];

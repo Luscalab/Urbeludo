@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -57,8 +58,8 @@ export default function StudioPage() {
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
       
-      // Avatar só anda no chão
-      if (y > 480) {
+      // Limite para caminhar apenas no chão (abaixo da linha do horizonte em V)
+      if (y > 450) {
         updateAvatarPosition(x, y);
       }
     }
@@ -137,32 +138,42 @@ export default function StudioPage() {
           className="w-[1200px] h-[1200px] relative bg-white flex flex-col shadow-[0_0_100px_rgba(0,0,0,0.5)]"
           initial={{ x: -400, y: -200 }} 
         >
-          {/* Parede */}
-          <div className="relative w-full h-[40%] overflow-hidden" style={{ 
+          {/* PAREDE COM PERSPECTIVA DE CANTO */}
+          <div className="relative w-full h-[40%] overflow-hidden flex" style={{ 
             background: `linear-gradient(to bottom, ${auraColor}15, ${auraColor}30)` 
           }}>
-            <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:20px_20px]" />
-            <div className="absolute top-20 left-1/2 -translate-x-1/2 w-28 h-40 bg-blue-50 rounded-t-full border-8 border-white shadow-2xl overflow-hidden flex flex-col justify-end">
-                <div className="absolute inset-0 bg-gradient-to-t from-blue-200/50 to-transparent"></div>
-                <div className="w-full h-2 bg-white absolute top-1/2"></div>
-                <div className="w-2 h-full bg-white absolute left-1/2"></div>
+            {/* Parede Esquerda */}
+            <div className="flex-1 border-r border-white/10 relative overflow-hidden" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 100%, 0 85%)' }}>
+               <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:20px_20px]" />
+            </div>
+            {/* Parede Direita */}
+            <div className="flex-1 relative overflow-hidden" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 85%, 0 100%)' }}>
+               <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:20px_20px]" />
+               {/* Janela Isométrica */}
+               <div className="absolute top-20 left-20 w-32 h-44 bg-blue-50/20 rounded-t-[2rem] border-8 border-white/40 shadow-2xl backdrop-blur-md rotate-[-5deg] skew-y-[10deg] overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-tr from-blue-400/20 to-transparent" />
+                  <div className="w-full h-2 bg-white/30 absolute top-1/2" />
+                  <div className="w-2 h-full bg-white/30 absolute left-1/2" />
+               </div>
             </div>
           </div>
 
-          {/* Rodapé */}
-          <div className="relative z-10 w-full h-6 bg-white border-b border-gray-200 shadow-lg"></div>
-
-          {/* Chão */}
-          <div className="relative w-full h-[60%] bg-[#F4F1EA]">
-            <div className="absolute inset-0 opacity-30 flex flex-col justify-evenly">
-                {[...Array(30)].map((_, i) => (
-                  <div key={i} className="w-full h-[1px] bg-gray-400"></div>
-                ))}
-            </div>
-            <div className="absolute inset-0 opacity-5 bg-[linear-gradient(to_right,#000_1px,transparent_1px),linear-gradient(to_bottom,#000_1px,transparent_1px)] [background-size:40px_40px]"></div>
+          {/* RODAPÉ EM V (CONEXÃO) */}
+          <div className="relative z-10 w-full h-6 flex">
+             <div className="flex-1 bg-white shadow-sm" style={{ clipPath: 'polygon(0 0, 100% 100%, 100% 100%, 0 100%)' }} />
+             <div className="flex-1 bg-white shadow-sm" style={{ clipPath: 'polygon(0 100%, 0 100%, 100% 0, 100% 100%)' }} />
           </div>
 
-          {/* Itens Posicionados com AnimatePresence para o efeito Poof */}
+          {/* CHÃO COM GRID ISOMÉTRICO (LOSANGO) */}
+          <div className="relative w-full h-[60%] bg-[#F4F1EA] overflow-hidden">
+            <div className="absolute inset-0 opacity-20" style={{ 
+               backgroundImage: `linear-gradient(45deg, #808080 1px, transparent 1px), linear-gradient(-45deg, #808080 1px, transparent 1px)`,
+               backgroundSize: '80px 80px',
+               backgroundPosition: 'center'
+            }} />
+          </div>
+
+          {/* Itens Posicionados */}
           <div className="absolute inset-0 z-20 pointer-events-none">
             <AnimatePresence>
               {studioState.placedItems.map(item => (
@@ -179,30 +190,34 @@ export default function StudioPage() {
             </AnimatePresence>
           </div>
 
-          {/* Avatar */}
+          {/* Avatar de Corpo Inteiro */}
           <motion.div 
             id="studio-avatar"
             animate={{ 
               x: avatarPos.x - 64, 
-              y: avatarPos.y - 128
+              y: avatarPos.y - 140
             }}
             transition={{ type: "spring", stiffness: 60, damping: 20 }}
             className="absolute z-[90] pointer-events-none"
           >
             <div className="relative">
-              <div className="w-32 h-32 rounded-[3.5rem] overflow-hidden border-4 border-primary shadow-2xl bg-white">
-                <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+              <div className="w-32 h-48 flex items-center justify-center">
+                <img 
+                  src={avatarUrl} 
+                  alt="Avatar" 
+                  className="w-full h-full object-contain drop-shadow-[0_20px_20px_rgba(0,0,0,0.3)]" 
+                />
               </div>
               <motion.div 
-                animate={{ scale: [1, 1.2, 1] }} 
-                transition={{ duration: 2, repeat: Infinity }}
-                className="absolute -top-2 -right-2 bg-accent text-white p-2 rounded-full shadow-lg border-2 border-white"
+                animate={{ scale: [1, 1.2, 1], rotate: [0, 10, -10, 0] }} 
+                transition={{ duration: 3, repeat: Infinity }}
+                className="absolute top-0 right-0 bg-accent text-white p-2 rounded-full shadow-lg border-2 border-white"
               >
                 <Zap className="w-4 h-4" />
               </motion.div>
             </div>
             <div className="absolute -bottom-2 inset-x-0 flex justify-center">
-              <span className="bg-primary text-white text-[8px] font-black uppercase px-4 py-1.5 rounded-full shadow-lg">
+              <span className="bg-primary/90 backdrop-blur-md text-white text-[8px] font-black uppercase px-4 py-1.5 rounded-full shadow-lg border border-white/20">
                 {profile?.displayName || 'Explorador'}
               </span>
             </div>
@@ -220,7 +235,7 @@ export default function StudioPage() {
               className="bg-black/80 text-white text-[10px] font-black uppercase px-6 py-3 rounded-full flex items-center gap-3 backdrop-blur-md border border-white/10 shadow-2xl"
             >
               {mode === 'explore' ? (
-                <><Navigation className="w-4 h-4 text-accent rotate-45" /> Toque no chão para andar</>
+                <><Navigation className="w-4 h-4 text-accent rotate-45" /> Toque no chão para caminhar</>
               ) : (
                 <><Smartphone className="w-4 h-4 text-primary animate-bounce" /> Clique no item para gerenciar</>
               )}
