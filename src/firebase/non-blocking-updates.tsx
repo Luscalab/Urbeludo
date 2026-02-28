@@ -1,82 +1,24 @@
 
 'use client';
     
-import {
-  setDoc,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  CollectionReference,
-  DocumentReference,
-  SetOptions,
-} from 'firebase/firestore';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 import { LocalPersistence } from '@/lib/local-persistence';
 
 /**
- * Wrapper de atualização que prioriza a persistência local (Local-First).
- * Realiza escrita imediata no armazenamento do dispositivo e sincroniza em background.
+ * Wrapper de atualização Standalone.
+ * Operações 100% síncronas com o armazenamento local do APK.
  */
-export function setDocumentNonBlocking(docRef: DocumentReference, data: any, options: SetOptions) {
-  // Persistência local imediata para resiliência do APK
-  if (typeof window !== 'undefined' && docRef.path.includes('user_progress')) {
-    LocalPersistence.saveProgress(data);
-  }
-
-  setDoc(docRef, data, options).catch(error => {
-    errorEmitter.emit(
-      'permission-error',
-      new FirestorePermissionError({
-        path: docRef.path,
-        operation: 'write',
-        requestResourceData: data,
-      })
-    )
-  });
+export function setDocumentNonBlocking(docRef: any, data: any, options: any) {
+  LocalPersistence.saveProgress(data);
 }
 
-export function addDocumentNonBlocking(colRef: CollectionReference, data: any) {
-  return addDoc(colRef, data).catch(error => {
-    errorEmitter.emit(
-      'permission-error',
-      new FirestorePermissionError({
-        path: colRef.path,
-        operation: 'create',
-        requestResourceData: data,
-      })
-    )
-  });
+export function addDocumentNonBlocking(colRef: any, data: any) {
+  LocalPersistence.saveActivity(data);
 }
 
-export function updateDocumentNonBlocking(docRef: DocumentReference, data: any) {
-  // Escrita local síncrona/imediata antes do Firebase
-  if (typeof window !== 'undefined' && docRef.path.includes('user_progress')) {
-    LocalPersistence.getProgress().then(existing => {
-      LocalPersistence.saveProgress({ ...existing, ...data });
-    });
-  }
-
-  updateDoc(docRef, data).catch(error => {
-    errorEmitter.emit(
-      'permission-error',
-      new FirestorePermissionError({
-        path: docRef.path,
-        operation: 'update',
-        requestResourceData: data,
-      })
-    )
-  });
+export function updateDocumentNonBlocking(docRef: any, data: any) {
+  LocalPersistence.saveProgress(data);
 }
 
-export function deleteDocumentNonBlocking(docRef: DocumentReference) {
-  deleteDoc(docRef).catch(error => {
-    errorEmitter.emit(
-      'permission-error',
-      new FirestorePermissionError({
-        path: docRef.path,
-        operation: 'delete',
-      })
-    )
-  });
+export function deleteDocumentNonBlocking(docRef: any) {
+  // Não implementado para o MVP Standalone
 }
