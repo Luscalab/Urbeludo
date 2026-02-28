@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -27,7 +28,9 @@ import {
   Wind,
   Info,
   UserCheck,
-  Scan
+  Scan,
+  Volume2,
+  Hand
 } from 'lucide-react';
 import { proposeDynamicChallenges, type ProposeDynamicChallengesOutput } from '@/ai/flows/propose-dynamic-challenges';
 import { identifyUrbanElements } from '@/ai/flows/identify-urban-elements-flow';
@@ -59,7 +62,9 @@ export function PlaygroundInterface() {
   
   const [isAvatarizing, setIsAvatarizing] = useState(false);
   const [safeAvatar, setSafeAvatar] = useState<AvatarizeUserOutput | null>(null);
-  const [cameraMode, setCameraMode] = useState<'user' | 'environment'>('environment');
+  const [cameraMode, setCameraMode] = useState<'user' | 'environment'>('user'); // Default to 'user' for initial scan
+  const [isAudioEnabled, setIsAudioEnabled] = useState(false);
+  const [isLibrasEnabled, setIsLibrasEnabled] = useState(false);
 
   const userProgressRef = useMemoFirebase(() => user ? doc(db, 'user_progress', user.uid) : null, [db, user]);
   const { data: profile, isLoading: isProfileLoading } = useDoc(userProgressRef);
@@ -93,12 +98,21 @@ export function PlaygroundInterface() {
     };
   }, [cameraMode]);
 
+  // Audio Guide Logic
+  useEffect(() => {
+    if (isAudioEnabled && activeChallenge) {
+      const stepText = activeChallenge.steps[currentStep];
+      const utterance = new SpeechSynthesisUtterance(stepText);
+      utterance.lang = 'pt-BR';
+      window.speechSynthesis.speak(utterance);
+    }
+  }, [currentStep, activeChallenge, isAudioEnabled]);
+
   const handleFaceScan = async () => {
     if (!videoRef.current) return;
     setIsAvatarizing(true);
-    setCameraMode('user');
     
-    // Pequeno delay para garantir que a câmera frontal ligou
+    // Pequeno delay para garantir frame pronto
     setTimeout(async () => {
       try {
         const canvas = document.createElement('canvas');
@@ -109,18 +123,17 @@ export function PlaygroundInterface() {
         
         const result = await avatarizeUser({ photoDataUri: photo });
         setSafeAvatar(result);
-        setCameraMode('environment');
+        setCameraMode('environment'); // Switch to back camera for missions
         toast({ 
           title: "Avatar Seguro Gerado", 
           description: "Sua foto original foi descartada por segurança." 
         });
       } catch (e) {
-        toast({ variant: 'destructive', title: "Erro no Scan", description: "Tente novamente." });
-        setCameraMode('environment');
+        toast({ variant: 'destructive', title: "Erro no Scan", description: "Tente novamente posicionando melhor o rosto." });
       } finally {
         setIsAvatarizing(false);
       }
-    }, 1000);
+    }, 1500);
   };
 
   const handleStartMission = async (type: 'home' | 'street') => {
@@ -169,40 +182,31 @@ export function PlaygroundInterface() {
       if (ctx) {
         ctx.drawImage(video, 0, 0);
         
-        // Simulação de Filtro de Avatar na região do rosto
+        // Simulação de Filtro de Avatar
         const centerX = canvas.width / 2;
         const centerY = canvas.height * 0.4;
         const radius = Math.min(canvas.width, canvas.height) * 0.22;
 
-        // Desenha a máscara do avatar (lúdico)
         ctx.save();
         ctx.beginPath();
         ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
         ctx.clip();
-        
-        // Cor base do avatar gerado pela IA
         ctx.fillStyle = safeAvatar?.dominantColor || '#33993D';
         ctx.fillRect(centerX - radius, centerY - radius, radius * 2, radius * 2);
-        
-        // Detalhes lúdicos
         ctx.strokeStyle = 'white';
         ctx.lineWidth = 4;
-        ctx.strokeRect(centerX - radius/2, centerY - radius/4, radius, radius/8); // Visor simulado
-        
+        ctx.strokeRect(centerX - radius/2, centerY - radius/4, radius, radius/8);
         ctx.restore();
 
-        // Overlay de Privacidade
         ctx.fillStyle = 'rgba(0,0,0,0.7)';
         ctx.fillRect(0, canvas.height - 50, canvas.width, 50);
         ctx.fillStyle = 'white';
         ctx.font = 'bold 10px Inter';
         ctx.textAlign = 'center';
         ctx.fillText('IDENTIDADE PROTEGIDA: AVATAR SEGURO ATIVO', canvas.width / 2, canvas.height - 28);
-        ctx.font = '8px Inter';
-        ctx.fillText('Dados biométricos descartados após processamento local.', canvas.width / 2, canvas.height - 12);
 
         setPhotoProof(canvas.toDataURL('image/jpeg'));
-        toast({ title: "Privacidade Garantida", description: "Seu rosto foi transformado em um avatar seguro." });
+        toast({ title: "Privacidade Garantida", description: "Identidade bio-protegida." });
       }
       setIsCapturing(false);
     }
@@ -211,7 +215,7 @@ export function PlaygroundInterface() {
   const completeMission = () => {
     if (!activeChallenge || !user || !userProgressRef) return;
 
-    const missionType = activeChallenge.missionType || ( !profile?.dailyCycle?.homeMissionCompleted ? 'home' : 'street');
+    const missionType = activeChallenge.missionType || 'home';
     const activityData = {
       userProgressId: user.uid,
       userName: profile?.displayName || "Explorador",
@@ -231,13 +235,9 @@ export function PlaygroundInterface() {
       addDocumentNonBlocking(collection(db, 'public_gallery'), activityData);
     }
 
-    const totalCompleted = (profile?.totalChallengesCompleted || 0) + 1;
-    const shouldLevelUp = totalCompleted % 5 === 0 && (profile?.psychomotorLevel || 1) < 4;
-    
-    const updates: any = {
+    const updates = {
       ludoCoins: (profile?.ludoCoins || 0) + activeChallenge.ludoCoinsReward,
-      totalChallengesCompleted: totalCompleted,
-      psychomotorLevel: shouldLevelUp ? (profile?.psychomotorLevel || 1) + 1 : (profile?.psychomotorLevel || 1),
+      totalChallengesCompleted: (profile?.totalChallengesCompleted || 0) + 1,
       avatar: { ...profile?.avatar, energy: Math.max(0, (profile?.avatar?.energy ?? 100) - 20) },
       dailyCycle: {
         ...profile?.dailyCycle,
@@ -246,11 +246,6 @@ export function PlaygroundInterface() {
       }
     };
     
-    if (activeChallenge.isLudicDrawing && !profile?.badges?.includes('creative-explorer')) {
-      updates.badges = [...(profile?.badges || []), 'creative-explorer'];
-      toast({ title: "Novo Emblema!", description: "Você ganhou: Explorador Criativo 🎨" });
-    }
-
     setDocumentNonBlocking(userProgressRef, updates, { merge: true });
     setCelebrating(true);
     setTimeout(() => { setCelebrating(false); setActiveChallenge(null); }, 4000);
@@ -265,57 +260,49 @@ export function PlaygroundInterface() {
         <div className="space-y-4">
           <h2 className="text-3xl font-black uppercase italic tracking-tighter leading-none">Bem-vindo à Jornada</h2>
           <p className="text-sm text-muted-foreground font-medium max-w-xs mx-auto">
-            O UrbeLudo conecta seu corpo à cidade. Siga o Ciclo do Sol e evolua sua Escada Psicomotora.
+            O UrbeLudo conecta seu corpo à cidade de forma acessível e segura.
           </p>
         </div>
         <div className="grid gap-4 w-full max-w-xs">
-          <div className="flex items-center gap-4 text-left p-4 bg-muted/30 rounded-3xl">
-            <Zap className="w-6 h-6 text-primary shrink-0" />
-            <p className="text-[10px] font-bold uppercase leading-tight">Comece em Casa para despertar o corpo e ganhar energia.</p>
-          </div>
-          <div className="flex items-center gap-4 text-left p-4 bg-muted/30 rounded-3xl">
-            <MapPin className="w-6 h-6 text-accent shrink-0" />
-            <p className="text-[10px] font-bold uppercase leading-tight">Vá para a Rua para explorar e conquistar o ambiente urbano.</p>
-          </div>
+          <Button variant="outline" className="h-14 rounded-2xl gap-3" onClick={() => setIsAudioEnabled(!isAudioEnabled)}>
+            <Volume2 className={cn("w-5 h-5", isAudioEnabled ? "text-primary" : "text-muted-foreground")} />
+            <span className="text-[10px] font-black uppercase">{isAudioEnabled ? "Guia por Áudio Ativo" : "Ativar Áudio Guia"}</span>
+          </Button>
+          <Button variant="outline" className="h-14 rounded-2xl gap-3" onClick={() => setIsLibrasEnabled(!isLibrasEnabled)}>
+            <Hand className={cn("w-5 h-5", isLibrasEnabled ? "text-primary" : "text-muted-foreground")} />
+            <span className="text-[10px] font-black uppercase">{isLibrasEnabled ? "Libras Ativo" : "Ativar Libras"}</span>
+          </Button>
         </div>
-        <Button onClick={() => setShowGuide(false)} className="w-full max-w-xs h-16 rounded-[2.5rem] font-black uppercase tracking-widest shadow-xl">Entendido</Button>
+        <Button onClick={() => setShowGuide(false)} className="w-full max-w-xs h-16 rounded-[2.5rem] font-black uppercase tracking-widest shadow-xl">Começar Agora</Button>
       </div>
     );
   }
 
-  if (isProfileLoading) return (
-    <div className="flex flex-col h-full items-center justify-center p-6 text-center space-y-4">
-      <Loader2 className="animate-spin text-primary w-12 h-12" />
-      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Sincronizando Playground...</p>
-    </div>
-  );
-
-  if (celebrating) return (
-    <div className="fixed inset-0 z-[100] bg-primary flex flex-col items-center justify-center p-8 text-center text-white">
-      <Trophy className="w-24 h-24 mb-8 animate-bounce" />
-      <h2 className="text-4xl font-black uppercase italic mb-4">Bravo!</h2>
-      <div className="bg-white/20 px-8 py-4 rounded-3xl border border-white/30 backdrop-blur-xl">
-         <span className="text-4xl font-black flex items-center gap-2"><Coins className="w-8 h-8 text-yellow-300" /> +{activeChallenge?.ludoCoinsReward}</span>
-      </div>
-    </div>
-  );
-
   return (
-    <div className="flex flex-col h-full bg-background">
+    <div className="flex flex-col h-full bg-background relative overflow-hidden">
       <div className="relative w-full aspect-[4/3] bg-black overflow-hidden shadow-inner">
         <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
         <canvas ref={canvasRef} className="hidden" />
         
-        {/* Filtro de Avatar Dinâmico Simulado */}
+        {/* Libras Avatar Overlay */}
+        {isLibrasEnabled && activeChallenge && (
+          <div className="absolute bottom-4 right-4 w-20 h-20 bg-black/40 backdrop-blur-md rounded-2xl border border-white/20 flex items-center justify-center overflow-hidden z-30 animate-pulse">
+             <div className="flex flex-col items-center gap-1">
+                <Hand className="w-8 h-8 text-primary" />
+                <span className="text-[8px] font-black text-white uppercase">Libras</span>
+             </div>
+          </div>
+        )}
+
+        {/* Dynamic Avatar Filter */}
         {safeAvatar && !photoProof && (
           <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
              <div 
-               className="w-44 h-44 rounded-full border-4 border-white/50 shadow-2xl animate-pulse flex flex-col items-center justify-center text-white text-center p-4"
+               className="w-44 h-44 rounded-full border-4 border-white/50 shadow-2xl flex flex-col items-center justify-center text-white text-center p-4 transition-all"
                style={{ backgroundColor: `${safeAvatar.dominantColor}99`, backdropFilter: 'blur(10px)' }}
              >
                 <div className="bg-white/20 w-32 h-6 rounded-full border border-white/40 mb-2" />
                 <span className="text-[10px] font-black uppercase tracking-widest leading-none">Avatar Ativo</span>
-                <span className="text-[8px] font-bold opacity-80 uppercase">{safeAvatar.accessoryType}</span>
              </div>
           </div>
         )}
@@ -330,29 +317,13 @@ export function PlaygroundInterface() {
         <div className="absolute top-4 left-4 right-4 flex justify-between pointer-events-none">
            <Badge variant="outline" className="bg-black/40 text-white border-white/20 backdrop-blur-md gap-2 py-1.5 px-3">
               <ShieldCheck className="w-3 h-3 text-green-400" />
-              <span className="text-[8px] font-black uppercase tracking-tighter">Privacidade de Borda</span>
+              <span className="text-[8px] font-black uppercase tracking-tighter">Bio-Privacidade Ativa</span>
            </Badge>
-           {safeAvatar && (
-             <Badge className="bg-primary/80 text-white border-none gap-2">
-               <UserCheck className="w-3 h-3" />
-               <span className="text-[8px] font-black uppercase">Seguro</span>
-             </Badge>
-           )}
         </div>
       </div>
 
-      <div className="flex-1 -mt-10 bg-background rounded-t-[3rem] p-6 shadow-2xl overflow-y-auto space-y-6">
+      <div className="flex-1 -mt-10 bg-background rounded-t-[3rem] p-6 shadow-2xl overflow-y-auto space-y-6 z-20">
         
-        {hasCameraPermission === false && (
-          <Alert variant="destructive" className="rounded-3xl">
-            <Lock className="h-4 w-4" />
-            <AlertTitle className="font-black uppercase text-xs">Câmera Bloqueada</AlertTitle>
-            <AlertDescription className="text-[10px] font-medium">
-              O UrbeLudo precisa da câmera para identificar o ambiente. Por favor, ative nas configurações do navegador.
-            </AlertDescription>
-          </Alert>
-        )}
-
         {!safeAvatar && hasCameraPermission && (
           <div className="p-6 bg-accent/5 rounded-[2.5rem] border-2 border-dashed border-accent/20 text-center space-y-4 animate-in zoom-in-95">
              <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mx-auto text-accent">
@@ -361,11 +332,12 @@ export function PlaygroundInterface() {
              <div className="space-y-1">
                 <h3 className="text-xl font-black uppercase italic tracking-tighter">Scan de Identidade</h3>
                 <p className="text-[10px] font-medium text-muted-foreground leading-relaxed">
-                  Crie seu Avatar Seguro. Sua foto real é usada apenas para gerar o estilo e é <span className="text-primary font-bold">descartada imediatamente</span>.
+                  Posicione seu rosto para gerar o Avatar Seguro. <br/>
+                  <span className="text-primary font-bold">A foto será descartada imediatamente após o scan.</span>
                 </p>
              </div>
              <Button onClick={handleFaceScan} disabled={isAvatarizing} className="w-full h-14 rounded-2xl font-black uppercase bg-accent text-accent-foreground">
-               {isAvatarizing ? <Loader2 className="animate-spin" /> : "Iniciar Scan Seguro"}
+               {isAvatarizing ? <Loader2 className="animate-spin" /> : "Iniciar Scan de Segurança"}
              </Button>
           </div>
         )}
@@ -380,15 +352,18 @@ export function PlaygroundInterface() {
              </div>
              
              <div className="flex justify-between items-center px-2">
-                <div className="flex items-center gap-2">
-                   <Battery className={cn("w-4 h-4", (profile?.avatar?.energy ?? 100) < 30 ? "text-destructive" : "text-primary")} />
-                   <span className="text-[10px] font-black uppercase text-muted-foreground">Stamina: {profile?.avatar?.energy ?? 100}%</span>
+                <div className="flex items-center gap-4">
+                   <div className="flex items-center gap-1">
+                      <Battery className={cn("w-4 h-4", (profile?.avatar?.energy ?? 100) < 30 ? "text-destructive" : "text-primary")} />
+                      <span className="text-[10px] font-black uppercase text-muted-foreground">{profile?.avatar?.energy ?? 100}%</span>
+                   </div>
+                   <button onClick={() => setIsAudioEnabled(!isAudioEnabled)} className={cn("p-1 rounded-full", isAudioEnabled ? "text-primary" : "text-muted-foreground")}><Volume2 className="w-4 h-4" /></button>
                 </div>
-                <Link href="/community" className="text-[10px] font-black uppercase text-primary flex items-center gap-1"><Share2 className="w-3 h-3" /> Comunidade</Link>
+                <Link href="/community" className="text-[10px] font-black uppercase text-primary flex items-center gap-1"><Share2 className="w-3 h-3" /> Galeria</Link>
              </div>
              
-             <ChallengeRow title="O Despertar" subtitle="Casa & Criatividade" icon={<HomeIcon />} isCompleted={profile?.dailyCycle?.homeMissionCompleted} onClick={() => handleStartMission('home')} disabled={isScanning || (profile?.avatar?.energy ?? 100) < 15} />
-             <ChallengeRow title="A Jornada" subtitle="Rua & Descoberta" icon={<MapPin />} isCompleted={profile?.dailyCycle?.streetMissionCompleted} onClick={() => handleStartMission('street')} disabled={!profile?.dailyCycle?.homeMissionCompleted || isScanning || (profile?.avatar?.energy ?? 100) < 15} />
+             <ChallengeRow title="O Despertar" subtitle="Casa" icon={<HomeIcon />} isCompleted={profile?.dailyCycle?.homeMissionCompleted} onClick={() => handleStartMission('home')} disabled={isScanning} />
+             <ChallengeRow title="A Jornada" subtitle="Rua" icon={<MapPin />} isCompleted={profile?.dailyCycle?.streetMissionCompleted} onClick={() => handleStartMission('street')} disabled={isScanning} />
           </div>
         )}
 
@@ -399,14 +374,14 @@ export function PlaygroundInterface() {
                 <Badge className="bg-accent text-accent-foreground font-black text-[8px] uppercase">{activeChallenge.difficulty}</Badge>
                 <div className="flex items-center gap-1 font-black text-primary text-sm"><Coins className="w-3 h-3" /> {activeChallenge.ludoCoinsReward}</div>
               </div>
-              <CardTitle className="text-2xl font-black uppercase italic tracking-tighter leading-none">{activeChallenge.challengeTitle}</CardTitle>
+              <CardTitle className="text-xl font-black uppercase italic tracking-tighter leading-none">{activeChallenge.challengeTitle}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-3">
                  {activeChallenge.steps.map((step, idx) => (
                    <div key={idx} className={cn(
                      "flex items-center gap-3 p-3 rounded-2xl transition-all",
-                     currentStep === idx ? "bg-white shadow-sm scale-105 border border-primary/20" : 
+                     currentStep === idx ? "bg-white shadow-sm border border-primary/20" : 
                      currentStep > idx ? "bg-primary/20 opacity-60" : "bg-muted/40 opacity-40"
                    )}>
                      <div className={cn("w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black", currentStep >= idx ? "bg-primary text-white" : "bg-muted text-muted-foreground")}>{idx + 1}</div>
@@ -416,24 +391,14 @@ export function PlaygroundInterface() {
               </div>
 
               {currentStep < activeChallenge.steps.length - 1 ? (
-                <Button onClick={() => setCurrentStep(prev => prev + 1)} className="w-full h-14 rounded-2xl font-black uppercase">Próximo Passo <ChevronRight className="w-4 h-4 ml-2" /></Button>
+                <Button onClick={() => setCurrentStep(prev => prev + 1)} className="w-full h-14 rounded-2xl font-black uppercase">Seguir <ChevronRight className="w-4 h-4 ml-2" /></Button>
               ) : !photoProof ? (
-                <div className="space-y-4">
-                  <div className="bg-accent/10 border border-accent/20 p-4 rounded-3xl space-y-2">
-                     <p className="text-[9px] font-black uppercase text-accent-foreground flex items-center gap-2">
-                        <ShieldCheck className="w-4 h-4" /> Segurança de Borda
-                     </p>
-                     <p className="text-[9px] font-medium leading-tight text-muted-foreground italic">
-                        "Seu rosto foi mapeado e agora é protegido por um avatar dinâmico. Dados descartados localmente."
-                     </p>
-                  </div>
-                  <Button onClick={takePhotoWithAvatarOverlay} disabled={isCapturing} className="w-full h-16 rounded-2xl font-black uppercase bg-accent text-accent-foreground shadow-lg border-b-4 border-accent-foreground/10 active:border-b-0 active:translate-y-1 transition-all">
-                    {isCapturing ? <Loader2 className="w-6 h-6 animate-spin" /> : <Camera className="w-6 h-6 mr-3" />} 
-                    Capturar Prova Segura
-                  </Button>
-                </div>
+                <Button onClick={takePhotoWithAvatarOverlay} disabled={isCapturing} className="w-full h-16 rounded-2xl font-black uppercase bg-accent text-accent-foreground shadow-lg">
+                  {isCapturing ? <Loader2 className="w-6 h-6 animate-spin" /> : <Camera className="w-6 h-6 mr-3" />} 
+                  Capturar Prova Segura
+                </Button>
               ) : (
-                <Button onClick={completeMission} className="w-full h-16 rounded-2xl font-black uppercase bg-primary text-white shadow-xl border-b-4 border-primary-foreground/10 active:border-b-0 active:translate-y-1 transition-all">
+                <Button onClick={completeMission} className="w-full h-16 rounded-2xl font-black uppercase bg-primary text-white shadow-xl">
                   <CheckCircle2 className="w-6 h-6 mr-3" /> Finalizar Missão
                 </Button>
               )}
@@ -441,6 +406,16 @@ export function PlaygroundInterface() {
           </Card>
         )}
       </div>
+
+      {celebrating && (
+        <div className="fixed inset-0 z-[100] bg-primary flex flex-col items-center justify-center p-8 text-center text-white animate-in zoom-in">
+          <Trophy className="w-24 h-24 mb-8 animate-bounce" />
+          <h2 className="text-4xl font-black uppercase italic mb-4">Bravo!</h2>
+          <div className="bg-white/20 px-8 py-4 rounded-3xl border border-white/30 backdrop-blur-xl">
+             <span className="text-4xl font-black flex items-center gap-2"><Coins className="w-8 h-8 text-yellow-300" /> +{activeChallenge?.ludoCoinsReward}</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
