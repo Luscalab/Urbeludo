@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -59,8 +58,8 @@ export default function StudioPage() {
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
       
-      // Limite para caminhar apenas no chão
-      if (y > 400) {
+      // Limite para caminhar apenas no chão (área isométrica)
+      if (y > 450) {
         updateAvatarPosition(x, y);
       }
     }
