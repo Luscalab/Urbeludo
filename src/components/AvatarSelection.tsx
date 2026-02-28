@@ -1,10 +1,11 @@
+
 'use client';
 
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { AVATAR_CATALOG } from "@/lib/avatar-catalog";
-import { Check, AlertCircle, Search } from "lucide-react";
-import { cn } from "@/utils";
+import { Check, AlertCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface AvatarSelectionProps {
   initialAvatarId?: string;
@@ -28,8 +29,8 @@ export function AvatarSelection({ initialAvatarId, onSelect, debugMode = false }
           Seletor de Herói
         </h3>
         {debugMode && (
-          <span className="text-[8px] font-bold bg-accent/20 text-accent px-2 py-0.5 rounded-full uppercase">
-            Debug Ativo
+          <span className="text-[8px] font-bold bg-accent/20 text-accent px-2 py-0.5 rounded-full uppercase animate-pulse">
+            Inspetor Ativo
           </span>
         )}
       </div>
@@ -55,8 +56,8 @@ export function AvatarSelection({ initialAvatarId, onSelect, debugMode = false }
               {hasError ? (
                 <div className="flex flex-col items-center justify-center text-destructive p-4 text-center">
                   <AlertCircle className="w-6 h-6 mb-1" />
-                  <span className="text-[8px] font-black uppercase leading-none">404</span>
-                  {debugMode && <span className="text-[6px] mt-1 font-mono">{avatar.fileName}</span>}
+                  <span className="text-[8px] font-black uppercase leading-none">Erro 404</span>
+                  {debugMode && <span className="text-[6px] mt-1 font-mono break-all">{avatar.src}</span>}
                 </div>
               ) : (
                 <img 
@@ -70,9 +71,9 @@ export function AvatarSelection({ initialAvatarId, onSelect, debugMode = false }
                 />
               )}
               
-              {debugMode && !hasError && (
-                <div className="absolute bottom-1 bg-black/80 text-white text-[6px] px-1.5 rounded-sm font-mono">
-                  {avatar.fileName}
+              {debugMode && (
+                <div className="absolute bottom-1 bg-black/80 text-white text-[6px] px-1.5 py-0.5 rounded-sm font-mono max-w-[90%] truncate">
+                  {avatar.id}
                 </div>
               )}
 

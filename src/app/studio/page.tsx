@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -59,14 +60,13 @@ export default function StudioPage() {
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
       
-      // Caminha se for na área do chão (y > 400 pixels na perspectiva isométrica)
       if (y > 400) {
         updateAvatarPosition(x, y);
       }
     }
   };
 
-  const avatarInfo = getAvatarById(profile?.avatar?.avatarId || 'av-1');
+  const avatarInfo = getAvatarById(profile?.avatar?.avatarId || 'av-01');
   const auraColor = profile?.dominantColor || '#9333ea';
   const avatarPos = studioState.avatar.lastPosition;
   const isSapient = profile?.displayName?.toLowerCase() === 'sapient';
@@ -119,7 +119,7 @@ export default function StudioPage() {
           className="w-[1200px] h-[1200px] relative bg-white flex flex-col shadow-[0_0_100px_rgba(0,0,0,0.5)]"
           initial={{ x: -400, y: -200 }} 
         >
-          {/* Paredes Isométricas em V */}
+          {/* Paredes Isométricas */}
           <div className="relative w-full h-[40%] flex" style={{ 
             background: `linear-gradient(to bottom, ${auraColor}20, ${auraColor}40)` 
           }}>
@@ -131,13 +131,11 @@ export default function StudioPage() {
             </div>
           </div>
 
-          {/* Rodapé e Transição */}
           <div className="relative z-10 w-full h-8 flex -mt-4">
              <div className="flex-1 bg-white shadow-lg border-b-4 border-zinc-200" style={{ clipPath: 'polygon(0 0, 100% 100%, 100% 100%, 0 100%)' }} />
              <div className="flex-1 bg-white shadow-lg border-b-4 border-zinc-200" style={{ clipPath: 'polygon(0 100%, 0 100%, 100% 0, 100% 100%)' }} />
           </div>
 
-          {/* Chão Isométrico */}
           <div className="relative w-full h-[60%] bg-[#F5F2EC] overflow-hidden">
             <div className="absolute inset-0 opacity-15" style={{ 
                backgroundImage: `linear-gradient(45deg, #000 1px, transparent 1px), linear-gradient(-45deg, #000 1px, transparent 1px)`,
@@ -146,7 +144,6 @@ export default function StudioPage() {
             }} />
           </div>
 
-          {/* Itens do Estúdio */}
           <div className="absolute inset-0 z-20 pointer-events-none">
             <AnimatePresence>
               {studioState.placedItems.map(item => (
@@ -163,7 +160,6 @@ export default function StudioPage() {
             </AnimatePresence>
           </div>
 
-          {/* Personagem (Avatar de Corpo Inteiro) */}
           <motion.div 
             id="studio-avatar"
             animate={{ 
@@ -181,7 +177,7 @@ export default function StudioPage() {
                   className="w-full h-full object-contain drop-shadow-[0_25px_25px_rgba(0,0,0,0.4)]"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
-                    target.src = '/assets/avatars/1.png'; // Fallback absoluto
+                    target.src = '/assets/avatars/1.png';
                   }}
                 />
               </div>
@@ -194,7 +190,6 @@ export default function StudioPage() {
           </motion.div>
         </motion.div>
 
-        {/* HUD de Orientação */}
         <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-[110] pointer-events-none">
           <AnimatePresence mode="wait">
             <motion.div 
@@ -214,7 +209,6 @@ export default function StudioPage() {
         </div>
       </main>
 
-      {/* Controles Flutuantes */}
       <div className="fixed bottom-10 right-10 flex flex-col gap-6 z-[120]">
         <Button id="btn-play" asChild className="rounded-full h-18 w-18 shadow-2xl bg-accent hover:scale-110 active:scale-90 transition-transform border-b-6 border-accent/80">
           <Link href="/playground">
