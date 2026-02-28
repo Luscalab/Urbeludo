@@ -1,7 +1,7 @@
 
 /**
  * Catálogo de Avatares do UrbeLudo.
- * Mapeia todos os personagens disponíveis na pasta /public/assets/avatars/
+ * Mapeia todos os personagens disponíveis na pasta public/assets/avatars/
  */
 export interface AvatarAsset {
   id: string;
@@ -18,7 +18,7 @@ export const AVATAR_CATALOG: AvatarAsset[] = [
   { id: "avatar-06", name: "Guardião do Asfalto", src: "/assets/avatars/avatar_06.png" },
   { id: "avatar-07", name: "Dançarina de Neon", src: "/assets/avatars/avatar_07.png" },
   { id: "avatar-08", name: "Veloz Urbano", src: "/assets/avatars/avatar_08.png" },
-  { id: "avatar-09", name: "Zenitist", src: "/assets/avatars/avatar_09.png" },
+  { id: "avatar-09", name: "Zenitista", src: "/assets/avatars/avatar_09.png" },
   { id: "avatar-10", name: "Exploradora de Alturas", src: "/assets/avatars/avatar_10.png" },
 ];
 

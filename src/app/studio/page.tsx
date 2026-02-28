@@ -60,7 +60,7 @@ export default function StudioPage() {
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
       
-      // Limite para caminhar apenas no chão (área abaixo do rodapé em V)
+      // Limite para caminhar apenas no chão (área abaixo da parede em V)
       if (y > 480) {
         updateAvatarPosition(x, y);
       }
@@ -147,11 +147,6 @@ export default function StudioPage() {
             </div>
             <div className="flex-1 relative overflow-hidden" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 88%, 0 100%)' }}>
                <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:24px_24px]" />
-               <div className="absolute top-24 left-24 w-36 h-48 bg-blue-100/30 rounded-t-[3rem] border-8 border-white/50 shadow-2xl backdrop-blur-md rotate-[-6deg] skew-y-[12deg] overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-tr from-blue-400/20 to-transparent" />
-                  <div className="w-full h-2 bg-white/40 absolute top-1/2" />
-                  <div className="w-2 h-full bg-white/40 absolute left-1/2" />
-               </div>
             </div>
           </div>
 
