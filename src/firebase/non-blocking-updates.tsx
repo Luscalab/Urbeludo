@@ -20,7 +20,7 @@ import { LocalPersistence } from '@/lib/local-persistence';
  */
 export function setDocumentNonBlocking(docRef: DocumentReference, data: any, options: SetOptions) {
   // Persistência local imediata para resiliência do APK
-  if (docRef.path.includes('user_progress')) {
+  if (typeof window !== 'undefined' && docRef.path.includes('user_progress')) {
     LocalPersistence.saveProgress(data);
   }
 
@@ -33,7 +33,7 @@ export function setDocumentNonBlocking(docRef: DocumentReference, data: any, opt
         requestResourceData: data,
       })
     )
-  })
+  });
 }
 
 export function addDocumentNonBlocking(colRef: CollectionReference, data: any) {
@@ -51,7 +51,7 @@ export function addDocumentNonBlocking(colRef: CollectionReference, data: any) {
 
 export function updateDocumentNonBlocking(docRef: DocumentReference, data: any) {
   // Escrita local síncrona/imediata antes do Firebase
-  if (docRef.path.includes('user_progress')) {
+  if (typeof window !== 'undefined' && docRef.path.includes('user_progress')) {
     LocalPersistence.getProgress().then(existing => {
       LocalPersistence.saveProgress({ ...existing, ...data });
     });

@@ -18,11 +18,10 @@ export function AuthInitializer({ children }: { children: React.ReactNode }) {
   // Persistência de Identidade Offline
   useEffect(() => {
     const checkOfflineId = async () => {
+      if (typeof window === 'undefined') return;
       if (!user && !isUserLoading && !initStarted) {
         const savedId = await LocalPersistence.getUserId();
         if (savedId) {
-          // Se temos um ID salvo, mas não estamos logados, tentamos o login anônimo
-          // O Firebase tentará restaurar a sessão se possível
           setInitStarted(true);
           initiateAnonymousSignIn(auth);
         } else if (!initStarted) {

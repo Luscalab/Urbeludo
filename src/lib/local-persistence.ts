@@ -11,33 +11,57 @@ const STORAGE_KEYS = {
 
 /**
  * Utilitário de persistência local para garantir resiliência offline do APK.
+ * Protegido para evitar erros durante a renderização no lado do servidor (SSR).
  */
 export const LocalPersistence = {
   async saveProgress(data: any) {
-    await Preferences.set({
-      key: STORAGE_KEYS.USER_PROGRESS,
-      value: JSON.stringify(data),
-    });
+    if (typeof window === 'undefined') return;
+    try {
+      await Preferences.set({
+        key: STORAGE_KEYS.USER_PROGRESS,
+        value: JSON.stringify(data),
+      });
+    } catch (e) {
+      console.warn('Erro ao salvar progresso local:', e);
+    }
   },
 
   async getProgress() {
-    const { value } = await Preferences.get({ key: STORAGE_KEYS.USER_PROGRESS });
-    return value ? JSON.parse(value) : null;
+    if (typeof window === 'undefined') return null;
+    try {
+      const { value } = await Preferences.get({ key: STORAGE_KEYS.USER_PROGRESS });
+      return value ? JSON.parse(value) : null;
+    } catch (e) {
+      return null;
+    }
   },
 
   async saveUserId(uid: string) {
-    await Preferences.set({
-      key: STORAGE_KEYS.USER_ID,
-      value: uid,
-    });
+    if (typeof window === 'undefined') return;
+    try {
+      await Preferences.set({
+        key: STORAGE_KEYS.USER_ID,
+        value: uid,
+      });
+    } catch (e) {
+      console.warn('Erro ao salvar UID local:', e);
+    }
   },
 
   async getUserId() {
-    const { value } = await Preferences.get({ key: STORAGE_KEYS.USER_ID });
-    return value;
+    if (typeof window === 'undefined') return null;
+    try {
+      const { value } = await Preferences.get({ key: STORAGE_KEYS.USER_ID });
+      return value;
+    } catch (e) {
+      return null;
+    }
   },
 
   async clear() {
-    await Preferences.clear();
+    if (typeof window === 'undefined') return;
+    try {
+      await Preferences.clear();
+    } catch (e) {}
   }
 };
