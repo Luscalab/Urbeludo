@@ -53,7 +53,7 @@ export function PlaygroundInterface() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   
   const [showGuide, setShowGuide] = useState(true);
-  const [setupStep, setSetupStep] = useState(0); // 0: Welcome/Accessibility, 1: Profile Info
+  const [setupStep, setSetupStep] = useState(0); 
   const [isInitializingCamera, setIsInitializingCamera] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
@@ -71,7 +71,6 @@ export function PlaygroundInterface() {
   const [isLibrasEnabled, setIsLibrasEnabled] = useState(false);
   const [isLowLight, setIsLowLight] = useState(false);
 
-  // Form State
   const [ageGroup, setAgeGroup] = useState('adolescent_adult');
   const [sex, setSex] = useState('prefer_not_to_say');
   const [neurodivergence, setNeurodivergence] = useState('');
@@ -86,6 +85,9 @@ export function PlaygroundInterface() {
       setSex(profile.sex || 'prefer_not_to_say');
       setNeurodivergence(profile.neurodivergence || '');
       setPhysicalLimitations(profile.physicalLimitations || '');
+      if (profile.avatar?.traits) {
+        setSafeAvatar(profile.avatar.traits as any);
+      }
     }
   }, [profile]);
 
@@ -172,31 +174,17 @@ export function PlaygroundInterface() {
     if (!videoRef.current || isInitializingCamera) return;
     
     const video = videoRef.current;
-    if (video.videoWidth === 0 || video.videoHeight === 0 || video.readyState < 2) {
-      toast({ 
-        variant: 'destructive', 
-        title: "Câmera Inicializando", 
-        description: "Aguarde o sinal de vídeo aparecer e tente novamente." 
-      });
-      return;
-    }
-
-    // Checagem de luz
     const brightness = checkBrightness(video);
+    
     if (brightness < 60) {
       setIsLowLight(true);
-      const lowLightMsg = "Ambiente muito escuro. Por favor, vá para um local mais iluminado para o scan facial.";
+      const lowLightMsg = "Ambiente muito escuro. Vá para um local mais iluminado para o scan facial.";
       speak(lowLightMsg);
-      toast({ 
-        variant: 'destructive', 
-        title: "Luz Insuficiente", 
-        description: lowLightMsg 
-      });
+      toast({ variant: 'destructive', title: "Luz Insuficiente", description: lowLightMsg });
       return;
-    } else {
-      setIsLowLight(false);
-    }
+    } 
 
+    setIsLowLight(false);
     setIsAvatarizing(true);
     try {
       const canvas = document.createElement('canvas');
@@ -210,20 +198,21 @@ export function PlaygroundInterface() {
       
       const result = await avatarizeUser({ photoDataUri: photo });
       setSafeAvatar(result);
+
+      if (userProgressRef) {
+        updateDocumentNonBlocking(userProgressRef, {
+          "avatar.traits": result
+        });
+      }
       
       toast({ 
         title: "Avatar Seguro Criado!", 
-        description: "Sua identidade foi preservada. Dados originais descartados." 
+        description: "Seu rosto foi transformado em traços artísticos. Dados originais descartados." 
       });
       
-      setTimeout(() => setCameraMode('environment'), 1500);
+      setTimeout(() => setCameraMode('environment'), 2000);
     } catch (e) {
       console.error("Erro no scan:", e);
-      setSafeAvatar({
-        avatarStyleDescription: "Explorador Cibernético Minimalista",
-        dominantColor: "#33993D",
-        accessoryType: "Visor de Neon"
-      });
       setCameraMode('environment');
     } finally {
       setIsAvatarizing(false);
@@ -309,9 +298,9 @@ export function PlaygroundInterface() {
         ctx.fillStyle = 'rgba(0,0,0,0.8)';
         ctx.fillRect(0, canvas.height - 60, canvas.width, 60);
         ctx.fillStyle = 'white';
-        ctx.font = 'bold 12px Inter';
+        ctx.font = 'bold 10px Inter';
         ctx.textAlign = 'center';
-        ctx.fillText('IDENTIDADE PROTEGIDA POR IA • PROCESSAMENTO LOCAL', canvas.width / 2, canvas.height - 35);
+        ctx.fillText('IDENTIDADE PROTEGIDA • PROCESSAMENTO LOCAL • URBELUDO', canvas.width / 2, canvas.height - 35);
 
         setPhotoProof(canvas.toDataURL('image/jpeg'));
       }
@@ -373,9 +362,9 @@ export function PlaygroundInterface() {
               <Info className="w-10 h-10" />
             </div>
             <div className="space-y-4">
-              <h2 className="text-3xl font-black uppercase italic tracking-tighter leading-none">Guia de Exploração</h2>
+              <h2 className="text-3xl font-black uppercase italic tracking-tighter leading-none">Bem-vindo</h2>
               <p className="text-xs font-medium text-muted-foreground max-w-xs mx-auto leading-relaxed">
-                Bem-vindo ao UrbeLudo. Antes de começar, vamos configurar sua experiência.
+                Vamos configurar sua acessibilidade e perfil para uma experiência segura.
               </p>
             </div>
             <div className="grid gap-3 w-full max-w-xs">
@@ -389,74 +378,39 @@ export function PlaygroundInterface() {
               <Button variant="outline" className={cn("h-16 rounded-2xl gap-3 transition-all", isLibrasEnabled && "border-primary bg-primary/5")} onClick={() => setIsLibrasEnabled(!isLibrasEnabled)}>
                 <Hand className={cn("w-6 h-6", isLibrasEnabled ? "text-primary" : "text-muted-foreground")} />
                 <div className="text-left">
-                  <span className="text-[10px] font-black uppercase block leading-none">Guia de Libras</span>
+                  <span className="text-[10px] font-black uppercase block leading-none">Libras</span>
                   <span className="text-[8px] font-bold text-muted-foreground">{isLibrasEnabled ? "Ativado" : "Desativado"}</span>
                 </div>
               </Button>
             </div>
-            <Button onClick={() => setSetupStep(1)} className="w-full max-w-xs h-16 rounded-[2rem] font-black uppercase tracking-widest shadow-xl bg-primary hover:bg-primary/90">Configurar Perfil</Button>
+            <Button onClick={() => setSetupStep(1)} className="w-full max-w-xs h-16 rounded-[2rem] font-black uppercase tracking-widest bg-primary">Continuar</Button>
           </>
         ) : (
           <div className="w-full max-w-xs space-y-6 text-left animate-in slide-in-from-right-4">
-            <div className="flex items-center gap-3 mb-6">
-               <UserCircle className="w-8 h-8 text-primary" />
-               <h2 className="text-xl font-black uppercase italic leading-none">Seu Perfil</h2>
-            </div>
-            
+            <h2 className="text-xl font-black uppercase italic leading-none mb-6">Seu Perfil</h2>
             <div className="space-y-4">
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <Label className="text-[10px] font-black uppercase text-muted-foreground">Idade</Label>
                 <Select value={ageGroup} onValueChange={setAgeGroup}>
-                  <SelectTrigger className="rounded-xl h-12">
-                    <SelectValue placeholder="Selecione sua idade" />
-                  </SelectTrigger>
+                  <SelectTrigger className="rounded-xl h-12"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="preschool">Pré-escolar (3-6)</SelectItem>
-                    <SelectItem value="school_age">Escolar (7-12)</SelectItem>
-                    <SelectItem value="adolescent_adult">Adolescente/Adulto (13+)</SelectItem>
+                    <SelectItem value="preschool">3-6 anos</SelectItem>
+                    <SelectItem value="school_age">7-12 anos</SelectItem>
+                    <SelectItem value="adolescent_adult">13+ anos</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-muted-foreground">Sexo</Label>
-                <Select value={sex} onValueChange={setSex}>
-                  <SelectTrigger className="rounded-xl h-12">
-                    <SelectValue placeholder="Selecione seu sexo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="male">Masculino</SelectItem>
-                    <SelectItem value="female">Feminino</SelectItem>
-                    <SelectItem value="other">Outro</SelectItem>
-                    <SelectItem value="prefer_not_to_say">Prefiro não dizer</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="space-y-1">
+                <Label className="text-[10px] font-black uppercase text-muted-foreground">Neurodivergência</Label>
+                <Input placeholder="Ex: TDAH, Autismo..." value={neurodivergence} onChange={(e) => setNeurodivergence(e.target.value)} className="rounded-xl h-12" />
               </div>
-
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-muted-foreground">Neurodivergência (Opcional)</Label>
-                <Input 
-                  placeholder="Ex: TDAH, Autismo..." 
-                  value={neurodivergence} 
-                  onChange={(e) => setNeurodivergence(e.target.value)}
-                  className="rounded-xl h-12"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-muted-foreground">Limitações Físicas (Opcional)</Label>
-                <Input 
-                  placeholder="Ex: Lesão no joelho..." 
-                  value={physicalLimitations} 
-                  onChange={(e) => setPhysicalLimitations(e.target.value)}
-                  className="rounded-xl h-12"
-                />
+              <div className="space-y-1">
+                <Label className="text-[10px] font-black uppercase text-muted-foreground">Limitações Físicas</Label>
+                <Input placeholder="Ex: Joelho, Coluna..." value={physicalLimitations} onChange={(e) => setPhysicalLimitations(e.target.value)} className="rounded-xl h-12" />
               </div>
             </div>
-
             <div className="pt-4 flex gap-3">
-               <Button variant="ghost" onClick={() => setSetupStep(0)} className="h-14 font-black uppercase text-[10px]">Voltar</Button>
-               <Button onClick={handleSaveProfile} className="flex-1 h-14 rounded-2xl font-black uppercase tracking-widest bg-primary">Prosseguir</Button>
+               <Button onClick={handleSaveProfile} className="flex-1 h-14 rounded-2xl font-black uppercase bg-primary">Prosseguir</Button>
             </div>
           </div>
         )}
@@ -468,71 +422,45 @@ export function PlaygroundInterface() {
     <div className="flex flex-col h-full bg-background relative overflow-hidden">
       <div className="relative w-full aspect-[4/3] bg-black overflow-hidden shadow-2xl">
         {isInitializingCamera && (
-          <div className="absolute inset-0 z-50 bg-black flex flex-col items-center justify-center gap-4">
+          <div className="absolute inset-0 z-50 bg-black flex flex-col items-center justify-center gap-4 text-white">
              <Loader2 className="w-8 h-8 animate-spin text-primary" />
-             <span className="text-[10px] font-black uppercase text-white tracking-widest">Iniciando Sensor...</span>
+             <span className="text-[10px] font-black uppercase tracking-widest">Iniciando Sensor...</span>
           </div>
         )}
         
-        <video 
-          ref={videoRef} 
-          className="w-full h-full object-cover" 
-          autoPlay 
-          muted 
-          playsInline 
-        />
+        <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
         <canvas ref={canvasRef} className="hidden" />
 
-        {/* Visor de Alerta de Luz */}
-        {isLowLight && !safeAvatar && (
-          <div className="absolute inset-0 z-40 bg-black/40 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center animate-pulse">
-            <div className="w-16 h-16 bg-destructive/20 rounded-full flex items-center justify-center mb-4 border-2 border-destructive">
-               <Sun className="w-8 h-8 text-destructive" />
-            </div>
-            <h3 className="text-white font-black uppercase italic text-sm mb-2">Ambiente Escuro</h3>
-            <p className="text-white/80 text-[8px] font-bold uppercase max-w-[180px]">Vá para um local mais iluminado para garantir o scan facial.</p>
+        {isLowLight && (
+          <div className="absolute inset-0 z-40 bg-black/60 flex flex-col items-center justify-center text-center p-6 animate-pulse">
+            <Sun className="w-12 h-12 text-destructive mb-3" />
+            <h3 className="text-white font-black uppercase italic text-sm">Luz Insuficiente</h3>
+            <p className="text-white/70 text-[8px] font-bold uppercase mt-1">Vá para um local mais iluminado</p>
           </div>
         )}
 
-        {/* Overlay do Avatar Seguro */}
         {safeAvatar && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
              <div 
                className={cn(
-                 "w-48 h-48 rounded-full border-4 border-white/50 shadow-2xl flex items-center justify-center overflow-hidden transition-all duration-1000",
+                 "w-48 h-48 rounded-full border-4 border-white/50 shadow-2xl flex items-center justify-center overflow-hidden transition-all duration-700",
                  isBreathingActivity ? "animate-breathing-avatar" : "animate-pulse"
                )}
                style={{ backgroundColor: safeAvatar.dominantColor }}
              >
                 <div className="text-white text-center p-4">
                    <div className="text-[8px] font-black uppercase tracking-tighter mb-1">{safeAvatar.accessoryType}</div>
-                   <div className="text-[6px] font-bold uppercase opacity-60">Identidade Protegida</div>
+                   <div className="text-[6px] font-bold uppercase opacity-60">ID Seguro Ativo</div>
+                   {safeAvatar.hair && <div className="text-[5px] uppercase mt-1 opacity-40">{safeAvatar.hair.style} • {safeAvatar.hair.color}</div>}
                 </div>
              </div>
-             {isBreathingActivity && (
-               <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-64 h-64 rounded-full border border-primary/30 animate-ping opacity-20" />
-                  <div className="absolute bottom-10 bg-black/60 px-6 py-2 rounded-full border border-primary/40 backdrop-blur-md">
-                     <span className="text-[10px] font-black text-primary uppercase tracking-widest">Respire com o Avatar</span>
-                  </div>
-               </div>
-             )}
           </div>
         )}
         
         {isLibrasEnabled && (activeChallenge || isLowLight) && (
           <div className="absolute bottom-4 right-4 w-20 h-20 bg-black/60 backdrop-blur-md rounded-2xl border border-primary/40 flex flex-col items-center justify-center z-30 animate-pulse">
-             {isLowLight && !safeAvatar ? (
-               <div className="flex flex-col items-center">
-                  <AlertTriangle className="w-8 h-8 text-destructive" />
-                  <span className="text-[6px] font-black text-white uppercase mt-1 tracking-widest text-center">Luz Requerida</span>
-               </div>
-             ) : (
-               <>
-                 <Hand className="w-8 h-8 text-primary" />
-                 <span className="text-[7px] font-black text-white uppercase mt-1 tracking-widest">Libras</span>
-               </>
-             )}
+             <Hand className="w-8 h-8 text-primary" />
+             <span className="text-[7px] font-black text-white uppercase mt-1 tracking-widest">Acessibilidade</span>
           </div>
         )}
 
@@ -542,25 +470,22 @@ export function PlaygroundInterface() {
                <img src={photoProof} className="max-h-[70vh] rounded-2xl border-2 border-primary/50 shadow-2xl" alt="Prova" />
                <Button variant="destructive" size="icon" className="absolute -top-4 -right-4 rounded-full" onClick={() => setPhotoProof(null)}><RefreshCw className="w-5 h-5" /></Button>
              </div>
-             <p className="mt-4 text-[10px] font-black text-primary uppercase tracking-widest">Identidade Preservada com Sucesso</p>
           </div>
         )}
       </div>
 
       <div className="flex-1 -mt-8 bg-background rounded-t-[3rem] p-6 shadow-[0_-10px_30px_rgba(0,0,0,0.1)] overflow-y-auto space-y-6 z-20">
         
-        {!safeAvatar && hasCameraPermission !== false && (
-          <div className="p-6 bg-primary/5 rounded-[2.5rem] border-2 border-dashed border-primary/10 text-center space-y-5 animate-in zoom-in-95">
-             <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto text-primary">
-                <Scan className="w-8 h-8" />
-             </div>
+        {!safeAvatar && (
+          <div className="p-6 bg-primary/5 rounded-[2.5rem] border-2 border-dashed border-primary/10 text-center space-y-4">
+             <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto text-primary"><Scan className="w-8 h-8" /></div>
              <div className="space-y-1">
-                <h3 className="text-xl font-black uppercase italic">Scan de Identidade</h3>
-                <p className="text-[10px] font-medium text-muted-foreground leading-relaxed max-w-[200px] mx-auto">
-                  Analise seu rosto para gerar um avatar de privacidade. A foto original será descartada instantaneamente.
+                <h3 className="text-xl font-black uppercase italic">Scan de Privacidade</h3>
+                <p className="text-[9px] font-medium text-muted-foreground leading-relaxed max-w-[220px] mx-auto">
+                  Sua foto será convertida em uma base de dados de traços artísticos. O original será deletado instantaneamente.
                 </p>
              </div>
-             <Button onClick={handleFaceScan} disabled={isAvatarizing || isInitializingCamera} className="w-full h-14 rounded-[1.5rem] font-black uppercase tracking-widest bg-primary">
+             <Button onClick={handleFaceScan} disabled={isAvatarizing} className="w-full h-14 rounded-2xl font-black uppercase tracking-widest bg-primary shadow-lg">
                {isAvatarizing ? <Loader2 className="animate-spin" /> : "Gerar Avatar Seguro"}
              </Button>
           </div>
@@ -574,17 +499,6 @@ export function PlaygroundInterface() {
                 <CategoryButton active={selectedCategory === 'memory'} onClick={() => setSelectedCategory('memory')} icon={<Brain className="w-3 h-3" />} label="Mente" />
                 <CategoryButton active={selectedCategory === 'relaxation'} onClick={() => setSelectedCategory('relaxation')} icon={<Wind className="w-3 h-3" />} label="Zen" />
              </div>
-             
-             <div className="flex justify-between items-center px-2">
-                <div className="flex items-center gap-3">
-                   <div className="flex items-center gap-1">
-                      <Battery className={cn("w-4 h-4", (profile?.avatar?.energy ?? 100) < 30 ? "text-destructive" : "text-primary")} />
-                      <span className="text-[9px] font-black uppercase text-muted-foreground">{profile?.avatar?.energy ?? 100}% Energia</span>
-                   </div>
-                </div>
-                <Link href="/community" className="text-[9px] font-black uppercase text-primary flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 rounded-xl"><Share2 className="w-3 h-3" /> Galeria</Link>
-             </div>
-             
              <div className="space-y-3">
                 <ChallengeRow title="O Despertar" subtitle="Casa & Criatividade" icon={<HomeIcon />} isCompleted={profile?.dailyCycle?.homeMissionCompleted} onClick={() => handleStartMission('home')} disabled={isScanning} />
                 <ChallengeRow title="A Jornada" subtitle="Rua & Exploração" icon={<MapPin />} isCompleted={profile?.dailyCycle?.streetMissionCompleted} onClick={() => handleStartMission('street')} disabled={isScanning} />
@@ -593,55 +507,44 @@ export function PlaygroundInterface() {
         )}
 
         {activeChallenge && (
-          <Card className="border-none bg-primary/5 rounded-[2.5rem] shadow-sm animate-in slide-in-from-bottom-6">
-            <CardHeader className="pb-4">
-              <div className="flex justify-between items-center mb-2">
-                <Badge className="bg-accent text-accent-foreground font-black text-[9px] uppercase px-3">Dificuldade: {activeChallenge.difficulty}</Badge>
-                <div className="flex items-center gap-1 font-black text-primary text-sm"><Coins className="w-4 h-4 text-yellow-500" /> {activeChallenge.ludoCoinsReward}</div>
-              </div>
-              <CardTitle className="text-xl font-black uppercase italic leading-none">{activeChallenge.challengeTitle}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-3">
-                 {activeChallenge.steps.map((step, idx) => (
-                   <div key={idx} className={cn(
-                     "flex items-center gap-3 p-4 rounded-2xl transition-all border-2",
-                     currentStep === idx ? "bg-white shadow-md border-primary/30" : 
-                     currentStep > idx ? "bg-primary/10 opacity-50 border-transparent" : "bg-muted/40 opacity-30 border-transparent"
-                   )}>
-                     <div className={cn("w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black", currentStep >= idx ? "bg-primary text-white" : "bg-muted text-muted-foreground")}>{idx + 1}</div>
-                     <p className="text-xs font-bold leading-tight flex-1">{step}</p>
-                   </div>
-                 ))}
-              </div>
-
-              <div className="pt-2">
-                {currentStep < activeChallenge.steps.length - 1 ? (
-                  <Button onClick={() => setCurrentStep(prev => prev + 1)} className="w-full h-14 rounded-[1.5rem] font-black uppercase tracking-widest bg-primary text-white">
-                    Concluir Etapa <ChevronRight className="w-4 h-4 ml-1" />
-                  </Button>
-                ) : !photoProof ? (
-                  <Button onClick={takePhotoWithAvatarOverlay} disabled={isCapturing} className="w-full h-16 rounded-[2rem] font-black uppercase tracking-widest bg-accent text-accent-foreground shadow-lg flex items-center justify-center gap-2">
-                    {isCapturing ? <Loader2 className="w-6 h-6 animate-spin" /> : <Camera className="w-6 h-6" />} 
-                    Comprovar com IA
-                  </Button>
-                ) : (
-                  <Button onClick={completeMission} className="w-full h-16 rounded-[2rem] font-black uppercase tracking-widest bg-primary text-white shadow-lg animate-bounce">
-                    <CheckCircle2 className="w-6 h-6 mr-2" /> Concluir Missão
-                  </Button>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+          <div className="bg-primary/5 rounded-[2.5rem] p-6 space-y-6 animate-in slide-in-from-bottom-6">
+            <div className="flex justify-between items-center">
+              <Badge className="bg-accent text-accent-foreground font-black text-[8px] uppercase">Dificuldade: {activeChallenge.difficulty}</Badge>
+              <div className="flex items-center gap-1 font-black text-primary text-sm"><Coins className="w-4 h-4 text-yellow-500" /> {activeChallenge.ludoCoinsReward}</div>
+            </div>
+            <h3 className="text-xl font-black uppercase italic leading-none">{activeChallenge.challengeTitle}</h3>
+            <div className="space-y-2">
+               {activeChallenge.steps.map((step, idx) => (
+                 <div key={idx} className={cn(
+                   "flex items-center gap-3 p-4 rounded-2xl border-2 transition-all",
+                   currentStep === idx ? "bg-white border-primary/30 shadow-md" : "bg-muted/30 border-transparent opacity-40"
+                 )}>
+                   <div className={cn("w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black", currentStep >= idx ? "bg-primary text-white" : "bg-muted")}>{idx + 1}</div>
+                   <p className="text-xs font-bold leading-tight">{step}</p>
+                 </div>
+               ))}
+            </div>
+            <div className="pt-2">
+              {currentStep < activeChallenge.steps.length - 1 ? (
+                <Button onClick={() => setCurrentStep(prev => prev + 1)} className="w-full h-14 rounded-2xl font-black uppercase bg-primary">Próximo Passo</Button>
+              ) : !photoProof ? (
+                <Button onClick={takePhotoWithAvatarOverlay} disabled={isCapturing} className="w-full h-16 rounded-[2rem] font-black uppercase bg-accent text-accent-foreground flex items-center justify-center gap-2">
+                  <Camera className="w-6 h-6" /> Comprovar Missão
+                </Button>
+              ) : (
+                <Button onClick={completeMission} className="w-full h-16 rounded-[2rem] font-black uppercase bg-primary text-white animate-bounce">Concluir Agora</Button>
+              )}
+            </div>
+          </div>
         )}
       </div>
 
       {celebrating && (
-        <div className="fixed inset-0 z-[100] bg-primary flex flex-col items-center justify-center p-10 text-center text-white animate-in zoom-in duration-500">
-          <Trophy className="w-24 h-24 mb-6 animate-bounce text-yellow-300" />
-          <h2 className="text-4xl font-black uppercase italic mb-4">Incrível!</h2>
+        <div className="fixed inset-0 z-[100] bg-primary flex flex-col items-center justify-center p-10 text-center text-white animate-in zoom-in">
+          <Trophy className="w-20 h-20 mb-4 animate-bounce text-yellow-300" />
+          <h2 className="text-4xl font-black uppercase italic mb-4">LudoCoins!</h2>
           <div className="bg-white/20 px-8 py-4 rounded-[2rem] border border-white/30 backdrop-blur-xl">
-             <span className="text-3xl font-black flex items-center gap-2"><Coins className="w-8 h-8 text-yellow-300" /> +{activeChallenge?.ludoCoinsReward}</span>
+             <span className="text-3xl font-black">+{activeChallenge?.ludoCoinsReward}</span>
           </div>
         </div>
       )}
@@ -649,15 +552,12 @@ export function PlaygroundInterface() {
   );
 }
 
-function CategoryButton({ active, onClick, icon, label }: { active: boolean, onClick: () => void, icon: React.ReactNode, label: string }) {
+function CategoryButton({ active, onClick, icon, label }: any) {
   return (
-    <button 
-      onClick={onClick}
-      className={cn(
-        "px-4 py-2 rounded-xl text-[8px] font-black uppercase flex items-center gap-2 transition-all border-2 whitespace-nowrap",
-        active ? "bg-primary text-white border-primary" : "bg-white text-muted-foreground border-transparent shadow-sm"
-      )}
-    >
+    <button onClick={onClick} className={cn(
+      "px-4 py-2 rounded-xl text-[8px] font-black uppercase flex items-center gap-2 transition-all border-2 whitespace-nowrap",
+      active ? "bg-primary text-white border-primary" : "bg-white text-muted-foreground border-transparent shadow-sm"
+    )}>
       {icon} {label}
     </button>
   );
@@ -668,14 +568,14 @@ function ChallengeRow({ title, subtitle, icon, isCompleted, onClick, disabled }:
     <div onClick={!disabled && !isCompleted ? onClick : undefined} className={cn(
       "p-6 rounded-[2.5rem] flex items-center gap-4 transition-all", 
       isCompleted ? "bg-muted/40 opacity-50" : 
-      disabled ? "bg-muted/10 opacity-30 cursor-not-allowed" : "bg-white border-2 border-primary/5 shadow-md active:scale-95 cursor-pointer"
+      disabled ? "bg-muted/10 opacity-30" : "bg-white border-2 border-primary/5 shadow-md active:scale-95 cursor-pointer"
     )}>
       <div className={cn("w-12 h-12 rounded-[1rem] flex items-center justify-center", isCompleted ? "bg-primary text-white" : "bg-primary/10 text-primary")}>
         {isCompleted ? <CheckCircle2 className="w-6 h-6" /> : icon}
       </div>
       <div className="flex-1 min-w-0 text-left">
-        <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">{subtitle}</span>
-        <h4 className="text-lg font-black uppercase italic leading-none mt-0.5">{title}</h4>
+        <span className="text-[8px] font-black uppercase text-muted-foreground">{subtitle}</span>
+        <h4 className="text-lg font-black uppercase italic mt-0.5">{title}</h4>
       </div>
     </div>
   );
