@@ -1,8 +1,8 @@
 
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence, useSpring, useMotionValue } from 'framer-motion';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -39,129 +39,186 @@ import { cn } from '@/lib/utils';
 
 type CategoryType = 'artistic' | 'motor' | 'memory' | 'relaxation';
 
-// --- COMPONENTE DO PERSONAGEM 2D AVANÇADO (PUPPET ANIMATION) ---
-function ModernLudoAvatar({ traits, isBreathing, motionData }: { traits: AvatarizeUserOutput, isBreathing: boolean, motionData: { x: number, y: number } }) {
-  // Cores dinâmicas baseadas no scan
-  const skinColor = traits.face?.tone === 'Escuro' ? "#8d5524" : traits.face?.tone === 'Médio' ? "#e0ac69" : "#ffdbac";
-  const hairColor = traits.hair?.color || "#333333";
-  const eyeColor = traits.eyes?.color || "#00FFFF";
-  const primaryColor = traits.dominantColor || "#33993D";
+// --- ENGINE DE RENDERIZAÇÃO PROCEDURAL URBELUDO 2026 ---
+const ProceduralLudoAvatar = ({ traits, motionData, isBreathing }: { traits: AvatarizeUserOutput, motionData: { x: number, y: number }, isBreathing: boolean }) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const animationRef = useRef<number>(0);
 
-  // Configuração de mola para movimentos suaves
-  const springConfig = { damping: 20, stiffness: 100 };
-  const headX = useSpring(motionData.x * 40, springConfig);
-  const headY = useSpring(motionData.y * 30, springConfig);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
-  return (
-    <motion.div 
-      className="relative w-64 h-64 flex items-center justify-center"
-      animate={{ 
-        scale: isBreathing ? [1, 1.05, 1] : 1,
-        y: [0, -5, 0]
-      }}
-      transition={{ 
-        duration: isBreathing ? 3 : 4, 
-        repeat: Infinity, 
-        ease: "easeInOut" 
-      }}
-    >
-      {/* Aura de Dados Circundante */}
-      <motion.div 
-        className="absolute inset-0 rounded-full border-2 border-dashed border-primary/30"
-        animate={{ rotate: 360 }}
-        transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-      />
+    const draw = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
       
-      {/* Corpo / Torso (Estilo Puppet) */}
-      <motion.svg viewBox="0 0 200 200" className="w-full h-full drop-shadow-2xl">
-        <defs>
-          <linearGradient id="bodyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor={primaryColor} />
-            <stop offset="100%" stopColor="#000000" />
-          </linearGradient>
-        </defs>
+      const { x, y } = motionData;
+      const tilt = x * 20; // Inclinação baseada no movimento
+      const breathScale = isBreathing ? Math.sin(Date.now() / 500) * 5 : 0;
+      
+      // Configurações de Cores
+      const skinTone = traits.face?.tone || '#e0ac69';
+      const hairColor = traits.hair?.color || '#333333';
+      const eyeColor = traits.eyes?.color || '#00FFFF';
+      const accentColor = traits.dominantColor || '#33993D';
 
-        {/* Tronco */}
-        <motion.path
-          d="M60,180 Q100,140 140,180 L130,220 L70,220 Z"
-          fill="url(#bodyGrad)"
-          animate={{ d: isBreathing ? "M55,185 Q100,135 145,185 L135,225 L65,225 Z" : "M60,180 Q100,140 140,180 L130,220 L70,220 Z" }}
-          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-        />
+      // --- DESENHO DO TRONCO (ORGANIC PATH) ---
+      ctx.save();
+      ctx.translate(canvas.width / 2, canvas.height + 20);
+      const bodyGrad = ctx.createLinearGradient(0, -100, 0, 0);
+      bodyGrad.addColorStop(0, accentColor);
+      bodyGrad.addColorStop(1, '#000000');
+      
+      ctx.beginPath();
+      ctx.moveTo(-60, 0);
+      ctx.bezierCurveTo(-70, -80 - breathScale, 70, -80 - breathScale, 60, 0);
+      ctx.fillStyle = bodyGrad;
+      ctx.fill();
+      ctx.restore();
 
-        {/* CABEÇA (GRUPO ANIMADO) */}
-        <motion.g style={{ x: headX, y: headY }}>
-          {/* Rosto */}
-          <circle cx="100" cy="100" r="45" fill={skinColor} stroke="#000" strokeWidth="2" />
-          
-          {/* Cabelo Reativo */}
-          <motion.path
-            d={traits.hair?.style === 'longo' ? "M60,80 Q100,40 140,80 Q140,140 120,150 Q100,130 80,150 Q60,140 60,80" : "M65,85 Q100,45 135,85 L130,70 Q100,30 70,70 Z"}
-            fill={hairColor}
-            animate={{ 
-              rotate: [0, 2, -2, 0],
-              scale: isBreathing ? 1.02 : 1
-            }}
-            transition={{ duration: 4, repeat: Infinity }}
-          />
+      // --- CABEÇA E PESCOÇO (ORGANIC FLUIDITY) ---
+      ctx.save();
+      ctx.translate(canvas.width / 2 + tilt, canvas.height / 2 + y * 20);
+      ctx.rotate(tilt * Math.PI / 180 * 0.2);
 
-          {/* Olhos que Piscam */}
-          <g transform="translate(100, 95)">
-            <motion.circle 
-              cx="-15" cy="0" r="6" fill="#fff" 
-              animate={{ scaleY: [1, 1, 0.1, 1, 1] }} 
-              transition={{ duration: 4, repeat: Infinity, times: [0, 0.9, 0.92, 0.94, 1] }}
-            />
-            <motion.circle cx="-15" cy="0" r="3" fill={eyeColor} />
-            
-            <motion.circle 
-              cx="15" cy="0" r="6" fill="#fff" 
-              animate={{ scaleY: [1, 1, 0.1, 1, 1] }} 
-              transition={{ duration: 4, repeat: Infinity, times: [0, 0.9, 0.92, 0.94, 1] }}
-            />
-            <motion.circle cx="15" cy="0" r="3" fill={eyeColor} />
-          </g>
+      // Pescoço (IK Transition)
+      ctx.beginPath();
+      ctx.moveTo(-15, 40);
+      ctx.quadraticCurveTo(0, 55, 15, 40);
+      ctx.strokeStyle = skinTone;
+      ctx.lineWidth = 20;
+      ctx.lineCap = 'round';
+      ctx.stroke();
 
-          {/* Visor de Neon (Tecnologia 2026) */}
-          <motion.rect 
-            x="70" y="85" width="60" height="15" rx="5" 
-            fill={primaryColor} 
-            fillOpacity="0.3" 
-            stroke={primaryColor}
-            animate={{ opacity: [0.3, 0.6, 0.3] }}
-            transition={{ duration: 2, repeat: Infinity }}
-          />
+      // Rosto (Procedural Shape)
+      const faceGrad = ctx.createRadialGradient(0, 0, 10, 0, 0, 50);
+      faceGrad.addColorStop(0, skinTone);
+      faceGrad.addColorStop(1, adjustColor(skinTone, -20));
 
-          {/* Boca Reativa */}
-          <motion.path
-            d="M90,125 Q100,130 110,125"
-            stroke="#000"
-            strokeWidth="2"
-            fill="none"
-            animate={{ d: isBreathing ? "M85,130 Q100,140 115,130" : "M90,125 Q100,130 110,125" }}
-            transition={{ duration: 3, repeat: Infinity }}
-          />
-        </motion.g>
-      </motion.svg>
+      ctx.beginPath();
+      // Silhueta orgânica do rosto usando Bézier
+      ctx.moveTo(-40, -10);
+      ctx.bezierCurveTo(-45, 45, 45, 45, 40, -10);
+      ctx.bezierCurveTo(40, -50, -40, -50, -40, -10);
+      ctx.fillStyle = faceGrad;
+      ctx.shadowBlur = 15;
+      ctx.shadowColor = 'rgba(0,0,0,0.2)';
+      ctx.fill();
 
-      {/* Partículas de Aura */}
-      <div className="absolute inset-0 pointer-events-none">
-        {[...Array(5)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute w-2 h-2 rounded-full bg-primary/40"
-            animate={{
-              x: [Math.random() * 200 - 100, Math.random() * 200 - 100],
-              y: [Math.random() * 200 - 100, Math.random() * 200 - 100],
-              opacity: [0, 1, 0],
-              scale: [0, 1.5, 0]
-            }}
-            transition={{ duration: 2 + Math.random() * 2, repeat: Infinity, delay: i * 0.4 }}
-          />
-        ))}
-      </div>
-    </motion.div>
-  );
+      // Olhos (Expressive Generator)
+      const drawEye = (eyeX: number) => {
+        ctx.save();
+        ctx.translate(eyeX, -5);
+        
+        // Esclera
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 10, 6, 0, 0, Math.PI * 2);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fill();
+
+        // Íris (Radial Shader)
+        const irisGrad = ctx.createRadialGradient(0, 0, 1, 0, 0, 5);
+        irisGrad.addColorStop(0, '#000000');
+        irisGrad.addColorStop(0.6, eyeColor);
+        irisGrad.addColorStop(1, adjustColor(eyeColor, -40));
+        
+        ctx.beginPath();
+        ctx.arc(x * 5, y * 3, 4, 0, Math.PI * 2);
+        ctx.fillStyle = irisGrad;
+        ctx.fill();
+        ctx.restore();
+      };
+      drawEye(-18);
+      drawEye(18);
+
+      // Cabelo (Procedural Strands)
+      ctx.save();
+      ctx.beginPath();
+      ctx.fillStyle = hairColor;
+      if (traits.hair?.style === 'curto') {
+        ctx.moveTo(-45, -20);
+        ctx.bezierCurveTo(-50, -60, 50, -60, 45, -20);
+        ctx.lineTo(40, -10);
+        ctx.bezierCurveTo(0, -25, -40, -10, -40, -10);
+      } else {
+        ctx.moveTo(-45, -10);
+        ctx.bezierCurveTo(-60, 40, -30, 60, -20, 40);
+        ctx.bezierCurveTo(0, 50, 30, 60, 45, -10);
+        ctx.bezierCurveTo(50, -70, -50, -70, -45, -10);
+      }
+      ctx.fill();
+      ctx.restore();
+
+      // Visor Neon (Shader Pixel Effect)
+      ctx.save();
+      ctx.globalCompositeOperation = 'screen';
+      ctx.beginPath();
+      ctx.rect(-35, -12, 70, 12);
+      const visorGrad = ctx.createLinearGradient(-35, 0, 35, 0);
+      visorGrad.addColorStop(0, 'transparent');
+      visorGrad.addColorStop(0.5, accentColor);
+      visorGrad.addColorStop(1, 'transparent');
+      ctx.fillStyle = visorGrad;
+      ctx.shadowBlur = 20;
+      ctx.shadowColor = accentColor;
+      ctx.fill();
+      ctx.restore();
+
+      // Boca (Expression Path)
+      ctx.beginPath();
+      const mouthY = 20 + (isBreathing ? Math.sin(Date.now() / 500) * 3 : 0);
+      ctx.moveTo(-10, mouthY);
+      ctx.quadraticCurveTo(0, mouthY + 5, 10, mouthY);
+      ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.restore();
+
+      // Aura de Partículas (Procedural Flow)
+      drawAura(ctx, canvas.width, canvas.height, accentColor);
+
+      animationRef.current = requestAnimationFrame(draw);
+    };
+
+    draw();
+    return () => cancelAnimationFrame(animationRef.current);
+  }, [traits, motionData, isBreathing]);
+
+  return <canvas ref={canvasRef} width={400} height={400} className="w-full h-full" />;
+};
+
+// Funções Auxiliares de Programação Gráfica
+function adjustColor(hex: string, amt: number) {
+  let usePound = false;
+  if (hex[0] === "#") { hex = hex.slice(1); usePound = true; }
+  const num = parseInt(hex, 16);
+  let r = (num >> 16) + amt;
+  if (r > 255) r = 255; else if (r < 0) r = 0;
+  let b = ((num >> 8) & 0x00FF) + amt;
+  if (b > 255) b = 255; else if (b < 0) b = 0;
+  let g = (num & 0x0000FF) + amt;
+  if (g > 255) g = 255; else if (g < 0) g = 0;
+  return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16).padStart(6, '0');
+}
+
+function drawAura(ctx: CanvasRenderingContext2D, w: number, h: number, color: string) {
+  ctx.save();
+  const time = Date.now() / 1000;
+  for (let i = 0; i < 8; i++) {
+    const angle = time + i * (Math.PI / 4);
+    const px = w / 2 + Math.cos(angle) * 120;
+    const py = h / 2 + Math.sin(angle * 0.5) * 120;
+    ctx.beginPath();
+    ctx.arc(px, py, 2, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.globalAlpha = 0.3;
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = color;
+    ctx.fill();
+  }
+  ctx.restore();
 }
 
 // --- INTERFACE PRINCIPAL ---
@@ -233,7 +290,6 @@ export function PlaygroundInterface() {
             const b = pixels[i+2];
             const brightness = (r + g + b) / 3;
             
-            // Filtro de Tom de Pele / Destaque de Rosto
             if (brightness > 90 && r > g) { 
               const x = (i / 4) % 40;
               const y = Math.floor((i / 4) / 40);
@@ -246,11 +302,8 @@ export function PlaygroundInterface() {
           if (weight > 10) {
             const avgX = (totalX / weight) / 40 - 0.5;
             const avgY = (totalY / weight) / 30 - 0.5;
-            
-            // Suavização (Lerp)
             lastX = lastX * 0.9 + avgX * 0.1;
             lastY = lastY * 0.9 + avgY * 0.1;
-            
             setMotionData({ x: -lastX, y: lastY });
             setIsLowLight(false);
           } else {
@@ -337,7 +390,7 @@ export function PlaygroundInterface() {
       if (userProgressRef) {
         updateDocumentNonBlocking(userProgressRef, { "avatar.traits": result });
       }
-      toast({ title: "Identidade Cartoon Gerada!", description: "Seu Puppet 2D está pronto." });
+      toast({ title: "Identidade Procedural Gerada!", description: "Seu Bio-Puppet 2026 está pronto." });
     } catch (e) {
       console.error("Scan error:", e);
       toast({ title: "Aviso de IA", description: "Usando visual padrão." });
@@ -435,10 +488,10 @@ export function PlaygroundInterface() {
           playsInline 
         />
         
-        {/* Renderização do Avatar Puppet Avançado */}
+        {/* Renderização do Avatar Procedural 2026 */}
         {safeAvatar && cameraMode === 'user' && (
-          <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none p-12">
-            <ModernLudoAvatar 
+          <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none p-4">
+            <ProceduralLudoAvatar 
               traits={safeAvatar} 
               isBreathing={activeChallenge?.challengeType === 'breathing' || selectedCategory === 'relaxation'} 
               motionData={motionData}
@@ -544,7 +597,7 @@ export function PlaygroundInterface() {
              <div className="space-y-3">
                 <h3 className="text-2xl font-black uppercase italic tracking-tighter">Sync Bio-Puppet</h3>
                 <p className="text-[11px] font-medium text-muted-foreground max-w-[260px] mx-auto leading-relaxed">
-                  Gere sua representação 2D avançada. Seus dados biométricos são processados e descartados localmente.
+                  Gere sua representação procedural avançada. Seus dados biométricos são processados e descartados localmente.
                 </p>
              </div>
              <Button onClick={handleFaceScan} disabled={isAvatarizing || isInitializingCamera} className="w-full h-18 rounded-[3rem] font-black uppercase bg-primary shadow-2xl border-b-4 border-primary/70 text-lg">
