@@ -8,6 +8,7 @@ import { ShopDrawer } from '@/components/studio/ShopDrawer';
 import { TutorialOverlay } from '@/components/studio/TutorialOverlay';
 import { useStudio } from '@/hooks/use-studio';
 import { useUser, useDoc, useMemoFirebase } from '@/firebase';
+import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { 
   ArrowLeft, 
   Edit3, 
@@ -16,7 +17,8 @@ import {
   Zap,
   Coins,
   Navigation,
-  Sparkles
+  Sparkles,
+  ShoppingBag
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -27,6 +29,7 @@ export default function StudioPage() {
   const viewportRef = useRef<HTMLDivElement>(null);
   
   const [mode, setMode] = useState<'explore' | 'edit'>('explore');
+  const [isShopOpen, setIsShopOpen] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
   
   const userProgressRef = useMemoFirebase(() => user ? { id: user.uid, path: `user_progress/${user.uid}` } : null, [user]);
@@ -54,6 +57,17 @@ export default function StudioPage() {
     }
   };
 
+  const handleBuy = (itemId: string, price: number) => {
+    if (userProgressRef) {
+      // O addItem já gerencia unlockedItemIds e coloca uma instância no mundo
+      addItem(itemId);
+      // Atualiza as moedas no progresso global
+      updateDocumentNonBlocking(userProgressRef, {
+        ludoCoins: (profile?.ludoCoins || 0) - price
+      });
+    }
+  };
+
   const avatarUrl = profile?.avatar?.equippedItems?.[0] || 'https://picsum.photos/seed/ludo/400';
   const auraColor = profile?.dominantColor || '#9333ea';
   const avatarPos = studioState.avatar.lastPosition;
@@ -70,21 +84,21 @@ export default function StudioPage() {
         )}
       </AnimatePresence>
 
-      <header className="px-6 h-20 flex items-center justify-between bg-background/60 backdrop-blur-xl z-[100] border-b border-white/5">
+      <header className="px-6 h-20 flex items-center justify-between bg-background/60 backdrop-blur-xl z-[150] border-b border-white/5">
         <Link href="/dashboard" className="p-2 bg-white rounded-full shadow-sm shrink-0">
           <ArrowLeft className="w-5 h-5 text-primary" />
         </Link>
         
         <div className="flex items-center gap-3">
-          <div id="coin-counter" className="bg-primary/10 px-3 py-1.5 rounded-xl flex items-center gap-2 border border-primary/20">
-            <Coins className="w-3 h-3 text-yellow-600" />
-            <span className="text-xs font-black">{profile?.ludoCoins || 0}</span>
+          <div id="coin-counter" className="bg-primary/10 px-4 py-2 rounded-2xl flex items-center gap-2 border border-primary/20 shadow-inner">
+            <Coins className="w-4 h-4 text-yellow-600" />
+            <span className="text-sm font-black">{profile?.ludoCoins || 0}</span>
           </div>
           
           <Button 
             variant={mode === 'edit' ? "default" : "outline"} 
             onClick={() => setMode(mode === 'explore' ? 'edit' : 'explore')}
-            className="rounded-2xl font-black uppercase text-[10px] gap-2 shadow-sm"
+            className="rounded-2xl font-black uppercase text-[10px] gap-2 shadow-sm h-11"
           >
             {mode === 'edit' ? <><Check className="w-4 h-4" /> Pronto</> : <><Edit3 className="w-4 h-4" /> Decorar</>}
           </Button>
@@ -202,10 +216,22 @@ export default function StudioPage() {
             <Zap className="w-7 h-7 text-white" />
           </Link>
         </Button>
-        <div id="btn-shop">
-          <ShopDrawer onBuy={addItem} unlockedItemIds={studioState.unlockedItemIds} />
-        </div>
+        <button 
+          id="btn-shop" 
+          onClick={() => setIsShopOpen(true)}
+          className="rounded-full h-16 w-16 shadow-2xl bg-primary text-white flex items-center justify-center hover:scale-110 active:scale-95 transition-transform border-b-4 border-primary/80"
+        >
+          <ShoppingBag className="w-7 h-7" />
+        </button>
       </div>
+
+      <ShopDrawer 
+        isOpen={isShopOpen}
+        onClose={() => setIsShopOpen(false)}
+        userCoins={profile?.ludoCoins || 0}
+        unlockedItemIds={studioState.unlockedItemIds}
+        onBuyItem={handleBuy}
+      />
     </div>
   );
 }

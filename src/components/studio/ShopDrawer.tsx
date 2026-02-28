@@ -1,106 +1,148 @@
 'use client';
 
-import React from 'react';
-import { 
-  Sheet, 
-  SheetContent, 
-  SheetHeader, 
-  SheetTitle, 
-  SheetTrigger 
-} from '@/components/ui/sheet';
-import { Button } from '@/components/ui/button';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X, Lock, CheckCircle2, Coins, ShoppingBag, Sparkles } from 'lucide-react';
 import { STUDIO_CATALOG } from '@/lib/studio-catalog';
-import { Coins, ShoppingBag, Plus, Check } from 'lucide-react';
-import { useUser, useDoc, useMemoFirebase } from '@/firebase';
-import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
-export function ShopDrawer({ onBuy, unlockedItemIds = [] }: { onBuy: (itemId: string) => void, unlockedItemIds: string[] }) {
-  const { user } = useUser();
-  const { toast } = useToast();
-  const userProgressRef = useMemoFirebase(() => user ? { id: user.uid, path: `user_progress/${user.uid}` } : null, [user]);
-  const { data: profile } = useDoc(userProgressRef);
+interface ShopDrawerProps {
+  isOpen: boolean;
+  onClose: () => void;
+  userCoins: number;
+  unlockedItemIds: string[];
+  onBuyItem: (itemId: string, price: number) => void;
+}
 
-  const ludoCoins = profile?.ludoCoins || 0;
+export function ShopDrawer({ isOpen, onClose, userCoins, unlockedItemIds, onBuyItem }: ShopDrawerProps) {
+  const [activeTab, setActiveTab] = useState<string>("Todos");
 
-  const handlePurchase = (item: any) => {
-    // 1. Verificação de Saldo Local (Stand-alone logic)
-    if (ludoCoins < item.price) {
-      toast({
-        variant: 'destructive',
-        title: 'Saldo Insuficiente',
-        description: `Mova-se mais para ganhar LudoCoins!`
-      });
-      return;
-    }
+  const categories = ["Todos", "Ativo", "Estético", "Essencial", "Especial"];
 
-    // 2. Débito imediato no armazenamento local
-    updateDocumentNonBlocking(userProgressRef, {
-      ludoCoins: ludoCoins - item.price
-    });
-
-    // 3. Notifica o motor do estúdio para adicionar ao inventário
-    onBuy(item.id);
-    
-    toast({
-      title: 'Item Adquirido!',
-      description: `${item.name} foi adicionado ao seu estúdio.`
-    });
-  };
+  const filteredCatalog = activeTab === "Todos" 
+    ? STUDIO_CATALOG 
+    : STUDIO_CATALOG.filter(item => item.category === activeTab);
 
   return (
-    <Sheet>
-      <SheetTrigger asChild>
-        <Button className="rounded-full h-16 w-16 shadow-2xl bg-primary hover:scale-110 transition-transform border-b-4 border-primary/80">
-          <ShoppingBag className="w-7 h-7" />
-        </Button>
-      </SheetTrigger>
-      <SheetContent side="bottom" className="rounded-t-[3rem] h-[75vh] border-none bg-background/95 backdrop-blur-xl">
-        <SheetHeader className="mb-6">
-          <div className="flex justify-between items-center px-4">
-            <div className="space-y-1">
-              <SheetTitle className="text-2xl font-black uppercase italic tracking-tighter">Ludo Studio Shop</SheetTitle>
-              <p className="text-[10px] font-bold text-muted-foreground uppercase">Equipe seu espaço de treino</p>
-            </div>
-            <div className="bg-primary/10 px-4 py-2 rounded-2xl flex items-center gap-2 border border-primary/20 shadow-inner">
-              <Coins className="w-4 h-4 text-yellow-600" />
-              <span className="font-black text-sm">{ludoCoins}</span>
-            </div>
-          </div>
-        </SheetHeader>
-        <div className="grid gap-4 overflow-y-auto pb-16 px-2 no-scrollbar">
-          {STUDIO_CATALOG.map(item => {
-            const isUnlocked = unlockedItemIds.includes(item.id);
-            
-            return (
-              <div key={item.id} className="bg-white rounded-[2.5rem] p-5 flex items-center gap-5 shadow-sm border border-primary/5 hover:border-primary/20 transition-colors">
-                <div className="w-20 h-20 bg-muted/30 rounded-3xl flex items-center justify-center text-4xl shadow-inner border border-white">
-                  {item.assetPath}
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          {/* Overlay escuro de fundo */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="fixed inset-0 bg-black/60 z-[200] backdrop-blur-sm"
+          />
+
+          {/* A Gaveta da Loja */}
+          <motion.div
+            initial={{ y: "100%" }}
+            animate={{ y: 0 }}
+            exit={{ y: "100%" }}
+            transition={{ type: "spring", damping: 30, stiffness: 300 }}
+            className="fixed bottom-0 left-0 right-0 h-[75vh] bg-background rounded-t-[3.5rem] z-[210] flex flex-col shadow-2xl border-t-8 border-primary"
+          >
+            {/* Cabeçalho da Loja */}
+            <div className="p-8 border-b border-muted flex justify-between items-start bg-primary/5 rounded-t-[3.5rem]">
+              <div className="space-y-1">
+                <h2 className="text-3xl font-black text-primary uppercase italic tracking-tighter">Ludo Shop</h2>
+                <div className="bg-white/50 border border-primary/10 px-4 py-2 rounded-2xl flex items-center gap-2 shadow-inner">
+                  <Coins className="w-5 h-5 text-yellow-600" />
+                  <span className="text-lg font-black text-foreground">{userCoins} <span className="text-[10px] uppercase opacity-60">LC</span></span>
                 </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <h4 className="font-black uppercase text-xs italic">{item.name}</h4>
-                    <Badge variant="outline" className="text-[7px] font-black uppercase py-0 px-2 h-4">{item.category}</Badge>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground leading-tight mt-1 line-clamp-2">{item.description}</p>
-                  <div className="flex items-center gap-1 mt-2">
-                    <Coins className="w-3 h-3 text-yellow-600" />
-                    <span className="text-[11px] font-black">{item.price} LC</span>
-                  </div>
-                </div>
-                <Button 
-                  onClick={() => handlePurchase(item)} 
-                  disabled={isUnlocked && item.category !== 'Ativo'} // Permite múltiplas unidades de itens ativos
-                  className="rounded-2xl h-12 w-12 p-0 bg-primary/10 text-primary hover:bg-primary hover:text-white transition-all shadow-sm"
-                >
-                  {isUnlocked && item.category !== 'Ativo' ? <Check className="w-6 h-6" /> : <Plus className="w-6 h-6" />}
-                </Button>
               </div>
-            );
-          })}
-        </div>
-      </SheetContent>
-    </Sheet>
+              <button 
+                onClick={onClose} 
+                className="p-3 bg-white text-primary rounded-2xl shadow-sm hover:scale-110 active:scale-95 transition-all"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Filtros de Categoria */}
+            <div className="flex gap-2 p-4 overflow-x-auto no-scrollbar border-b border-muted">
+              {categories.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setActiveTab(cat)}
+                  className={cn(
+                    "px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all",
+                    activeTab === cat 
+                      ? "bg-primary text-white shadow-lg shadow-primary/20 scale-105" 
+                      : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                  )}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+
+            {/* Grid de Itens */}
+            <div className="flex-1 overflow-y-auto p-6 grid grid-cols-2 gap-4 pb-24 no-scrollbar">
+              {filteredCatalog.map((item) => {
+                const isUnlocked = unlockedItemIds.includes(item.id);
+                const canAfford = userCoins >= item.price;
+                const isSpecial = item.category === 'Especial';
+
+                return (
+                  <motion.div 
+                    key={item.id}
+                    whileTap={{ scale: 0.98 }}
+                    className={cn(
+                      "bg-white rounded-[2.5rem] p-5 flex flex-col items-center border-4 transition-all relative group",
+                      isSpecial ? "border-accent/20 bg-accent/5" : "border-muted/20 hover:border-primary/20"
+                    )}
+                  >
+                    {isSpecial && (
+                      <div className="absolute top-3 right-3 text-accent">
+                        <Sparkles className="w-4 h-4 animate-pulse" />
+                      </div>
+                    )}
+                    
+                    {/* Visual do Item */}
+                    <div className="w-24 h-24 mb-4 flex items-center justify-center bg-muted/30 rounded-3xl shadow-inner border border-white relative overflow-hidden">
+                       <span className="text-5xl drop-shadow-lg group-hover:scale-110 transition-transform duration-300 select-none">
+                         {item.assetPath}
+                       </span>
+                       {item.category === 'Ativo' && (
+                         <Badge className="absolute bottom-1 right-1 bg-green-500 text-[7px] font-black px-1.5">+MOD</Badge>
+                       )}
+                    </div>
+
+                    <div className="text-center mb-4 space-y-1">
+                      <h3 className="text-[11px] font-black text-foreground uppercase italic leading-none">{item.name}</h3>
+                      <p className="text-[8px] text-muted-foreground font-bold leading-tight px-2">{item.description}</p>
+                    </div>
+                    
+                    {isUnlocked && item.category !== 'Ativo' ? (
+                       <div className="mt-auto w-full py-3 bg-green-100 text-green-700 rounded-2xl text-[9px] font-black uppercase flex items-center justify-center gap-2">
+                         <CheckCircle2 className="w-4 h-4" /> Adquirido
+                       </div>
+                    ) : (
+                      <button 
+                        disabled={!canAfford}
+                        onClick={() => onBuyItem(item.id, item.price)}
+                        className={cn(
+                          "mt-auto w-full py-3 rounded-2xl text-[10px] font-black uppercase flex items-center justify-center gap-2 transition-all active:scale-95 shadow-md",
+                          canAfford 
+                            ? "bg-primary text-white hover:bg-primary/90 shadow-primary/20" 
+                            : "bg-muted text-muted-foreground opacity-50 cursor-not-allowed"
+                        )}
+                      >
+                        {!canAfford && <Lock className="w-3.5 h-3.5" />}
+                        <Coins className="w-3.5 h-3.5" /> {item.price}
+                      </button>
+                    )}
+                  </motion.div>
+                );
+              })}
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
   );
 }
