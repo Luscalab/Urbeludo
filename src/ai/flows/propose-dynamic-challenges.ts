@@ -4,7 +4,7 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'kit';
+import {z} from 'genkit';
 
 const ProposeDynamicChallengesInputSchema = z.object({
   detectedElements: z.array(z.string()).optional().default([]),
