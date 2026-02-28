@@ -25,7 +25,7 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
         Escolha seu Personagem
       </h3>
       
-      <div className="flex gap-4 overflow-x-auto pb-4 px-2 snap-x no-scrollbar -mx-6 px-6">
+      <div className="flex gap-4 overflow-x-auto pb-6 px-2 snap-x no-scrollbar -mx-6 px-6">
         {AVATAR_CATALOG.map((avatar) => {
           const isSelected = selectedId === avatar.id;
 
@@ -51,7 +51,8 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
                 )} 
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
-                  target.src = 'https://placehold.co/100x100?text=Avatar';
+                  // Tenta caminhos alternativos se falhar
+                  target.src = '/assets/avatars/1.png';
                 }}
               />
               
