@@ -1,10 +1,8 @@
 
 'use client';
 
-import React, { useState, useEffect, useRef, Suspense, useMemo } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, PerspectiveCamera, Float, Sphere, ContactShadows, Environment } from '@react-three/drei';
-import * as THREE from 'three';
+import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence, useSpring, useMotionValue } from 'framer-motion';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,8 +16,6 @@ import {
   MapPin, 
   Coins, 
   Trophy,
-  Camera,
-  RefreshCw,
   Scan,
   Volume2,
   Hand,
@@ -29,8 +25,8 @@ import {
   Brain,
   Wind,
   Sun,
-  Eye,
-  Sparkles
+  Sparkles,
+  ChevronRight
 } from 'lucide-react';
 import { proposeDynamicChallenges, type ProposeDynamicChallengesOutput } from '@/ai/flows/propose-dynamic-challenges';
 import { identifyUrbanElements } from '@/ai/flows/identify-urban-elements-flow';
@@ -43,132 +39,128 @@ import { cn } from '@/lib/utils';
 
 type CategoryType = 'artistic' | 'motor' | 'memory' | 'relaxation';
 
-// --- COMPONENTE DO AVATAR CARTOONESCO 2D (ESTILO 2026) ---
-function CartoonAvatar2D({ traits, isBreathing, targetRotation }: { traits: AvatarizeUserOutput, isBreathing: boolean, targetRotation: THREE.Euler }) {
-  const groupRef = useRef<THREE.Group>(null);
-  const faceGroupRef = useRef<THREE.Group>(null);
-  const hairRef = useRef<THREE.Group>(null);
-
-  useFrame((state) => {
-    if (groupRef.current && faceGroupRef.current) {
-      const t = state.clock.getElapsedTime();
-      
-      // Animação de "Respiração Elástica" estilo Cartoon
-      const breathFreq = isBreathing ? 4 : 1.2;
-      const breathAmp = isBreathing ? 0.05 : 0.015;
-      const scale = 1 + Math.sin(t * breathFreq) * breathAmp;
-      groupRef.current.scale.set(scale, scale, 1);
-      groupRef.current.position.y = Math.sin(t * 0.8) * 0.1;
-
-      // Efeito de Paralaxe Facial (Simula 3D em 2D)
-      const lerpSpeed = 0.1;
-      faceGroupRef.current.position.x = THREE.MathUtils.lerp(faceGroupRef.current.position.x, targetRotation.y * 0.8, lerpSpeed);
-      faceGroupRef.current.position.y = THREE.MathUtils.lerp(faceGroupRef.current.position.y, -targetRotation.x * 0.6, lerpSpeed);
-      
-      // Cabelo balança levemente com o movimento
-      if (hairRef.current) {
-        hairRef.current.rotation.z = THREE.MathUtils.lerp(hairRef.current.rotation.z, targetRotation.y * 0.1, 0.05);
-      }
-    }
-  });
-
+// --- COMPONENTE DO PERSONAGEM 2D AVANÇADO (PUPPET ANIMATION) ---
+function ModernLudoAvatar({ traits, isBreathing, motionData }: { traits: AvatarizeUserOutput, isBreathing: boolean, motionData: { x: number, y: number } }) {
+  // Cores dinâmicas baseadas no scan
   const skinColor = traits.face?.tone === 'Escuro' ? "#8d5524" : traits.face?.tone === 'Médio' ? "#e0ac69" : "#ffdbac";
   const hairColor = traits.hair?.color || "#333333";
   const eyeColor = traits.eyes?.color || "#00FFFF";
   const primaryColor = traits.dominantColor || "#33993D";
 
+  // Configuração de mola para movimentos suaves
+  const springConfig = { damping: 20, stiffness: 100 };
+  const headX = useSpring(motionData.x * 40, springConfig);
+  const headY = useSpring(motionData.y * 30, springConfig);
+
   return (
-    <group ref={groupRef}>
-      {/* CORPO (CAPSULA CARTUM) */}
-      <mesh position={[0, -1.2, -0.2]}>
-        <capsuleGeometry args={[0.5, 1, 4, 16]} />
-        <meshBasicMaterial color={primaryColor} />
-      </mesh>
-      {/* Contorno do Corpo */}
-      <mesh position={[0, -1.2, -0.25]} scale={1.08}>
-        <capsuleGeometry args={[0.5, 1, 4, 16]} />
-        <meshBasicMaterial color="#000000" />
-      </mesh>
-
-      {/* CABEÇA (CÍRCULO FLAT) */}
-      <group position={[0, 0.2, 0]}>
-        <mesh>
-          <circleGeometry args={[0.8, 64]} />
-          <meshBasicMaterial color={skinColor} />
-        </mesh>
-        {/* Contorno do Rosto */}
-        <mesh position={[0, 0, -0.05]} scale={1.06}>
-          <circleGeometry args={[0.8, 64]} />
-          <meshBasicMaterial color="#000000" />
-        </mesh>
-
-        {/* CABELO (FORMAS VETORIAIS) */}
-        <group ref={hairRef} position={[0, 0.4, -0.02]}>
-           <mesh>
-             {traits.hair?.style === 'longo' || traits.hair?.style === 'cacheado' ? (
-               <circleGeometry args={[0.9, 32, 0, Math.PI]} />
-             ) : (
-               <circleGeometry args={[0.85, 32, 0, Math.PI]} />
-             )}
-             <meshBasicMaterial color={hairColor} />
-           </mesh>
-           {/* Detalhes do Cabelo */}
-           <mesh position={[0, 0, -0.01]} scale={1.05}>
-             <circleGeometry args={[0.9, 32, 0, Math.PI]} />
-             <meshBasicMaterial color="#000000" />
-           </mesh>
-        </group>
-
-        {/* ELEMENTOS FACIAIS (COM PARALAXE) */}
-        <group ref={faceGroupRef} position={[0, 0, 0.1]}>
-          {/* OLHOS */}
-          <group position={[0, 0.1, 0]}>
-            {/* Esquerdo */}
-            <mesh position={[-0.25, 0, 0]}>
-              <circleGeometry args={[0.12, 32]} />
-              <meshBasicMaterial color="#ffffff" />
-            </mesh>
-            <mesh position={[-0.25, 0, 0.01]}>
-              <circleGeometry args={[0.06, 32]} />
-              <meshBasicMaterial color={eyeColor} />
-            </mesh>
-            {/* Direito */}
-            <mesh position={[0.25, 0, 0]}>
-              <circleGeometry args={[0.12, 32]} />
-              <meshBasicMaterial color="#ffffff" />
-            </mesh>
-            <mesh position={[0.25, 0, 0.01]}>
-              <circleGeometry args={[0.06, 32]} />
-              <meshBasicMaterial color={eyeColor} />
-            </mesh>
-          </group>
-
-          {/* VISOR NEON (ACESSÓRIO) */}
-          <mesh position={[0, 0.1, 0.05]}>
-            <planeGeometry args={[0.7, 0.2]} />
-            <meshBasicMaterial color={primaryColor} transparent opacity={0.4} />
-          </mesh>
-          <mesh position={[0, 0.1, 0.04]} scale={1.1}>
-            <planeGeometry args={[0.7, 0.2]} />
-            <meshBasicMaterial color="#000000" />
-          </mesh>
-
-          {/* BOCA (SORRISO CARTUM) */}
-          <mesh position={[0, -0.3, 0]} rotation={[0, 0, Math.PI]}>
-            <ringGeometry args={[0.08, 0.12, 32, 1, 0, Math.PI]} />
-            <meshBasicMaterial color="#000000" />
-          </mesh>
-        </group>
-      </group>
-
-      {/* AURA DE DADOS (EFEITO VETORIAL) */}
-      <mesh position={[0, -0.2, -0.5]} rotation={[0, 0, Date.now() * 0.001]}>
-        <ringGeometry args={[1.5, 1.55, 6]} />
-        <meshBasicMaterial color={primaryColor} transparent opacity={0.3} />
-      </mesh>
+    <motion.div 
+      className="relative w-64 h-64 flex items-center justify-center"
+      animate={{ 
+        scale: isBreathing ? [1, 1.05, 1] : 1,
+        y: [0, -5, 0]
+      }}
+      transition={{ 
+        duration: isBreathing ? 3 : 4, 
+        repeat: Infinity, 
+        ease: "easeInOut" 
+      }}
+    >
+      {/* Aura de Dados Circundante */}
+      <motion.div 
+        className="absolute inset-0 rounded-full border-2 border-dashed border-primary/30"
+        animate={{ rotate: 360 }}
+        transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+      />
       
-      <ContactShadows position={[0, -2, 0]} opacity={0.2} scale={10} blur={3} far={4} />
-    </group>
+      {/* Corpo / Torso (Estilo Puppet) */}
+      <motion.svg viewBox="0 0 200 200" className="w-full h-full drop-shadow-2xl">
+        <defs>
+          <linearGradient id="bodyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor={primaryColor} />
+            <stop offset="100%" stopColor="#000000" />
+          </linearGradient>
+        </defs>
+
+        {/* Tronco */}
+        <motion.path
+          d="M60,180 Q100,140 140,180 L130,220 L70,220 Z"
+          fill="url(#bodyGrad)"
+          animate={{ d: isBreathing ? "M55,185 Q100,135 145,185 L135,225 L65,225 Z" : "M60,180 Q100,140 140,180 L130,220 L70,220 Z" }}
+          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+        />
+
+        {/* CABEÇA (GRUPO ANIMADO) */}
+        <motion.g style={{ x: headX, y: headY }}>
+          {/* Rosto */}
+          <circle cx="100" cy="100" r="45" fill={skinColor} stroke="#000" strokeWidth="2" />
+          
+          {/* Cabelo Reativo */}
+          <motion.path
+            d={traits.hair?.style === 'longo' ? "M60,80 Q100,40 140,80 Q140,140 120,150 Q100,130 80,150 Q60,140 60,80" : "M65,85 Q100,45 135,85 L130,70 Q100,30 70,70 Z"}
+            fill={hairColor}
+            animate={{ 
+              rotate: [0, 2, -2, 0],
+              scale: isBreathing ? 1.02 : 1
+            }}
+            transition={{ duration: 4, repeat: Infinity }}
+          />
+
+          {/* Olhos que Piscam */}
+          <g transform="translate(100, 95)">
+            <motion.circle 
+              cx="-15" cy="0" r="6" fill="#fff" 
+              animate={{ scaleY: [1, 1, 0.1, 1, 1] }} 
+              transition={{ duration: 4, repeat: Infinity, times: [0, 0.9, 0.92, 0.94, 1] }}
+            />
+            <motion.circle cx="-15" cy="0" r="3" fill={eyeColor} />
+            
+            <motion.circle 
+              cx="15" cy="0" r="6" fill="#fff" 
+              animate={{ scaleY: [1, 1, 0.1, 1, 1] }} 
+              transition={{ duration: 4, repeat: Infinity, times: [0, 0.9, 0.92, 0.94, 1] }}
+            />
+            <motion.circle cx="15" cy="0" r="3" fill={eyeColor} />
+          </g>
+
+          {/* Visor de Neon (Tecnologia 2026) */}
+          <motion.rect 
+            x="70" y="85" width="60" height="15" rx="5" 
+            fill={primaryColor} 
+            fillOpacity="0.3" 
+            stroke={primaryColor}
+            animate={{ opacity: [0.3, 0.6, 0.3] }}
+            transition={{ duration: 2, repeat: Infinity }}
+          />
+
+          {/* Boca Reativa */}
+          <motion.path
+            d="M90,125 Q100,130 110,125"
+            stroke="#000"
+            strokeWidth="2"
+            fill="none"
+            animate={{ d: isBreathing ? "M85,130 Q100,140 115,130" : "M90,125 Q100,130 110,125" }}
+            transition={{ duration: 3, repeat: Infinity }}
+          />
+        </motion.g>
+      </motion.svg>
+
+      {/* Partículas de Aura */}
+      <div className="absolute inset-0 pointer-events-none">
+        {[...Array(5)].map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute w-2 h-2 rounded-full bg-primary/40"
+            animate={{
+              x: [Math.random() * 200 - 100, Math.random() * 200 - 100],
+              y: [Math.random() * 200 - 100, Math.random() * 200 - 100],
+              opacity: [0, 1, 0],
+              scale: [0, 1.5, 0]
+            }}
+            transition={{ duration: 2 + Math.random() * 2, repeat: Infinity, delay: i * 0.4 }}
+          />
+        ))}
+      </div>
+    </motion.div>
   );
 }
 
@@ -179,7 +171,7 @@ export function PlaygroundInterface() {
   const { toast } = useToast();
   const videoRef = useRef<HTMLVideoElement>(null);
   
-  const [targetRotation, setTargetRotation] = useState(new THREE.Euler(0, 0, 0));
+  const [motionData, setMotionData] = useState({ x: 0, y: 0 });
   const [showGuide, setShowGuide] = useState(true);
   const [isInitializingCamera, setIsInitializingCamera] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
@@ -213,14 +205,14 @@ export function PlaygroundInterface() {
     }
   }, [profile]);
 
-  // Rastreamento Facial Cartoonesco (Motion Tracking)
+  // Rastreamento Biométrico de Borda (Motion Tracking)
   useEffect(() => {
     let animationId: number;
-    let lastX = 20;
-    let lastY = 15;
+    let lastX = 0;
+    let lastY = 0;
 
     const analyzeMotion = () => {
-      if (videoRef.current && videoRef.current.readyState === 4 && cameraMode === 'user' && safeAvatar) {
+      if (videoRef.current && videoRef.current.readyState === 4 && cameraMode === 'user') {
         const video = videoRef.current;
         const tempCanvas = document.createElement('canvas');
         tempCanvas.width = 40; 
@@ -241,8 +233,8 @@ export function PlaygroundInterface() {
             const b = pixels[i+2];
             const brightness = (r + g + b) / 3;
             
-            // Filtro de Tom de Pele/Rosto para 2026
-            if (brightness > 100 && r > g) { 
+            // Filtro de Tom de Pele / Destaque de Rosto
+            if (brightness > 90 && r > g) { 
               const x = (i / 4) % 40;
               const y = Math.floor((i / 4) / 40);
               totalX += x;
@@ -251,18 +243,16 @@ export function PlaygroundInterface() {
             }
           }
 
-          if (weight > 5) {
-            const avgX = totalX / weight;
-            const avgY = totalY / weight;
+          if (weight > 10) {
+            const avgX = (totalX / weight) / 40 - 0.5;
+            const avgY = (totalY / weight) / 30 - 0.5;
             
-            lastX = lastX * 0.85 + avgX * 0.15;
-            lastY = lastY * 0.85 + avgY * 0.15;
+            // Suavização (Lerp)
+            lastX = lastX * 0.9 + avgX * 0.1;
+            lastY = lastY * 0.9 + avgY * 0.1;
             
-            const rotY = -(lastX / 40 - 0.5) * 1.2;
-            const rotX = (lastY / 30 - 0.5) * 0.8;
-            
-            setTargetRotation(new THREE.Euler(rotX, rotY, 0));
-            setIsLowLight(weight < 15);
+            setMotionData({ x: -lastX, y: lastY });
+            setIsLowLight(false);
           } else {
             setIsLowLight(true);
           }
@@ -271,12 +261,12 @@ export function PlaygroundInterface() {
       animationId = requestAnimationFrame(analyzeMotion);
     };
 
-    if (safeAvatar && !showGuide) {
+    if (!showGuide) {
       analyzeMotion();
     }
 
     return () => cancelAnimationFrame(animationId);
-  }, [safeAvatar, showGuide, cameraMode]);
+  }, [showGuide, cameraMode]);
 
   const startCamera = async (mode: 'user' | 'environment') => {
     setIsInitializingCamera(true);
@@ -291,7 +281,7 @@ export function PlaygroundInterface() {
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         videoRef.current.onloadedmetadata = () => {
-          videoRef.current?.play().catch(e => console.error("Video error:", e));
+          videoRef.current?.play().catch(e => console.error("Video play error:", e));
           setTimeout(() => setIsInitializingCamera(false), 300);
         };
       }
@@ -302,7 +292,7 @@ export function PlaygroundInterface() {
       toast({
         variant: 'destructive',
         title: 'Câmera Não Acessível',
-        description: 'Verifique as permissões para usar o UrbeLudo.'
+        description: 'Verifique as permissões do navegador.'
       });
     }
   };
@@ -337,7 +327,7 @@ export function PlaygroundInterface() {
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
       const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error("Canvas context failure");
+      if (!ctx) throw new Error("Context failure");
       ctx.drawImage(video, 0, 0);
       const photo = canvas.toDataURL('image/jpeg', 0.8);
       
@@ -347,10 +337,10 @@ export function PlaygroundInterface() {
       if (userProgressRef) {
         updateDocumentNonBlocking(userProgressRef, { "avatar.traits": result });
       }
-      toast({ title: "Avatar Cartoon Gerado!", description: "Sua identidade 2D reativa está pronta." });
+      toast({ title: "Identidade Cartoon Gerada!", description: "Seu Puppet 2D está pronto." });
     } catch (e) {
       console.error("Scan error:", e);
-      toast({ title: "Aviso de Scan", description: "Usando avatar cartoon padrão." });
+      toast({ title: "Aviso de IA", description: "Usando visual padrão." });
     } finally {
       setIsAvatarizing(false);
     }
@@ -366,14 +356,13 @@ export function PlaygroundInterface() {
   const handleStartMission = async (type: 'home' | 'street') => {
     const energy = profile?.avatar?.energy ?? 100;
     if (energy < 10) {
-      toast({ variant: 'destructive', title: 'Energia Baixa', description: 'Descanse para recuperar energia.' });
+      toast({ variant: 'destructive', title: 'Energia Baixa', description: 'O avatar precisa de recarga.' });
       return;
     }
 
     setCameraMode(type === 'street' ? 'environment' : 'user');
     setIsScanning(true);
     try {
-      await new Promise(r => setTimeout(r, 1000));
       let detected: string[] = [];
       if (type === 'street' && videoRef.current) {
         const canvas = document.createElement('canvas');
@@ -394,8 +383,9 @@ export function PlaygroundInterface() {
       });
       setActiveChallenge({ ...challenge, missionType: type });
       setCurrentStep(0);
+      speak(challenge.challengeTitle);
     } catch (e) {
-      toast({ variant: 'destructive', title: 'Falha na IA', description: 'Não conseguimos gerar o desafio agora.' });
+      toast({ variant: 'destructive', title: 'Erro de IA', description: 'Reconectando com o estúdio...' });
     } finally {
       setIsScanning(false);
     }
@@ -415,7 +405,7 @@ export function PlaygroundInterface() {
       challengeDescription: activeChallenge.challengeDescription,
       photoUrl: photoProof,
       likes: 0,
-      isPublic: !!photoProof
+      isPublic: false
     };
 
     addDocumentNonBlocking(collection(db, 'user_progress', user.uid, 'challenge_activities'), activityData);
@@ -435,99 +425,135 @@ export function PlaygroundInterface() {
 
   return (
     <div className="flex flex-col h-full bg-background relative overflow-hidden">
-      {/* Viewport da Câmera + Renderizador Avatar Cartoon */}
-      <div className="relative w-full aspect-[4/3] bg-black overflow-hidden shadow-2xl z-0">
+      {/* Camada Visual de Alta Tecnologia */}
+      <div className="relative w-full aspect-[3/4] bg-slate-900 overflow-hidden shadow-inner z-0">
         <video 
           ref={videoRef} 
-          className="w-full h-full object-cover" 
+          className="w-full h-full object-cover opacity-60 grayscale-[0.3]" 
           autoPlay 
           muted 
           playsInline 
         />
         
-        {/* Camada Cartoon Reativa */}
+        {/* Renderização do Avatar Puppet Avançado */}
         {safeAvatar && cameraMode === 'user' && (
-          <div className="absolute inset-0 z-30 pointer-events-none">
-            <Canvas shadows gl={{ alpha: true, antialias: true }}>
-              <PerspectiveCamera makeDefault position={[0, 0, 5]} fov={30} />
-              <ambientLight intensity={1.5} />
-              <Suspense fallback={null}>
-                <CartoonAvatar2D 
-                  traits={safeAvatar} 
-                  isBreathing={activeChallenge?.challengeType === 'breathing' || selectedCategory === 'relaxation'} 
-                  targetRotation={targetRotation}
-                />
-              </Suspense>
-              <OrbitControls enableZoom={false} enablePan={false} enableRotate={false} />
-            </Canvas>
+          <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none p-12">
+            <ModernLudoAvatar 
+              traits={safeAvatar} 
+              isBreathing={activeChallenge?.challengeType === 'breathing' || selectedCategory === 'relaxation'} 
+              motionData={motionData}
+            />
           </div>
         )}
 
-        {isLowLight && !showGuide && (
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[60] bg-destructive/90 text-white px-4 py-1.5 rounded-full flex items-center gap-2 animate-bounce">
-            <Sun className="w-3 h-3" />
-            <span className="text-[8px] font-black uppercase">Pouca Luz</span>
-          </div>
-        )}
+        {/* Alerta de Sensor de Luz */}
+        <AnimatePresence>
+          {isLowLight && !showGuide && (
+            <motion.div 
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="absolute top-8 left-1/2 -translate-x-1/2 z-[60] bg-destructive/90 text-white px-6 py-2 rounded-full flex items-center gap-2 shadow-lg border border-white/20"
+            >
+              <Sun className="w-4 h-4" />
+              <span className="text-[10px] font-black uppercase tracking-widest">Sensor: Luz Insuficiente</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
+        {/* Avatar de Libras (Flutuante) */}
         {isLibrasEnabled && (
-          <div className="absolute bottom-6 right-6 z-[45] w-20 h-20 bg-white/10 backdrop-blur-xl rounded-[2rem] border border-white/20 flex items-center justify-center animate-float-libras shadow-xl">
-             <Hand className="w-8 h-8 text-primary" />
-          </div>
+          <motion.div 
+            drag
+            className="absolute bottom-12 right-8 z-[45] w-24 h-24 bg-primary/20 backdrop-blur-2xl rounded-[3rem] border border-white/30 flex items-center justify-center shadow-2xl cursor-grab active:cursor-grabbing"
+            animate={{ y: [0, -10, 0] }}
+            transition={{ duration: 3, repeat: Infinity }}
+          >
+             <Hand className="w-10 h-10 text-primary drop-shadow-lg" />
+          </motion.div>
         )}
 
         {isInitializingCamera && (
-          <div className="absolute inset-0 z-50 bg-black flex flex-col items-center justify-center gap-3 text-white">
-             <Loader2 className="w-12 h-12 animate-spin text-primary" />
-             <span className="text-[10px] font-black uppercase tracking-widest text-primary/70">Acessando Playground...</span>
+          <div className="absolute inset-0 z-50 bg-slate-950 flex flex-col items-center justify-center gap-4">
+             <div className="relative">
+                <Loader2 className="w-16 h-16 animate-spin text-primary" />
+                <Sparkles className="absolute top-0 right-0 w-6 h-6 text-accent animate-pulse" />
+             </div>
+             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/70">Syncing Bio-Data...</span>
           </div>
         )}
       </div>
 
-      {/* Interface Inferior Estilo 2026 */}
-      <div className="flex-1 -mt-10 bg-background rounded-t-[3.5rem] p-8 shadow-2xl overflow-y-auto space-y-8 z-20 border-t border-primary/5">
+      {/* Painel de Controle UrbeLudo 2026 */}
+      <div className="flex-1 -mt-16 bg-background rounded-t-[4rem] p-8 shadow-[0_-20px_50px_rgba(0,0,0,0.1)] z-20 border-t border-primary/10 overflow-y-auto">
         
         {showGuide ? (
-          <div className="space-y-8">
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
             <div className="flex flex-col items-center text-center space-y-4">
-               <div className="w-20 h-20 bg-primary/10 rounded-[2.5rem] flex items-center justify-center text-primary border border-primary/20"><Info className="w-8 h-8" /></div>
-               <h2 className="text-2xl font-black uppercase italic tracking-tighter">Estúdio de Configuração</h2>
-               <p className="text-[10px] font-medium text-muted-foreground max-w-[260px]">Ajuste sua experiência inclusiva e psicomotora.</p>
+               <div className="w-24 h-24 bg-primary/10 rounded-[3rem] flex items-center justify-center text-primary border border-primary/20 shadow-inner">
+                 <Info className="w-10 h-10" />
+               </div>
+               <h2 className="text-3xl font-black uppercase italic tracking-tighter leading-none">Estúdio de Imersão</h2>
+               <p className="text-[11px] font-medium text-muted-foreground max-w-[280px] leading-relaxed">Personalize as diretrizes de acessibilidade e os sensores biométricos da sua jornada.</p>
             </div>
-            <div className="grid gap-3">
-              <AcessibilityToggle active={isAudioEnabled} onClick={() => { setIsAudioEnabled(!isAudioEnabled); speak("Áudio guia ativado"); }} icon={<Volume2 />} label="Áudio Guia" />
-              <AcessibilityToggle active={isLibrasEnabled} onClick={() => setIsLibrasEnabled(!isLibrasEnabled)} icon={<Hand />} label="Avatar Libras" />
+            
+            <div className="grid gap-4">
+              <AcessibilityToggle active={isAudioEnabled} onClick={() => { setIsAudioEnabled(!isAudioEnabled); speak("Áudio guia ativado"); }} icon={<Volume2 />} label="Áudio Guia" sub="Instruções Narradas" />
+              <AcessibilityToggle active={isLibrasEnabled} onClick={() => setIsLibrasEnabled(!isLibrasEnabled)} icon={<Hand />} label="Puppet Libras" sub="Tradução Visual" />
             </div>
-            <div className="space-y-5">
-              <ProfileInput label="Explorador" value={ageGroup} onValueChange={setAgeGroup} options={[
-                {v: 'preschool', l: 'Infantil (3-6)'}, {v: 'school_age', l: 'Escolar (7-12)'}, {v: 'adolescent_adult', l: 'Geral (13+)'}
-              ]} />
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase text-muted-foreground px-2">Neurodivergência</Label>
-                <Input placeholder="Opcional: TDAH, Autismo..." value={neurodivergence} onChange={e => setNeurodivergence(e.target.value)} className="rounded-2xl h-14 bg-muted/20 border-transparent" />
+
+            <div className="space-y-6 pt-4">
+              <div className="space-y-3">
+                 <Label className="text-[11px] font-black uppercase text-muted-foreground px-4 tracking-widest">Categoria Motora</Label>
+                 <Select value={ageGroup} onValueChange={setAgeGroup}>
+                   <SelectTrigger className="rounded-[2rem] h-16 bg-muted/30 border-transparent font-black px-6 shadow-sm">
+                     <SelectValue />
+                   </SelectTrigger>
+                   <SelectContent className="rounded-3xl border-none shadow-2xl">
+                     <SelectItem value="preschool" className="rounded-2xl font-black uppercase text-[10px] py-3">Nível Infantil (3-6)</SelectItem>
+                     <SelectItem value="school_age" className="rounded-2xl font-black uppercase text-[10px] py-3">Nível Escolar (7-12)</SelectItem>
+                     <SelectItem value="adolescent_adult" className="rounded-2xl font-black uppercase text-[10px] py-3">Nível Avançado (13+)</SelectItem>
+                   </SelectContent>
+                 </Select>
+              </div>
+              
+              <div className="space-y-3">
+                <Label className="text-[11px] font-black uppercase text-muted-foreground px-4 tracking-widest">Neurodivergência</Label>
+                <Input 
+                  placeholder="Ex: TDAH, Autismo (Ajusta o ritmo)" 
+                  value={neurodivergence} 
+                  onChange={e => setNeurodivergence(e.target.value)} 
+                  className="rounded-[2rem] h-16 bg-muted/30 border-transparent px-6 font-bold focus:bg-white transition-all shadow-sm" 
+                />
               </div>
             </div>
-            <Button onClick={handleSaveProfile} className="w-full h-16 rounded-[2.5rem] font-black uppercase tracking-widest bg-primary shadow-xl flex justify-between px-8 border-b-4 border-primary/70">
-              <span>Acessar Playground</span>
-              <ArrowRightIcon className="w-5 h-5" />
+
+            <Button onClick={handleSaveProfile} className="w-full h-18 rounded-[3rem] font-black uppercase tracking-widest bg-primary shadow-2xl flex justify-between px-10 border-b-4 border-primary/60 hover:translate-y-1 transition-all">
+              <span>Carregar Playground</span>
+              <ChevronRight className="w-6 h-6" />
             </Button>
           </div>
         ) : !safeAvatar ? (
-          <div className="p-10 bg-primary/5 rounded-[3.5rem] border-2 border-dashed border-primary/20 text-center space-y-6">
-             <div className="w-20 h-20 mx-auto bg-primary/10 rounded-[2.5rem] flex items-center justify-center text-primary border border-primary/30"><Scan className="w-10 h-10" /></div>
-             <div className="space-y-2">
-                <h3 className="text-xl font-black uppercase italic tracking-tighter">Identidade Cartoon</h3>
-                <p className="text-[10px] font-medium text-muted-foreground max-w-[240px] mx-auto">
-                  Gere seu Ludo Persona 2D a partir da câmera frontal. Privacidade garantida.
+          <div className="p-10 bg-primary/5 rounded-[4rem] border-2 border-dashed border-primary/20 text-center space-y-8 animate-in zoom-in-95 duration-500">
+             <div className="relative w-28 h-28 mx-auto">
+                <div className="absolute inset-0 bg-primary/20 rounded-[3rem] animate-ping" />
+                <div className="relative w-full h-full bg-primary/10 rounded-[3rem] flex items-center justify-center text-primary border border-primary/30">
+                  <Scan className="w-12 h-12" />
+                </div>
+             </div>
+             <div className="space-y-3">
+                <h3 className="text-2xl font-black uppercase italic tracking-tighter">Sync Bio-Puppet</h3>
+                <p className="text-[11px] font-medium text-muted-foreground max-w-[260px] mx-auto leading-relaxed">
+                  Gere sua representação 2D avançada. Seus dados biométricos são processados e descartados localmente.
                 </p>
              </div>
-             <Button onClick={handleFaceScan} disabled={isAvatarizing || isInitializingCamera} className="w-full h-16 rounded-[2.5rem] font-black uppercase bg-primary shadow-xl border-b-4 border-primary/80">
-               {isAvatarizing ? <Loader2 className="animate-spin" /> : "Gerar Avatar 2D"}
+             <Button onClick={handleFaceScan} disabled={isAvatarizing || isInitializingCamera} className="w-full h-18 rounded-[3rem] font-black uppercase bg-primary shadow-2xl border-b-4 border-primary/70 text-lg">
+               {isAvatarizing ? <Loader2 className="animate-spin" /> : "Iniciar Bio-Scan"}
              </Button>
           </div>
         ) : (
-          <>
-            <div className="flex overflow-x-auto gap-4 pb-4 no-scrollbar -mx-4 px-4">
+          <div className="space-y-8">
+            <div className="flex overflow-x-auto gap-4 pb-4 no-scrollbar -mx-8 px-8">
                 <CategoryButton active={selectedCategory === 'artistic'} onClick={() => setSelectedCategory('artistic')} icon={<Palette className="w-4 h-4" />} label="Arte" />
                 <CategoryButton active={selectedCategory === 'motor'} onClick={() => setSelectedCategory('motor')} icon={<Zap className="w-4 h-4" />} label="Motor" />
                 <CategoryButton active={selectedCategory === 'memory'} onClick={() => setSelectedCategory('memory')} icon={<Brain className="w-4 h-4" />} label="Mente" />
@@ -536,86 +562,118 @@ export function PlaygroundInterface() {
 
             {!activeChallenge ? (
               <div className="space-y-4">
-                <ChallengeRow title="Missão Casa" subtitle="Exploração Interna" icon={<HomeIcon />} isCompleted={profile?.dailyCycle?.homeMissionCompleted} onClick={() => handleStartMission('home')} disabled={isScanning} />
-                <ChallengeRow title="Missão Rua" subtitle="Desafio Urbano" icon={<MapPin />} isCompleted={profile?.dailyCycle?.streetMissionCompleted} onClick={() => handleStartMission('street')} disabled={isScanning} />
+                <ChallengeRow title="Missão Casa" subtitle="Exploração de Borda" icon={<HomeIcon />} isCompleted={profile?.dailyCycle?.homeMissionCompleted} onClick={() => handleStartMission('home')} disabled={isScanning} />
+                <ChallengeRow title="Missão Rua" subtitle="Desafio de Campo" icon={<MapPin />} isCompleted={profile?.dailyCycle?.streetMissionCompleted} onClick={() => handleStartMission('street')} disabled={isScanning} />
               </div>
             ) : (
-              <div className="bg-primary/5 rounded-[3rem] p-7 space-y-6 border border-primary/10">
-                <div className="flex justify-between items-center">
-                  <Badge className="bg-accent text-accent-foreground font-black text-[9px] uppercase">Dificuldade: {activeChallenge.difficulty}</Badge>
-                  <div className="flex items-center gap-2 font-black text-primary text-xl"><Coins className="w-5 h-5" /> {activeChallenge.ludoCoinsReward}</div>
+              <div className="bg-primary/5 rounded-[4rem] p-8 space-y-8 border border-primary/10 shadow-inner animate-in fade-in slide-in-from-right-8 duration-500">
+                <div className="flex justify-between items-center px-2">
+                  <Badge className="bg-accent text-accent-foreground font-black text-[10px] uppercase px-4 py-1.5 rounded-full">Dificuldade: {activeChallenge.difficulty}</Badge>
+                  <div className="flex items-center gap-2 font-black text-primary text-2xl"><Coins className="w-6 h-6" /> {activeChallenge.ludoCoinsReward}</div>
                 </div>
-                <h3 className="text-2xl font-black uppercase italic tracking-tighter">{activeChallenge.challengeTitle}</h3>
-                <div className="space-y-3">
+                
+                <div className="space-y-2 px-2">
+                  <h3 className="text-3xl font-black uppercase italic tracking-tighter leading-none">{activeChallenge.challengeTitle}</h3>
+                  <p className="text-[11px] font-medium text-muted-foreground">{activeChallenge.challengeDescription}</p>
+                </div>
+
+                <div className="space-y-4">
                    {activeChallenge.steps.map((step, idx) => (
-                     <div key={idx} className={cn(
-                       "flex items-center gap-4 p-5 rounded-[2rem] border-2 transition-all",
-                       currentStep === idx ? "bg-white border-primary/30 shadow-lg scale-[1.02]" : "bg-muted/20 border-transparent opacity-30"
-                     )}>
-                       <div className={cn("w-10 h-10 rounded-full flex items-center justify-center text-xs font-black", currentStep >= idx ? "bg-primary text-white" : "bg-muted")}>{idx + 1}</div>
-                       <p className="text-[10px] font-bold leading-relaxed">{step}</p>
-                     </div>
+                     <motion.div 
+                       key={idx} 
+                       initial={{ opacity: 0, x: -20 }}
+                       animate={{ 
+                         opacity: currentStep >= idx ? 1 : 0.3,
+                         x: 0,
+                         scale: currentStep === idx ? 1.02 : 1
+                       }}
+                       className={cn(
+                         "flex items-center gap-5 p-6 rounded-[2.5rem] border-2 transition-all",
+                         currentStep === idx ? "bg-white border-primary/30 shadow-xl" : "bg-muted/20 border-transparent"
+                       )}
+                     >
+                       <div className={cn(
+                         "w-12 h-12 rounded-[1.25rem] flex items-center justify-center text-sm font-black transition-all", 
+                         currentStep >= idx ? "bg-primary text-white shadow-lg" : "bg-muted text-muted-foreground"
+                       )}>
+                         {currentStep > idx ? <CheckCircle2 className="w-6 h-6" /> : idx + 1}
+                       </div>
+                       <p className="text-[11px] font-bold leading-relaxed flex-1">{step}</p>
+                     </motion.div>
                    ))}
                 </div>
-                <div className="pt-2">
+
+                <div className="pt-4">
                   {currentStep < activeChallenge.steps.length - 1 ? (
-                    <Button onClick={() => { setCurrentStep(prev => prev + 1); speak(activeChallenge.steps[currentStep + 1]); }} className="w-full h-14 rounded-2xl font-black uppercase bg-primary shadow-lg">Próximo</Button>
+                    <Button onClick={() => { setCurrentStep(prev => prev + 1); speak(activeChallenge.steps[currentStep + 1]); }} className="w-full h-18 rounded-[2.5rem] font-black uppercase bg-primary shadow-2xl text-lg">Próximo Passo</Button>
                   ) : (
-                    <Button onClick={completeMission} className="w-full h-16 rounded-[2.5rem] font-black uppercase bg-primary shadow-xl border-b-4 border-primary/60">Concluir</Button>
+                    <Button onClick={completeMission} className="w-full h-20 rounded-[3rem] font-black uppercase bg-primary shadow-2xl border-b-8 border-primary/60 text-xl active:border-b-0 active:translate-y-2 transition-all">Concluir Missão</Button>
                   )}
                 </div>
               </div>
             )}
-          </>
+          </div>
         )}
       </div>
 
-      {celebrating && (
-        <div className="fixed inset-0 z-[250] bg-primary flex flex-col items-center justify-center p-10 text-center text-white animate-in zoom-in-95">
-          <Trophy className="w-24 h-24 mb-6 animate-bounce text-yellow-300" />
-          <h2 className="text-5xl font-black uppercase italic mb-4 tracking-tighter">Missão Concluída!</h2>
-          <div className="bg-white/20 px-10 py-5 rounded-[3rem] border border-white/30 backdrop-blur-xl">
-             <span className="text-4xl font-black">+{activeChallenge?.ludoCoinsReward} LC</span>
-          </div>
-        </div>
-      )}
+      {/* Tela de Celebração de Recompensa */}
+      <AnimatePresence>
+        {celebrating && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[250] bg-primary flex flex-col items-center justify-center p-12 text-center text-white"
+          >
+            <motion.div
+              animate={{ rotate: [0, 10, -10, 0], scale: [1, 1.2, 1] }}
+              transition={{ duration: 0.5, repeat: Infinity }}
+            >
+              <Trophy className="w-32 h-32 mb-8 text-yellow-300 drop-shadow-[0_0_30px_rgba(253,224,71,0.5)]" />
+            </motion.div>
+            <h2 className="text-6xl font-black uppercase italic mb-6 tracking-tighter">Level Up!</h2>
+            <div className="bg-white/10 backdrop-blur-3xl px-12 py-6 rounded-[4rem] border border-white/20 shadow-2xl">
+               <span className="text-5xl font-black flex items-center gap-4">
+                 <Coins className="w-10 h-10 text-yellow-300" />
+                 +{activeChallenge?.ludoCoinsReward} LC
+               </span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
-function AcessibilityToggle({ active, onClick, icon, label }: any) {
+function AcessibilityToggle({ active, onClick, icon, label, sub }: any) {
   return (
-    <Button variant="outline" className={cn("h-16 rounded-2xl gap-4 transition-all px-6 border-2", active ? "border-primary bg-primary/5" : "bg-white")} onClick={onClick}>
-      <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center", active ? "text-primary bg-primary/10" : "text-muted-foreground bg-muted")}>{icon}</div>
-      <div className="text-left flex-1">
-        <span className="text-[10px] font-black uppercase block leading-none">{label}</span>
-        <span className="text-[8px] font-bold text-muted-foreground uppercase">{active ? "Ativo" : "Desativado"}</span>
+    <button 
+      className={cn(
+        "h-20 rounded-[2.5rem] gap-5 transition-all px-8 border-2 flex items-center text-left w-full", 
+        active ? "border-primary bg-primary/5 shadow-inner" : "bg-muted/30 border-transparent shadow-sm"
+      )} 
+      onClick={onClick}
+    >
+      <div className={cn(
+        "w-12 h-12 rounded-2xl flex items-center justify-center transition-all", 
+        active ? "text-primary bg-primary/10 rotate-12" : "text-muted-foreground bg-muted"
+      )}>
+        {React.cloneElement(icon, { className: "w-6 h-6" })}
       </div>
-    </Button>
-  );
-}
-
-function ProfileInput({ label, value, onValueChange, options }: any) {
-  return (
-    <div className="space-y-2">
-      <Label className="text-[10px] font-black uppercase text-muted-foreground px-2">{label}</Label>
-      <Select value={value} onValueChange={onValueChange}>
-        <SelectTrigger className="rounded-2xl h-14 bg-muted/20 border-transparent font-bold">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent className="rounded-2xl">
-          {options.map((opt: any) => <SelectItem key={opt.v} value={opt.v} className="rounded-xl font-bold uppercase text-[9px]">{opt.l}</SelectItem>)}
-        </SelectContent>
-      </Select>
-    </div>
+      <div className="flex-1">
+        <span className="text-[11px] font-black uppercase block leading-none tracking-widest">{label}</span>
+        <span className="text-[9px] font-bold text-muted-foreground uppercase opacity-70">{sub}</span>
+      </div>
+      <div className={cn("w-3 h-3 rounded-full", active ? "bg-primary animate-pulse" : "bg-muted")} />
+    </button>
   );
 }
 
 function CategoryButton({ active, onClick, icon, label }: any) {
   return (
     <button onClick={onClick} className={cn(
-      "px-6 py-4 rounded-2xl text-[10px] font-black uppercase flex items-center gap-3 transition-all border-2",
-      active ? "bg-primary text-white border-primary shadow-lg" : "bg-white text-muted-foreground border-transparent"
+      "px-8 py-5 rounded-[2rem] text-[11px] font-black uppercase flex items-center gap-3 transition-all border-2",
+      active ? "bg-primary text-white border-primary shadow-2xl scale-105" : "bg-white text-muted-foreground border-transparent hover:bg-muted/10"
     )}>
       {icon} {label}
     </button>
@@ -624,22 +682,25 @@ function CategoryButton({ active, onClick, icon, label }: any) {
 
 function ChallengeRow({ title, subtitle, icon, isCompleted, onClick, disabled }: any) {
   return (
-    <div onClick={!disabled && !isCompleted ? onClick : undefined} className={cn(
-      "p-6 rounded-[2.5rem] flex items-center gap-5 transition-all", 
-      isCompleted ? "bg-muted/40 opacity-50 grayscale" : 
-      disabled ? "bg-muted/10 opacity-30 cursor-not-allowed" : "bg-white border-2 border-primary/5 shadow-lg active:scale-95 cursor-pointer"
-    )}>
-      <div className={cn("w-16 h-16 rounded-[2rem] flex items-center justify-center", isCompleted ? "bg-primary text-white" : "bg-primary/10 text-primary")}>
-        {isCompleted ? <CheckCircle2 className="w-8 h-8" /> : React.cloneElement(icon as React.ReactElement, { className: "w-8 h-8" })}
+    <button 
+      onClick={!disabled && !isCompleted ? onClick : undefined} 
+      className={cn(
+        "p-8 rounded-[3.5rem] flex items-center gap-6 transition-all w-full text-left group", 
+        isCompleted ? "bg-muted/20 opacity-40 grayscale" : 
+        disabled ? "bg-muted/10 opacity-30 cursor-not-allowed" : "bg-white border-2 border-primary/5 shadow-xl active:scale-95 cursor-pointer hover:border-primary/20"
+      )}
+    >
+      <div className={cn(
+        "w-20 h-20 rounded-[2.5rem] flex items-center justify-center transition-transform group-hover:rotate-12", 
+        isCompleted ? "bg-primary text-white" : "bg-primary/10 text-primary"
+      )}>
+        {isCompleted ? <CheckCircle2 className="w-10 h-10" /> : React.cloneElement(icon as React.ReactElement, { className: "w-10 h-10" })}
       </div>
-      <div className="flex-1 text-left">
-        <span className="text-[9px] font-black uppercase text-muted-foreground opacity-60">{subtitle}</span>
-        <h4 className="text-xl font-black uppercase italic tracking-tighter leading-none">{title}</h4>
+      <div className="flex-1">
+        <span className="text-[10px] font-black uppercase text-muted-foreground opacity-60 tracking-[0.15em]">{subtitle}</span>
+        <h4 className="text-2xl font-black uppercase italic tracking-tighter leading-none mt-1">{title}</h4>
       </div>
-    </div>
+      <ChevronRight className="w-6 h-6 text-primary/40 group-hover:translate-x-2 transition-transform" />
+    </button>
   );
-}
-
-function ArrowRightIcon(props: any) {
-  return <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>;
 }
