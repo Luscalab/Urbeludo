@@ -16,6 +16,10 @@ interface FurniturePieceProps {
   worldSize: number;
 }
 
+/**
+ * Componente individual para móveis no Estúdio.
+ * Lida com o arrasto e alinhamento ao grid dentro do mundo 2.5D.
+ */
 export function FurniturePiece({ data, onUpdate, onRemove, isEditing, auraColor, worldSize }: FurniturePieceProps) {
   const itemInfo = STUDIO_CATALOG.find(i => i.id === data.itemId);
   
@@ -29,11 +33,11 @@ export function FurniturePiece({ data, onUpdate, onRemove, isEditing, auraColor,
         const world = document.getElementById('studio-world');
         if (world) {
           const rect = world.getBoundingClientRect();
-          // Calcula posição absoluta em pixels dentro do mundo de 1200px
+          // Calcula posição absoluta em pixels dentro do mundo gigante
           const x = info.point.x - rect.left;
           const y = info.point.y - rect.top;
           
-          // O hook useStudio cuidará do Snap-to-Grid
+          // O hook useStudio cuidará do Snap-to-Grid (40px)
           onUpdate(data.instanceId, x, y);
         }
       }}
@@ -50,24 +54,26 @@ export function FurniturePiece({ data, onUpdate, onRemove, isEditing, auraColor,
       )}
       style={{ 
         transform: 'translate(-50%, -50%)',
-        left: 0, // Posicionamento via animate.x/y para evitar conflitos de estilo
+        left: 0,
         top: 0
       }}
     >
       <div className="relative group">
         <div 
-          className="filter drop-shadow-2xl flex items-center justify-center bg-white/20 rounded-[2.5rem] backdrop-blur-md border-4 border-white shadow-xl"
+          className="filter drop-shadow-2xl flex items-center justify-center bg-white/20 rounded-[2rem] backdrop-blur-md border-4 border-white shadow-xl overflow-hidden"
           style={{ 
-            width: `${itemInfo.dimensions.width * 1.5}px`, 
-            height: `${itemInfo.dimensions.height * 1.5}px`,
-            fontSize: `${itemInfo.dimensions.width}px`,
+            width: `${itemInfo.dimensions.width}px`, 
+            height: `${itemInfo.dimensions.height}px`,
+            fontSize: `${itemInfo.dimensions.width / 2}px`,
             borderColor: itemInfo.category === 'Especial' ? auraColor : 'white' 
           }}
         >
-          {itemInfo.assetPath}
+          {/* Futuramente: <img src={itemInfo.assetPath} /> */}
+          <span className="drop-shadow-sm">{itemInfo.assetPath}</span>
+          
           {itemInfo.category === 'Especial' && (
             <div 
-              className="absolute inset-0 rounded-[2rem] opacity-30 blur-2xl animate-pulse"
+              className="absolute inset-0 opacity-20 blur-xl animate-pulse"
               style={{ backgroundColor: auraColor }}
             />
           )}

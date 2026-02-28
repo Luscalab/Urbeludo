@@ -1,49 +1,68 @@
 import { StudioItem } from './types';
 
+/**
+ * Catálogo Central de Ativos do Estúdio.
+ * Todos os caminhos de assets apontam para a pasta /public do Next.js.
+ */
 export const STUDIO_CATALOG: StudioItem[] = [
   {
-    id: 'zen-rug',
-    name: 'Tapete de Meditação Zen',
-    price: 150,
-    category: 'Ativo',
-    description: 'Aumenta a regeneração de energia em 5%.',
-    assetPath: '🧘',
-    dimensions: { width: 80, height: 80 }
+    id: 'cama-minimalista',
+    name: 'Cama de Descanso',
+    category: 'Essencial',
+    price: 100,
+    description: 'Um lugar para o explorador recarregar as energias.',
+    assetPath: '🛏️', // Futuramente: '/assets/studio/cama_iso.svg'
+    dimensions: { width: 120, height: 160 },
+    gridSize: { w: 3, h: 4 }
   },
   {
-    id: 'neon-ball',
-    name: 'Bola de Pilates Neon',
-    price: 200,
+    id: 'tapete-psicomotor',
+    name: 'Tapete de Movimento',
     category: 'Ativo',
-    description: 'Item essencial para treinos de equilíbrio em casa.',
-    assetPath: '🔵',
-    dimensions: { width: 60, height: 60 }
+    price: 150,
+    description: 'Aumenta a precisão dos desafios domésticos em 10%.',
+    assetPath: '🧘',
+    dimensions: { width: 100, height: 100 },
+    gridSize: { w: 2, h: 2 }
+  },
+  {
+    id: 'espaldar-madeira',
+    name: 'Espaldar de Parede',
+    category: 'Ativo',
+    price: 300,
+    description: 'Item clássico de psicomotricidade para treinos de força.',
+    assetPath: '🪜',
+    dimensions: { width: 80, height: 120 },
+    gridSize: { w: 2, h: 3 }
+  },
+  {
+    id: 'vaso-hortela',
+    name: 'Vaso de Hortelã',
+    category: 'Estético',
+    price: 50,
+    description: 'Um toque de natureza e frescor para o ambiente.',
+    assetPath: '🌿',
+    dimensions: { width: 40, height: 40 },
+    gridSize: { w: 1, h: 1 }
   },
   {
     id: 'rhythm-box',
     name: 'Vitrola Rítmica 2026',
     price: 500,
     category: 'Especial',
-    description: 'Desbloqueia a trilha sonora "Cyber City" no Playground.',
+    description: 'Desbloqueia novas frequências sonoras no Playground.',
     assetPath: '📻',
-    dimensions: { width: 70, height: 70 }
+    dimensions: { width: 60, height: 60 },
+    gridSize: { w: 1, h: 1 }
   },
   {
     id: 'aura-lamp',
     name: 'Lâmpada de Aura Digital',
     price: 300,
     category: 'Estético',
-    description: 'Muda de cor conforme sua Aura selecionada.',
+    description: 'Ilumina o estúdio com a cor da sua identidade.',
     assetPath: '💡',
-    dimensions: { width: 50, height: 50 }
-  },
-  {
-    id: 'espaldar-ludo',
-    name: 'Espaldar de Treino Urbe',
-    price: 800,
-    category: 'Ativo',
-    description: 'Um clássico da psicomotricidade em versão futurista.',
-    assetPath: '🪜',
-    dimensions: { width: 100, height: 120 }
+    dimensions: { width: 40, height: 40 },
+    gridSize: { w: 1, h: 1 }
   }
 ];

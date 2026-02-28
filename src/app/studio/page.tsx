@@ -15,7 +15,8 @@ import {
   Smartphone,
   Zap,
   Coins,
-  Navigation
+  Navigation,
+  Sparkles
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { STUDIO_CATALOG } from '@/lib/studio-catalog';
@@ -44,22 +45,16 @@ export default function StudioPage() {
     const world = document.getElementById('studio-world');
     if (world) {
       const rect = world.getBoundingClientRect();
+      // Calcula posição absoluta no mundo de 1200x1200px
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
       
-      // Limita o movimento para a área de chão
+      // Limita o movimento para a área de chão (parte inferior do mundo)
       if (y > 480) {
         updateAvatarPosition(x, y);
       }
     }
   };
-
-  const activeItemsCount = useMemo(() => {
-    return studioState.placedItems.filter(pi => {
-      const catalogItem = STUDIO_CATALOG.find(ci => ci.id === pi.itemId);
-      return catalogItem?.category === 'Ativo';
-    }).length;
-  }, [studioState.placedItems]);
 
   const avatarUrl = profile?.avatar?.equippedItems?.[0] || 'https://picsum.photos/seed/ludo/400';
   const auraColor = profile?.dominantColor || '#9333ea';
@@ -102,6 +97,7 @@ export default function StudioPage() {
         ref={viewportRef}
         className="flex-1 relative overflow-hidden bg-zinc-900 cursor-crosshair"
       >
+        {/* O MUNDO EXPANSIVO (Canvas 1200x1200px) */}
         <motion.div
           id="studio-world"
           drag={mode === 'explore'}
@@ -112,15 +108,13 @@ export default function StudioPage() {
           className="w-[1200px] h-[1200px] relative bg-white flex flex-col shadow-[0_0_100px_rgba(0,0,0,0.5)]"
           initial={{ x: -400, y: -200 }} 
         >
-          {/* 1. PAREDE */}
+          {/* 1. PAREDE (60% do espaço superior) */}
           <div className="relative w-full h-[40%] overflow-hidden" style={{ 
             background: `linear-gradient(to bottom, ${auraColor}10, ${auraColor}25)` 
           }}>
-            <div className="absolute inset-0 opacity-5" style={{ 
-              backgroundImage: `radial-gradient(${auraColor} 2px, transparent 2px)`,
-              backgroundSize: '40px 40px' 
-            }} />
+            <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:20px_20px]" />
             
+            {/* Janela Minimalista */}
             <div className="absolute top-20 left-1/2 -translate-x-1/2 w-48 h-60 bg-blue-50 rounded-t-full border-8 border-white shadow-2xl overflow-hidden flex flex-col justify-end">
                 <div className="absolute inset-0 bg-gradient-to-t from-blue-200/50 to-transparent"></div>
                 <div className="w-full h-2 bg-white absolute top-1/2"></div>
@@ -128,20 +122,21 @@ export default function StudioPage() {
             </div>
           </div>
 
+          {/* Rodapé separador */}
           <div className="relative z-10 w-full h-6 bg-white border-b border-gray-200 shadow-lg"></div>
 
-          {/* 2. CHÃO */}
+          {/* 2. CHÃO (60% do espaço inferior) */}
           <div className="relative w-full h-[60%] bg-[#F4F1EA]">
             <div className="absolute inset-0 opacity-30 flex flex-col justify-evenly">
                 {[...Array(30)].map((_, i) => (
                   <div key={i} className="w-full h-[1px] bg-gray-400"></div>
                 ))}
             </div>
-            {/* Grid Visual - Snapping indicator */}
+            {/* Grid Visual de alinhamento */}
             <div className="absolute inset-0 opacity-5 bg-[linear-gradient(to_right,#000_1px,transparent_1px),linear-gradient(to_bottom,#000_1px,transparent_1px)] [background-size:40px_40px]"></div>
           </div>
 
-          {/* ITENS POSICIONADOS */}
+          {/* ITENS POSICIONADOS NO MUNDO */}
           <div className="absolute inset-0 z-20 pointer-events-none">
             {studioState.placedItems.map(item => (
               <FurniturePiece 
@@ -156,7 +151,7 @@ export default function StudioPage() {
             ))}
           </div>
 
-          {/* AVATAR */}
+          {/* AVATAR DO EXPLORADOR */}
           <motion.div 
             id="studio-avatar"
             animate={{ 
@@ -170,15 +165,13 @@ export default function StudioPage() {
               <div className="w-32 h-32 rounded-[3.5rem] overflow-hidden border-4 border-primary shadow-2xl bg-white">
                 <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
               </div>
-              {activeItemsCount > 0 && mode === 'explore' && (
-                <motion.div 
-                  animate={{ scale: [1, 1.2, 1] }} 
-                  transition={{ duration: 2, repeat: Infinity }}
-                  className="absolute -top-2 -right-2 bg-accent text-white p-2 rounded-full shadow-lg border-2 border-white"
-                >
-                  <Zap className="w-4 h-4" />
-                </motion.div>
-              )}
+              <motion.div 
+                animate={{ scale: [1, 1.2, 1] }} 
+                transition={{ duration: 2, repeat: Infinity }}
+                className="absolute -top-2 -right-2 bg-accent text-white p-2 rounded-full shadow-lg border-2 border-white"
+              >
+                <Zap className="w-4 h-4" />
+              </motion.div>
             </div>
             <div className="absolute -bottom-2 inset-x-0 flex justify-center">
               <span className="bg-primary text-white text-[8px] font-black uppercase px-4 py-1.5 rounded-full shadow-lg">
@@ -188,6 +181,7 @@ export default function StudioPage() {
           </motion.div>
         </motion.div>
 
+        {/* HUD DE MODO */}
         <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-[110] pointer-events-none">
           <AnimatePresence mode="wait">
             <motion.div 
@@ -200,7 +194,7 @@ export default function StudioPage() {
               {mode === 'explore' ? (
                 <><Navigation className="w-4 h-4 text-accent rotate-45" /> Toque no chão para andar</>
               ) : (
-                <><Smartphone className="w-4 h-4 text-primary animate-bounce" /> Arraste os itens para alinhar ao grid</>
+                <><Smartphone className="w-4 h-4 text-primary animate-bounce" /> Arraste itens para o grid</>
               )}
             </motion.div>
           </AnimatePresence>

@@ -9,11 +9,11 @@ const WORLD_SIZE = 1200;
 
 /**
  * Hook para gerenciamento atômico do Estúdio.
- * Implementa Snap-to-Grid e Save Game persistente.
+ * Implementa Snap-to-Grid e Save Game persistente no hardware.
  */
 export function useStudio() {
   const [studioState, setStudioState] = useState<StudioState>({
-    unlockedItemIds: ['zen-rug'],
+    unlockedItemIds: ['tapete-psicomotor'],
     placedItems: [],
     backgroundId: 'default',
     worldConfig: {
@@ -41,8 +41,12 @@ export function useStudio() {
     return () => window.removeEventListener('local-data-updated', loadStudio);
   }, [loadStudio]);
 
-  // Lógica de Snap-to-Grid
+  // Lógica de Snap-to-Grid Atômica
   const snapToGrid = (val: number) => Math.round(val / GRID_SIZE) * GRID_SIZE;
+
+  const saveState = async (newState: StudioState) => {
+    await LocalPersistence.saveProgress({ studioState: newState });
+  };
 
   const updateItemPosition = async (instanceId: string, x: number, y: number) => {
     const snappedX = snapToGrid(x);
@@ -56,7 +60,7 @@ export function useStudio() {
       );
       
       const newState = { ...prev, placedItems: updatedPlacedItems };
-      LocalPersistence.saveProgress({ studioState: newState });
+      saveState(newState);
       return newState;
     });
   };
@@ -64,7 +68,7 @@ export function useStudio() {
   const updateAvatarPosition = async (x: number, y: number) => {
     setStudioState(prev => {
       const newState = { ...prev, avatar: { ...prev.avatar, lastPosition: { x, y } } };
-      LocalPersistence.saveProgress({ studioState: newState });
+      saveState(newState);
       return newState;
     });
   };
@@ -74,8 +78,8 @@ export function useStudio() {
       const newItem: PlacedItem = {
         instanceId: `inst-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
         itemId,
-        position: { x: snapToGrid(WORLD_SIZE / 2), y: snapToGrid(WORLD_SIZE / 2) },
-        zIndex: prev.placedItems.length + 1,
+        position: { x: snapToGrid(WORLD_SIZE / 2), y: snapToGrid(WORLD_SIZE * 0.7) },
+        zIndex: prev.placedItems.length + 10,
         rotation: 0
       };
       
@@ -87,7 +91,7 @@ export function useStudio() {
         placedItems: [...prev.placedItems, newItem]
       };
       
-      LocalPersistence.saveProgress({ studioState: newState });
+      saveState(newState);
       return newState;
     });
   };
@@ -96,7 +100,7 @@ export function useStudio() {
     setStudioState(prev => {
       const updatedPlacedItems = prev.placedItems.filter(item => item.instanceId !== instanceId);
       const newState = { ...prev, placedItems: updatedPlacedItems };
-      LocalPersistence.saveProgress({ studioState: newState });
+      saveState(newState);
       return newState;
     });
   };

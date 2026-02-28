@@ -9,23 +9,6 @@ export type MissionCategory = 'Arte' | 'Motor' | 'Mente' | 'Zen';
 export type MissionLevel = 1 | 2 | 3 | 4;
 
 /**
- * Interface rigorosa para os desafios.
- */
-export interface Challenge {
-  id: string;
-  title: string;
-  description: string;
-  category: MissionCategory;
-  level: MissionLevel;
-  steps: [string, string, string];
-  reward: {
-    ludoCoins: number;
-    xp: number;
-  };
-  safetyRules: string[];
-}
-
-/**
  * Definição de categorias para organização da loja e do inventário.
  */
 export type ItemCategory = 'Essencial' | 'Ativo' | 'Estético' | 'Especial';
@@ -39,11 +22,12 @@ export interface StudioItem {
   category: ItemCategory;
   price: number;
   description: string;
-  assetPath: string; // Emoji ou Caminho para SVG
+  assetPath: string; // Caminho em /public/assets/studio/ ou Emoji
   dimensions: {
     width: number;
     height: number;
   };
+  gridSize?: { w: number; h: number };
 }
 
 /**
