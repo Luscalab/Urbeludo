@@ -5,7 +5,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PlacedItem } from '@/lib/types';
 import { STUDIO_CATALOG } from '@/lib/studio-catalog';
-import { Package, Coins, Cloud } from 'lucide-react';
+import { Package, Coins } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface StudioItemProps {
@@ -75,7 +75,7 @@ export function StudioItem({ data, onUpdate, onStore, onSell, isEditing, auraCol
       }}
     >
       <div className="relative group">
-        {/* Visual do Móvel Isométrico */}
+        {/* Visual do Móvel PNG com Transparência */}
         <div 
           className="relative flex items-center justify-center"
           style={{ 

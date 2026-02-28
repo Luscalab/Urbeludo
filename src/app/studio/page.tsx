@@ -18,7 +18,6 @@ import {
   Smartphone,
   Zap,
   Coins,
-  Navigation,
   Sparkles,
   ShoppingBag
 } from 'lucide-react';
@@ -59,7 +58,7 @@ export default function StudioPage() {
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
       
-      // Limite para caminhar apenas no chão (área bege)
+      // Limite para caminhar apenas no chão
       if (y > 480) {
         updateAvatarPosition(x, y);
       }
@@ -157,13 +156,13 @@ export default function StudioPage() {
             </div>
           </div>
 
-          {/* RODAPÉ EM V */}
+          {/* RODAPÉ EM V (RODAPÉ ARQUITETÔNICO) */}
           <div className="relative z-10 w-full h-8 flex">
-             <div className="flex-1 bg-white shadow-sm" style={{ clipPath: 'polygon(0 0, 100% 100%, 100% 100%, 0 100%)' }} />
-             <div className="flex-1 bg-white shadow-sm" style={{ clipPath: 'polygon(0 100%, 0 100%, 100% 0, 100% 100%)' }} />
+             <div className="flex-1 bg-white shadow-sm border-b-2 border-zinc-200" style={{ clipPath: 'polygon(0 0, 100% 100%, 100% 100%, 0 100%)' }} />
+             <div className="flex-1 bg-white shadow-sm border-b-2 border-zinc-200" style={{ clipPath: 'polygon(0 100%, 0 100%, 100% 0, 100% 100%)' }} />
           </div>
 
-          {/* CHÃO COM GRID ISOMÉTRICO */}
+          {/* CHÃO COM GRID ISOMÉTRICO (LOSANGOS) */}
           <div className="relative w-full h-[60%] bg-[#F4F1EA] overflow-hidden">
             <div className="absolute inset-0 opacity-20" style={{ 
                backgroundImage: `linear-gradient(45deg, #808080 1px, transparent 1px), linear-gradient(-45deg, #808080 1px, transparent 1px)`,
@@ -234,7 +233,7 @@ export default function StudioPage() {
               className="bg-black/80 text-white text-[10px] font-black uppercase px-6 py-3 rounded-full flex items-center gap-3 backdrop-blur-md border border-white/10 shadow-2xl"
             >
               {mode === 'explore' ? (
-                <><Navigation className="w-4 h-4 text-accent rotate-45" /> Toque no chão para caminhar</>
+                <><LucideNavigation className="w-4 h-4 text-accent rotate-45" /> Toque no chão para caminhar</>
               ) : (
                 <><Smartphone className="w-4 h-4 text-primary animate-bounce" /> Clique no item para gerenciar</>
               )}
@@ -270,4 +269,8 @@ export default function StudioPage() {
       />
     </div>
   );
+}
+
+function LucideNavigation(props: any) {
+  return <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-navigation"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>;
 }
