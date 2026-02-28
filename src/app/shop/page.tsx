@@ -67,6 +67,24 @@ const LUDO_SHOP_ITEMS: ShopItem[] = [
     image: '/assets/studio/tapete_psicomotor.png'
   },
   { 
+    id: 'cama-01', 
+    name: 'Cama Minimalista', 
+    price: 100, 
+    category: 'decoracao', 
+    rarity: 'common',
+    description: 'Uma cama confortável para recarregar energias.',
+    image: '/assets/studio/cama_minimalista.png'
+  },
+  { 
+    id: 'espaldar-01', 
+    name: 'Espaldar de Madeira', 
+    price: 300, 
+    category: 'decoracao', 
+    rarity: 'rare',
+    description: 'Equipamento de postura clássico.',
+    image: '/assets/studio/espaldar_madeira.png'
+  },
+  { 
     id: 'blue-precision-aura', 
     name: 'Aura de Precisão Azul', 
     price: 2500, 

@@ -1,4 +1,3 @@
-
 import { StudioItem } from './types';
 
 /**
