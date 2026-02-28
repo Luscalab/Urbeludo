@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -52,7 +51,7 @@ export function useStudio() {
     setStudioState(prev => {
       const updatedPlacedItems = prev.placedItems.map(item => 
         item.instanceId === instanceId 
-          ? { ...item, position: { x: snappedX, y: snappedY } } 
+          ? { ...item, position: { x: snappedX, y: snappedY }, zIndex: Math.floor(snappedY / 10) } 
           : item
       );
       
@@ -70,7 +69,6 @@ export function useStudio() {
     });
   };
 
-  // COMPRAR: Adiciona ao inventário (mochila)
   const buyItem = async (itemId: string, price: number, userName?: string) => {
     const isSapient = userName?.toLowerCase() === 'sapient';
     const profile = await LocalPersistence.getProgress();
@@ -97,18 +95,17 @@ export function useStudio() {
     return true;
   };
 
-  // POSICIONAR: Tira da mochila e coloca no estúdio
   const placeItem = async (itemId: string) => {
     setStudioState(prev => {
-      // Verifica se tem no inventário
       const index = prev.unlockedItemIds.indexOf(itemId);
       if (index === -1) return prev;
 
+      const yPos = snapToGrid(WORLD_SIZE * 0.7);
       const newItem: PlacedItem = {
         instanceId: `inst-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
         itemId,
-        position: { x: snapToGrid(WORLD_SIZE / 2), y: snapToGrid(WORLD_SIZE * 0.7) },
-        zIndex: prev.placedItems.length + 10,
+        position: { x: snapToGrid(WORLD_SIZE / 2), y: yPos },
+        zIndex: Math.floor(yPos / 10),
         rotation: 0
       };
 
@@ -126,7 +123,6 @@ export function useStudio() {
     });
   };
 
-  // GUARDAR: Tira do cenário e devolve para a mochila
   const storeItem = async (instanceId: string) => {
     setStudioState(prev => {
       const itemToStore = prev.placedItems.find(i => i.instanceId === instanceId);
@@ -143,7 +139,6 @@ export function useStudio() {
     });
   };
 
-  // VENDER: Deleta do jogo e reembolsa moedas
   const sellItem = async (instanceId: string, userName?: string) => {
     const itemToSell = studioState.placedItems.find(i => i.instanceId === instanceId);
     if (!itemToSell) return;

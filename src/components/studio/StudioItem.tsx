@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState } from 'react';
@@ -62,7 +61,7 @@ export function StudioItem({ data, onUpdate, onStore, onSell, isEditing, auraCol
       whileDrag={{ 
         scale: 1.1,
         filter: "drop-shadow(0px 40px 30px rgba(0,0,0,0.5))",
-        zIndex: 5000
+        zIndex: 10000
       }}
       transition={{ type: "spring", stiffness: 300, damping: 25 }}
       className={cn(
@@ -83,10 +82,16 @@ export function StudioItem({ data, onUpdate, onStore, onSell, isEditing, auraCol
             height: `${itemInfo.dimensions.height}px`,
           }}
         >
+          {/* Sombra projetada no chão estilo Sims */}
+          <div className="absolute bottom-2 inset-x-4 h-6 bg-black/10 blur-md rounded-full -z-10" />
+          
           <img 
             src={itemInfo.assetPath} 
             alt={itemInfo.name}
-            className="w-full h-full object-contain pointer-events-none drop-shadow-lg"
+            className="w-full h-full object-contain pointer-events-none drop-shadow-xl"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = 'https://placehold.co/100x100?text=Item';
+            }}
           />
         </div>
 
@@ -96,7 +101,7 @@ export function StudioItem({ data, onUpdate, onStore, onSell, isEditing, auraCol
               initial={{ opacity: 0, y: 15, scale: 0.7 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 15, scale: 0.7 }}
-              className="absolute -top-16 left-1/2 -translate-x-1/2 flex gap-2 bg-white p-2 rounded-2xl shadow-2xl z-[5100] border-2 border-primary/20 backdrop-blur-md"
+              className="absolute -top-16 left-1/2 -translate-x-1/2 flex gap-2 bg-white p-2 rounded-2xl shadow-2xl z-[11000] border-2 border-primary/20 backdrop-blur-md"
             >
               <button 
                 onClick={(e) => { e.stopPropagation(); onStore(data.instanceId); }}

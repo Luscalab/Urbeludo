@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -29,6 +28,8 @@ export function AuthInitializer({ children }: { children: React.ReactNode }) {
           ageGroup: 'adolescent_adult',
           skillLevel: 'beginner',
           badges: [],
+          hasSeenTutorial: false,
+          dominantColor: '#9333ea',
           avatar: {
             energy: 100,
             avatarId: FALLBACK_AVATAR.id,

@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
@@ -37,7 +36,6 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/components/I18nProvider';
 import { MissionCategory } from '@/lib/types';
-import { STUDIO_CATALOG } from '@/lib/studio-catalog';
 import { AvatarSelection } from '@/components/AvatarSelection';
 import { FALLBACK_AVATAR } from '@/lib/avatar-catalog';
 
@@ -58,9 +56,6 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
   const [selectedCategory, setSelectedCategory] = useState<MissionCategory>('Motor');
   
   const [cameraMode, setCameraMode] = useState<'user' | 'environment'>('user');
-  const [isAudioEnabled, setIsAudioEnabled] = useState(true);
-  const [isLibrasEnabled, setIsLibrasEnabled] = useState(false);
-
   const [explorerName, setExplorerName] = useState('');
   const [selectedAvatarId, setSelectedAvatarId] = useState(FALLBACK_AVATAR.id);
   const [ageGroup, setAgeGroup] = useState('adolescent_adult');
@@ -75,7 +70,7 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
 
   useEffect(() => {
     if (profile) {
-      if (profile.displayName && profile.hasSeenTutorial !== undefined) {
+      if (profile.displayName && profile.hasSeenTutorial) {
         setShowGuide(false);
       }
       setExplorerName(profile.displayName || '');
