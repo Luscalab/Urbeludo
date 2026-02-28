@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -5,6 +6,9 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { 
   Loader2, 
   CheckCircle2, 
@@ -25,14 +29,15 @@ import {
   Palette,
   Zap,
   Brain,
-  Wind
+  Wind,
+  UserCircle
 } from 'lucide-react';
 import { proposeDynamicChallenges, type ProposeDynamicChallengesOutput } from '@/ai/flows/propose-dynamic-challenges';
 import { identifyUrbanElements } from '@/ai/flows/identify-urban-elements-flow';
 import { avatarizeUser, type AvatarizeUserOutput } from '@/ai/flows/avatarize-user-flow';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, collection } from 'firebase/firestore';
-import { setDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { setDocumentNonBlocking, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
@@ -46,6 +51,7 @@ export function PlaygroundInterface() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   
   const [showGuide, setShowGuide] = useState(true);
+  const [setupStep, setSetupStep] = useState(0); // 0: Welcome/Accessibility, 1: Profile Info
   const [isInitializingCamera, setIsInitializingCamera] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
@@ -62,8 +68,23 @@ export function PlaygroundInterface() {
   const [isAudioEnabled, setIsAudioEnabled] = useState(false);
   const [isLibrasEnabled, setIsLibrasEnabled] = useState(false);
 
+  // Form State
+  const [ageGroup, setAgeGroup] = useState('adolescent_adult');
+  const [sex, setSex] = useState('prefer_not_to_say');
+  const [neurodivergence, setNeurodivergence] = useState('');
+  const [physicalLimitations, setPhysicalLimitations] = useState('');
+
   const userProgressRef = useMemoFirebase(() => user ? doc(db, 'user_progress', user.uid) : null, [db, user]);
   const { data: profile } = useDoc(userProgressRef);
+
+  useEffect(() => {
+    if (profile) {
+      setAgeGroup(profile.ageGroup || 'adolescent_adult');
+      setSex(profile.sex || 'prefer_not_to_say');
+      setNeurodivergence(profile.neurodivergence || '');
+      setPhysicalLimitations(profile.physicalLimitations || '');
+    }
+  }, [profile]);
 
   const startCamera = async (mode: 'user' | 'environment') => {
     setIsInitializingCamera(true);
@@ -120,6 +141,18 @@ export function PlaygroundInterface() {
       }
     }
   }, [currentStep, activeChallenge, isAudioEnabled]);
+
+  const handleSaveProfile = async () => {
+    if (userProgressRef) {
+      updateDocumentNonBlocking(userProgressRef, {
+        ageGroup,
+        sex,
+        neurodivergence,
+        physicalLimitations
+      });
+    }
+    setShowGuide(false);
+  };
 
   const handleFaceScan = async () => {
     if (!videoRef.current || isInitializingCamera) return;
@@ -290,32 +323,99 @@ export function PlaygroundInterface() {
   if (showGuide) {
     return (
       <div className="min-h-full bg-background flex flex-col p-8 items-center justify-center text-center space-y-8 animate-in fade-in duration-500 overflow-y-auto">
-        <div className="w-20 h-20 bg-primary/10 rounded-[2rem] flex items-center justify-center text-primary shadow-inner shrink-0">
-          <Info className="w-10 h-10" />
-        </div>
-        <div className="space-y-4">
-          <h2 className="text-3xl font-black uppercase italic tracking-tighter leading-none">Guia de Exploração</h2>
-          <p className="text-xs font-medium text-muted-foreground max-w-xs mx-auto leading-relaxed">
-            O UrbeLudo transforma o ambiente em playground. Ative as ferramentas de suporte abaixo para uma experiência inclusiva.
-          </p>
-        </div>
-        <div className="grid gap-3 w-full max-w-xs">
-          <Button variant="outline" className={cn("h-16 rounded-2xl gap-3 transition-all", isAudioEnabled && "border-primary bg-primary/5")} onClick={() => setIsAudioEnabled(!isAudioEnabled)}>
-            <Volume2 className={cn("w-6 h-6", isAudioEnabled ? "text-primary" : "text-muted-foreground")} />
-            <div className="text-left">
-              <span className="text-[10px] font-black uppercase block leading-none">Áudio Guia</span>
-              <span className="text-[8px] font-bold text-muted-foreground">{isAudioEnabled ? "Ativado" : "Desativado"}</span>
+        {setupStep === 0 ? (
+          <>
+            <div className="w-20 h-20 bg-primary/10 rounded-[2rem] flex items-center justify-center text-primary shadow-inner shrink-0">
+              <Info className="w-10 h-10" />
             </div>
-          </Button>
-          <Button variant="outline" className={cn("h-16 rounded-2xl gap-3 transition-all", isLibrasEnabled && "border-primary bg-primary/5")} onClick={() => setIsLibrasEnabled(!isLibrasEnabled)}>
-            <Hand className={cn("w-6 h-6", isLibrasEnabled ? "text-primary" : "text-muted-foreground")} />
-            <div className="text-left">
-              <span className="text-[10px] font-black uppercase block leading-none">Guia de Libras</span>
-              <span className="text-[8px] font-bold text-muted-foreground">{isLibrasEnabled ? "Ativado" : "Desativado"}</span>
+            <div className="space-y-4">
+              <h2 className="text-3xl font-black uppercase italic tracking-tighter leading-none">Guia de Exploração</h2>
+              <p className="text-xs font-medium text-muted-foreground max-w-xs mx-auto leading-relaxed">
+                Bem-vindo ao UrbeLudo. Antes de começar, vamos configurar sua experiência.
+              </p>
             </div>
-          </Button>
-        </div>
-        <Button onClick={() => setShowGuide(false)} className="w-full max-w-xs h-16 rounded-[2rem] font-black uppercase tracking-widest shadow-xl bg-primary hover:bg-primary/90">Prosseguir</Button>
+            <div className="grid gap-3 w-full max-w-xs">
+              <Button variant="outline" className={cn("h-16 rounded-2xl gap-3 transition-all", isAudioEnabled && "border-primary bg-primary/5")} onClick={() => setIsAudioEnabled(!isAudioEnabled)}>
+                <Volume2 className={cn("w-6 h-6", isAudioEnabled ? "text-primary" : "text-muted-foreground")} />
+                <div className="text-left">
+                  <span className="text-[10px] font-black uppercase block leading-none">Áudio Guia</span>
+                  <span className="text-[8px] font-bold text-muted-foreground">{isAudioEnabled ? "Ativado" : "Desativado"}</span>
+                </div>
+              </Button>
+              <Button variant="outline" className={cn("h-16 rounded-2xl gap-3 transition-all", isLibrasEnabled && "border-primary bg-primary/5")} onClick={() => setIsLibrasEnabled(!isLibrasEnabled)}>
+                <Hand className={cn("w-6 h-6", isLibrasEnabled ? "text-primary" : "text-muted-foreground")} />
+                <div className="text-left">
+                  <span className="text-[10px] font-black uppercase block leading-none">Guia de Libras</span>
+                  <span className="text-[8px] font-bold text-muted-foreground">{isLibrasEnabled ? "Ativado" : "Desativado"}</span>
+                </div>
+              </Button>
+            </div>
+            <Button onClick={() => setSetupStep(1)} className="w-full max-w-xs h-16 rounded-[2rem] font-black uppercase tracking-widest shadow-xl bg-primary hover:bg-primary/90">Próximo</Button>
+          </>
+        ) : (
+          <div className="w-full max-w-xs space-y-6 text-left">
+            <div className="flex items-center gap-3 mb-6">
+               <UserCircle className="w-8 h-8 text-primary" />
+               <h2 className="text-xl font-black uppercase italic leading-none">Seu Perfil</h2>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase text-muted-foreground">Idade</Label>
+                <Select value={ageGroup} onValueChange={setAgeGroup}>
+                  <SelectTrigger className="rounded-xl h-12">
+                    <SelectValue placeholder="Selecione sua idade" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="preschool">Pré-escolar (3-6)</SelectItem>
+                    <SelectItem value="school_age">Escolar (7-12)</SelectItem>
+                    <SelectItem value="adolescent_adult">Adolescente/Adulto (13+)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase text-muted-foreground">Sexo</Label>
+                <Select value={sex} onValueChange={setSex}>
+                  <SelectTrigger className="rounded-xl h-12">
+                    <SelectValue placeholder="Selecione seu sexo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="male">Masculino</SelectItem>
+                    <SelectItem value="female">Feminino</SelectItem>
+                    <SelectItem value="other">Outro</SelectItem>
+                    <SelectItem value="prefer_not_to_say">Prefiro não dizer</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase text-muted-foreground">Neurodivergência (Opcional)</Label>
+                <Input 
+                  placeholder="Ex: TDAH, Autismo..." 
+                  value={neurodivergence} 
+                  onChange={(e) => setNeurodivergence(e.target.value)}
+                  className="rounded-xl h-12"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase text-muted-foreground">Limitações Físicas (Opcional)</Label>
+                <Input 
+                  placeholder="Ex: Lesão no joelho..." 
+                  value={physicalLimitations} 
+                  onChange={(e) => setPhysicalLimitations(e.target.value)}
+                  className="rounded-xl h-12"
+                />
+              </div>
+            </div>
+
+            <div className="pt-4 flex gap-3">
+               <Button variant="ghost" onClick={() => setSetupStep(0)} className="h-14 font-black uppercase text-[10px]">Voltar</Button>
+               <Button onClick={handleSaveProfile} className="flex-1 h-14 rounded-2xl font-black uppercase tracking-widest bg-primary">Prosseguir</Button>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -339,7 +439,6 @@ export function PlaygroundInterface() {
         />
         <canvas ref={canvasRef} className="hidden" />
 
-        {/* Breathing Biofeedback Avatar Overlay */}
         {activeChallenge && safeAvatar && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
              <div 
