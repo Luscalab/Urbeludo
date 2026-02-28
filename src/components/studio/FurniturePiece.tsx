@@ -1,10 +1,11 @@
+
 'use client';
 
 import React from 'react';
 import { motion } from 'framer-motion';
 import { PlacedItem } from '@/lib/types';
 import { STUDIO_CATALOG } from '@/lib/studio-catalog';
-import { Trash2, RotateCw } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface FurniturePieceProps {
@@ -28,6 +29,7 @@ export function FurniturePiece({ data, onUpdate, onRemove, isEditing, auraColor 
         const container = document.getElementById('studio-grid');
         if (container) {
           const rect = container.getBoundingClientRect();
+          // Calcula posição relativa em porcentagem
           const x = ((info.point.x - rect.left) / rect.width) * 100;
           const y = ((info.point.y - rect.top) / rect.height) * 100;
           onUpdate(data.instanceId, x, y);
@@ -37,19 +39,16 @@ export function FurniturePiece({ data, onUpdate, onRemove, isEditing, auraColor 
       animate={{ 
         scale: isEditing ? 1.05 : 1, 
         opacity: 1,
-        x: `${data.position.x}%`,
-        y: `${data.position.y}%`,
-        left: 0,
-        top: 0,
+        left: `${data.position.x}%`,
+        top: `${data.position.y}%`,
         zIndex: data.zIndex
       }}
       className={cn(
-        "absolute cursor-grab active:cursor-grabbing select-none touch-none",
+        "absolute cursor-grab active:cursor-grabbing select-none pointer-events-auto touch-none",
         isEditing && "ring-2 ring-primary/40 ring-offset-2 rounded-xl"
       )}
       style={{ 
         transform: 'translate(-50%, -50%)',
-        position: 'absolute'
       }}
     >
       <div className="relative group">
@@ -75,8 +74,11 @@ export function FurniturePiece({ data, onUpdate, onRemove, isEditing, auraColor 
           <motion.button
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            onClick={() => onRemove(data.instanceId)}
-            className="absolute -top-3 -right-3 bg-destructive text-white p-1.5 rounded-full shadow-lg z-50"
+            onClick={(e) => {
+              e.stopPropagation();
+              onRemove(data.instanceId);
+            }}
+            className="absolute -top-3 -right-3 bg-destructive text-white p-1.5 rounded-full shadow-lg z-50 pointer-events-auto"
           >
             <Trash2 className="w-3 h-3" />
           </motion.button>

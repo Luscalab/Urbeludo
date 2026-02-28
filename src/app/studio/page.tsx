@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -20,6 +21,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { UrbeLudoLogo } from '@/components/UrbeLudoLogo';
 import { STUDIO_CATALOG } from '@/lib/studio-catalog';
+import { cn } from '@/lib/utils';
 
 export default function StudioPage() {
   const { user } = useUser();
@@ -45,6 +47,7 @@ export default function StudioPage() {
   }, [studioState.placedItems]);
 
   const avatarUrl = profile?.avatar?.equippedItems?.[0] || 'https://picsum.photos/seed/ludo/400';
+  const auraColor = profile?.dominantColor || '#9333ea';
 
   return (
     <div className="min-h-screen bg-background overflow-hidden flex flex-col relative">
@@ -84,25 +87,65 @@ export default function StudioPage() {
       </header>
 
       <main className="flex-1 relative p-4 flex items-center justify-center">
+        {/* Container do Quarto 2.5D */}
         <div 
           id="studio-grid"
-          className="w-full h-full max-w-lg aspect-[4/5] bg-white/40 rounded-[4rem] border-4 border-white/20 shadow-2xl relative overflow-hidden backdrop-blur-sm"
+          className="w-full h-full max-w-lg aspect-[4/5] bg-white rounded-[3rem] border-4 border-white shadow-2xl relative overflow-hidden flex flex-col"
         >
-          <div className="absolute inset-0 opacity-10" style={{ 
-            backgroundImage: 'radial-gradient(circle, #9333ea 1px, transparent 1px)',
-            backgroundSize: '40px 40px' 
-          }} />
+          {/* 1. PAREDE (60% do espaço) */}
+          <div className="relative w-full h-[60%] overflow-hidden transition-colors duration-700" style={{ 
+            background: `linear-gradient(to bottom, ${auraColor}15, ${auraColor}30)` 
+          }}>
+            {/* Papel de parede sutil */}
+            <div className="absolute inset-0 opacity-10" style={{ 
+              backgroundImage: `radial-gradient(${auraColor} 1px, transparent 1px)`,
+              backgroundSize: '20px 20px' 
+            }} />
+            
+            {/* Janela Minimalista */}
+            <div className="absolute top-10 left-1/2 -translate-x-1/2 w-32 h-40 bg-blue-50 rounded-t-full border-4 border-white shadow-inner overflow-hidden flex flex-col justify-end">
+                {/* Vidro / Céu */}
+                <div className="absolute inset-0 bg-gradient-to-t from-blue-200/50 to-transparent"></div>
+                {/* Detalhe da esquadria */}
+                <div className="w-full h-1 bg-white absolute top-1/2"></div>
+                <div className="w-1 h-full bg-white absolute left-1/2"></div>
+                
+                {/* Vaso de planta minimalista */}
+                <div className="relative z-10 w-8 h-8 mx-auto mb-2">
+                    <div className="absolute bottom-0 w-full h-4 bg-orange-200 rounded-b-sm border border-orange-300"></div>
+                    <div className="absolute bottom-3 left-1 w-6 h-6 bg-green-400 rounded-full"></div>
+                    <div className="absolute bottom-4 left-3 w-4 h-4 bg-green-300 rounded-full"></div>
+                </div>
+            </div>
+          </div>
 
-          {studioState.placedItems.map(item => (
-            <FurniturePiece 
-              key={item.instanceId} 
-              data={item} 
-              onUpdate={updateItemPosition}
-              onRemove={removeItem}
-              isEditing={isEditing}
-              auraColor={profile?.dominantColor || '#9333ea'}
-            />
-          ))}
+          {/* 2. RODAPÉ */}
+          <div className="relative z-10 w-full h-4 bg-white border-b border-gray-100 shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)]"></div>
+
+          {/* 3. CHÃO (40% do espaço) */}
+          <div className="relative w-full h-[40%] bg-[#F4F1EA] shadow-[inset_0_15px_25px_-15px_rgba(0,0,0,0.1)]">
+            {/* Linhas de tábua corrida */}
+            <div className="absolute inset-0 opacity-20 flex flex-col justify-evenly">
+                <div className="w-full h-[1px] bg-gray-400"></div>
+                <div className="w-full h-[1px] bg-gray-400"></div>
+                <div className="w-full h-[1px] bg-gray-400"></div>
+                <div className="w-full h-[1px] bg-gray-400"></div>
+            </div>
+          </div>
+
+          {/* Renderização de Móveis sobre o cenário */}
+          <div className="absolute inset-0 z-20 pointer-events-none">
+            {studioState.placedItems.map(item => (
+              <FurniturePiece 
+                key={item.instanceId} 
+                data={item} 
+                onUpdate={updateItemPosition}
+                onRemove={removeItem}
+                isEditing={isEditing}
+                auraColor={auraColor}
+              />
+            ))}
+          </div>
 
           {/* Avatar com Feedback de Itens Ativos */}
           <motion.div 
@@ -112,7 +155,7 @@ export default function StudioPage() {
               scale: isEditing ? 0.8 : 1
             }}
             transition={{ duration: 4, repeat: Infinity }}
-            className="absolute bottom-12 left-1/2 -translate-x-1/2 z-[90]"
+            className="absolute bottom-16 left-1/2 -translate-x-1/2 z-[90]"
           >
             <div className="relative">
               <div className="w-32 h-32 rounded-[3.5rem] overflow-hidden border-4 border-primary shadow-2xl bg-muted">
