@@ -47,10 +47,12 @@ export default function StudioPage() {
     const world = document.getElementById('studio-world');
     if (world) {
       const rect = world.getBoundingClientRect();
+      // O clique deve ser dentro do mundo gigante
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
       
-      // Limita o movimento para a área de chão (abaixo da linha do rodapé em ~480px)
+      // Limita o movimento para a área de chão (abaixo do rodapé)
+      // No cenário 2.5D, o chão começa em 40% da altura do mundo (1200 * 0.4 = 480)
       if (y > 480) {
         updateAvatarPosition(x, y);
       }
@@ -59,10 +61,7 @@ export default function StudioPage() {
 
   const handleBuy = (itemId: string, price: number) => {
     if (userProgressRef && profile) {
-      // Adiciona o item ao StudioState (gerencia colocação no mundo e unlockedItemIds)
       addItem(itemId);
-      
-      // Debita as LudoCoins no progresso global
       updateDocumentNonBlocking(userProgressRef, {
         ludoCoins: profile.ludoCoins - price
       });
@@ -148,7 +147,7 @@ export default function StudioPage() {
             <div className="absolute inset-0 opacity-5 bg-[linear-gradient(to_right,#000_1px,transparent_1px),linear-gradient(to_bottom,#000_1px,transparent_1px)] [background-size:40px_40px]"></div>
           </div>
 
-          {/* MÓVEIS POSICIONADOS */}
+          {/* ITENS POSICIONADOS */}
           <div className="absolute inset-0 z-20 pointer-events-none">
             {studioState.placedItems.map(item => (
               <StudioItem 

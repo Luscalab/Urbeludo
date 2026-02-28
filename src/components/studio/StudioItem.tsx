@@ -16,9 +16,8 @@ interface StudioItemProps {
 }
 
 /**
- * StudioItem: O componente fundamental de decoração do UrbeLudo.
+ * StudioItem: Renderiza imagens PNG isométricas com transparência.
  * Implementa arrasto com Snap-to-Grid (40px) e física de mola.
- * Renderiza imagens PNG isométricas da pasta /public.
  */
 export function StudioItem({ data, onUpdate, onRemove, isEditing, auraColor }: StudioItemProps) {
   const itemInfo = STUDIO_CATALOG.find(i => i.id === data.itemId);
@@ -38,7 +37,7 @@ export function StudioItem({ data, onUpdate, onRemove, isEditing, auraColor }: S
           const x = info.point.x - rect.left;
           const y = info.point.y - rect.top;
           
-          // O Snap-to-Grid é aplicado aqui para manter a organização
+          // Snap-to-Grid para manter a organização
           const snappedX = Math.round(x / GRID_SIZE) * GRID_SIZE;
           const snappedY = Math.round(y / GRID_SIZE) * GRID_SIZE;
           
@@ -68,9 +67,8 @@ export function StudioItem({ data, onUpdate, onRemove, isEditing, auraColor }: S
       }}
     >
       <div className="relative group">
-        {/* Renderiza a imagem PNG Isométrica do catálogo */}
         <div 
-          className="relative flex items-center justify-center overflow-hidden"
+          className="relative flex items-center justify-center"
           style={{ 
             width: `${itemInfo.dimensions.width}px`, 
             height: `${itemInfo.dimensions.height}px`,
@@ -79,9 +77,9 @@ export function StudioItem({ data, onUpdate, onRemove, isEditing, auraColor }: S
           <img 
             src={itemInfo.assetPath} 
             alt={itemInfo.name}
-            className="w-full h-full object-contain drop-shadow-lg"
-            // Fallback para Emojis enquanto as imagens não existem na pasta public
+            className="w-full h-full object-contain pointer-events-none"
             onError={(e) => {
+              // Fallback para Emojis se a imagem falhar
               e.currentTarget.style.display = 'none';
               const span = e.currentTarget.parentElement?.querySelector('.fallback-emoji');
               if (span) (span as HTMLElement).style.display = 'block';
@@ -89,19 +87,17 @@ export function StudioItem({ data, onUpdate, onRemove, isEditing, auraColor }: S
           />
           
           <span className="fallback-emoji hidden text-4xl drop-shadow-md select-none">
-            {itemInfo.id.includes('cama') ? '🛏️' : itemInfo.id.includes('tapete') ? '🧘' : '🌿'}
+            {itemInfo.category === 'Ativo' ? '🧘' : itemInfo.category === 'Essencial' ? '🛏️' : '🌿'}
           </span>
           
-          {/* Brilho da Aura para itens especiais */}
           {itemInfo.category === 'Especial' && (
             <div 
-              className="absolute inset-0 opacity-20 blur-2xl animate-pulse pointer-events-none"
+              className="absolute inset-0 opacity-20 blur-2xl animate-pulse pointer-events-none rounded-full"
               style={{ backgroundColor: auraColor }}
             />
           )}
         </div>
 
-        {/* Botão de Remover (Aparece apenas em modo edição) */}
         {isEditing && (
           <motion.button
             initial={{ opacity: 0, scale: 0 }}
