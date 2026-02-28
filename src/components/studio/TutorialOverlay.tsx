@@ -1,11 +1,18 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useI18n } from '@/components/I18nProvider';
 import { Button } from '@/components/ui/button';
-import { Sparkles, ArrowRight, Coins, Zap, ShoppingBag } from 'lucide-react';
+import { ChevronRight, X, MapPin, Sparkles, Coins, Zap, ShoppingBag } from 'lucide-react';
 import { LocalPersistence } from '@/lib/local-persistence';
+
+export interface TutorialStep {
+  targetId: string;
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+}
 
 interface TutorialOverlayProps {
   userName: string;
@@ -15,56 +22,57 @@ interface TutorialOverlayProps {
 
 export function TutorialOverlay({ userName, avatarUrl, onComplete }: TutorialOverlayProps) {
   const { t } = useI18n();
-  const [step, setStep] = useState(1);
-  const [spotlight, setSpotlight] = useState({ x: '50%', y: '50%', size: 0 });
+  const [currentStep, setCurrentStep] = useState(0);
+  const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
 
-  const steps = [
+  const steps: TutorialStep[] = [
     {
-      id: 1,
-      text: t('tutorial.step1').replace('{name}', userName),
-      icon: <Sparkles className="w-10 h-10 text-primary" />,
-      target: null
+      targetId: "studio-avatar",
+      icon: <Sparkles className="w-6 h-6 text-white" />,
+      title: t('tutorial.step1').replace('{name}', userName).split('!')[0] + '!',
+      description: t('tutorial.step1').split('!')[1] || "Este é o seu espaço de movimento!"
     },
     {
-      id: 2,
-      text: t('tutorial.step2'),
-      icon: <Coins className="w-10 h-10 text-yellow-500" />,
-      target: 'coin-counter'
+      targetId: "coin-counter",
+      icon: <Coins className="w-6 h-6 text-white" />,
+      title: "A Moeda do Movimento",
+      description: t('tutorial.step2')
     },
     {
-      id: 3,
-      text: t('tutorial.step3'),
-      icon: <Zap className="w-10 h-10 text-accent" />,
-      target: 'btn-play'
+      targetId: "btn-play",
+      icon: <Zap className="w-6 h-6 text-white" />,
+      title: "Hora de Explorar",
+      description: t('tutorial.step3')
     },
     {
-      id: 4,
-      text: t('tutorial.step4'),
-      icon: <ShoppingBag className="w-10 h-10 text-primary" />,
-      target: 'btn-shop'
+      targetId: "btn-shop",
+      icon: <ShoppingBag className="w-6 h-6 text-white" />,
+      title: "Personalize seu Lar",
+      description: t('tutorial.step4')
     }
   ];
 
-  useEffect(() => {
-    const currentStep = steps[step - 1];
-    if (currentStep.target) {
-      const el = document.getElementById(currentStep.target);
-      if (el) {
-        const rect = el.getBoundingClientRect();
-        setSpotlight({
-          x: rect.left + rect.width / 2,
-          y: rect.top + rect.height / 2,
-          size: Math.max(rect.width, rect.height) + 40
-        });
-      }
+  const updatePosition = useCallback(() => {
+    const step = steps[currentStep];
+    const element = document.getElementById(step.targetId);
+    
+    if (element) {
+      setTargetRect(element.getBoundingClientRect());
+      element.scrollIntoView({ behavior: "smooth", block: "center" });
     } else {
-      setSpotlight({ x: '50%', y: '50%', size: 0 });
+      setTargetRect(null);
     }
-  }, [step]);
+  }, [currentStep]);
+
+  useEffect(() => {
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    return () => window.removeEventListener("resize", updatePosition);
+  }, [updatePosition]);
 
   const handleNext = async () => {
-    if (step < steps.length) {
-      setStep(step + 1);
+    if (currentStep < steps.length - 1) {
+      setCurrentStep((prev) => prev + 1);
     } else {
       await LocalPersistence.saveProgress({ hasSeenTutorial: true });
       onComplete();
@@ -72,72 +80,89 @@ export function TutorialOverlay({ userName, avatarUrl, onComplete }: TutorialOve
   };
 
   return (
-    <div className="fixed inset-0 z-[1000] pointer-events-none">
-      <AnimatePresence>
-        {/* Backdrop com Spotlight */}
-        <motion.div 
+    <AnimatePresence>
+      <div className="fixed inset-0 z-[1000] pointer-events-none overflow-hidden">
+        {/* Spotlight Effect */}
+        <motion.div
+          className="absolute inset-0 bg-black/70 pointer-events-auto"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="absolute inset-0 bg-black/60 pointer-events-auto"
-          style={{
-            maskImage: spotlight.size > 0 
-              ? `radial-gradient(circle ${spotlight.size / 2}px at ${spotlight.x}px ${spotlight.y}px, transparent 100%, black 100%)`
-              : 'none',
-            WebkitMaskImage: spotlight.size > 0 
-              ? `radial-gradient(circle ${spotlight.size / 2}px at ${spotlight.x}px ${spotlight.y}px, transparent 100%, black 100%)`
-              : 'none'
-          }}
-        />
-      </AnimatePresence>
+        >
+          {targetRect && (
+            <motion.div
+              className="absolute bg-transparent rounded-[2rem]"
+              style={{
+                boxShadow: "0 0 0 9999px rgba(0,0,0,0.7)",
+              }}
+              initial={false}
+              animate={{
+                top: targetRect.top - 8,
+                left: targetRect.left - 8,
+                width: targetRect.width + 16,
+                height: targetRect.height + 16,
+              }}
+              transition={{ type: "spring", stiffness: 100, damping: 20 }}
+            />
+          )}
+        </motion.div>
 
-      <div className="absolute inset-0 flex flex-col items-center justify-end p-8 pointer-events-none">
-        <motion.div 
-          key={step}
+        {/* Dialog Card */}
+        <motion.div
+          key={currentStep}
           initial={{ opacity: 0, y: 20, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          className="bg-white rounded-[3rem] p-8 w-full max-w-sm shadow-2xl border-4 border-primary/20 pointer-events-auto mb-12 relative"
+          exit={{ opacity: 0, y: -20, scale: 0.95 }}
+          className="absolute z-[1050] pointer-events-auto flex flex-col items-center w-full px-6"
+          style={{
+            top: targetRect 
+              ? (targetRect.bottom + 100 > window.innerHeight ? targetRect.top - 280 : targetRect.bottom + 32) 
+              : "40%",
+          }}
         >
-          {/* Avatar Flutuante */}
-          <div className="absolute -top-16 left-1/2 -translate-x-1/2 w-32 h-32 rounded-[2.5rem] overflow-hidden border-4 border-white shadow-xl bg-primary/10">
-            <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
-          </div>
-
-          <div className="pt-16 space-y-6 text-center">
-            <div className="flex justify-center">{steps[step - 1].icon}</div>
-            <p className="text-sm font-bold text-muted-foreground leading-relaxed">
-              {steps[step - 1].text}
-            </p>
+          <div className="bg-white rounded-[2.5rem] p-8 max-w-sm w-full shadow-2xl border-4 border-primary/10 relative">
             
-            <div className="flex gap-3">
-              <Button 
-                variant="ghost" 
-                onClick={onComplete}
-                className="flex-1 rounded-2xl font-black uppercase text-[10px]"
-              >
-                {t('common.skip')}
-              </Button>
-              <Button 
+            <div className="absolute -top-8 left-8 bg-primary p-4 rounded-[1.2rem] shadow-xl border-4 border-white">
+              {steps[currentStep].icon}
+            </div>
+
+            <button 
+              onClick={onComplete}
+              className="absolute top-6 right-6 text-muted-foreground hover:text-primary transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="mt-4">
+              <h3 className="text-xl font-black uppercase italic tracking-tighter text-foreground mb-2">
+                {steps[currentStep].title}
+              </h3>
+              <p className="text-muted-foreground text-xs font-medium leading-relaxed mb-8">
+                {steps[currentStep].description}
+              </p>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex gap-1.5">
+                {steps.map((_, i) => (
+                  <div 
+                    key={i} 
+                    className={`h-1.5 rounded-full transition-all ${i === currentStep ? 'w-8 bg-primary' : 'w-2 bg-primary/20'}`}
+                  />
+                ))}
+              </div>
+              
+              <Button
                 onClick={handleNext}
-                className="flex-[2] h-14 rounded-2xl font-black uppercase text-[10px] bg-primary shadow-lg flex justify-between px-6"
+                className="rounded-full h-12 px-6 font-black uppercase text-[10px] bg-primary shadow-lg shadow-primary/20 flex items-center gap-2"
               >
-                <span>{step === steps.length ? t('tutorial.gotIt') : t('common.next')}</span>
-                <ArrowRight className="w-4 h-4" />
+                {currentStep === steps.length - 1 ? t('tutorial.gotIt') : t('common.next')}
+                <ChevronRight className="w-4 h-4" />
               </Button>
             </div>
           </div>
-
-          {/* Indicador de Passos */}
-          <div className="flex justify-center gap-1 mt-6">
-            {steps.map((_, i) => (
-              <div 
-                key={i} 
-                className={`h-1 rounded-full transition-all ${i + 1 === step ? 'w-6 bg-primary' : 'w-2 bg-primary/20'}`}
-              />
-            ))}
-          </div>
         </motion.div>
       </div>
-    </div>
+    </AnimatePresence>
   );
 }

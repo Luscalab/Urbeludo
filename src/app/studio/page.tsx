@@ -31,7 +31,7 @@ export default function StudioPage() {
   const { data: profile, isLoading } = useDoc(userProgressRef);
 
   useEffect(() => {
-    if (profile && !profile.hasSeenTutorial) {
+    if (profile && profile.hasSeenTutorial === false) {
       setShowTutorial(true);
     }
   }, [profile]);
@@ -106,6 +106,7 @@ export default function StudioPage() {
 
           {/* Avatar com Feedback de Itens Ativos */}
           <motion.div 
+            id="studio-avatar"
             animate={{ 
               y: [0, -10, 0],
               scale: isEditing ? 0.8 : 1
