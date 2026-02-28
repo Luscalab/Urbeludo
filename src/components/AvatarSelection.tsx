@@ -72,7 +72,7 @@ export function AvatarSelection({ initialAvatarId, onSelect, debugMode = false }
               
               {debugMode && (
                 <div className="absolute bottom-1 bg-black/80 text-white text-[6px] px-1.5 py-0.5 rounded-sm font-mono max-w-[90%] truncate">
-                  {avatar.id}
+                  {avatar.src.split('/').pop()}
                 </div>
               )}
 

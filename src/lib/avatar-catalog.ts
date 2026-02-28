@@ -1,6 +1,6 @@
 /**
  * Catálogo Central de Avatares do UrbeLudo.
- * Sincronizado com os nomes de arquivos simplificados (1.png, 2.png...).
+ * Sincronizado com os nomes de arquivos simplificados (1.png a 32.png).
  */
 export interface AvatarAsset {
   id: string;
@@ -8,18 +8,12 @@ export interface AvatarAsset {
   src: string;
 }
 
-export const AVATAR_CATALOG: AvatarAsset[] = [
-  { id: "av-01", name: "Explorador 1", src: "/assets/avatars/1.png" },
-  { id: "av-02", name: "Explorador 2", src: "/assets/avatars/2.png" },
-  { id: "av-03", name: "Explorador 3", src: "/assets/avatars/3.png" },
-  { id: "av-04", name: "Explorador 4", src: "/assets/avatars/4.png" },
-  { id: "av-05", name: "Explorador 5", src: "/assets/avatars/5.png" },
-  { id: "av-06", name: "Explorador 6", src: "/assets/avatars/6.png" },
-  { id: "av-07", name: "Explorador 7", src: "/assets/avatars/7.png" },
-  { id: "av-08", name: "Explorador 8", src: "/assets/avatars/8.png" },
-  { id: "av-09", name: "Explorador 9", src: "/assets/avatars/9.png" },
-  { id: "av-10", name: "Explorador 10", src: "/assets/avatars/10.png" },
-];
+// Gerando 32 entradas para cobrir todas as fotos da pasta
+export const AVATAR_CATALOG: AvatarAsset[] = Array.from({ length: 32 }, (_, i) => ({
+  id: `av-${(i + 1).toString().padStart(2, '0')}`,
+  name: `Explorador ${i + 1}`,
+  src: `/assets/avatars/${i + 1}.png`
+}));
 
 export const getAvatarById = (id: string) => {
   return AVATAR_CATALOG.find(a => a.id === id) || AVATAR_CATALOG[0];
