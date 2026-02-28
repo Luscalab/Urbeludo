@@ -7,7 +7,7 @@ import { FALLBACK_AVATAR } from '@/lib/avatar-catalog';
 
 /**
  * Componente que garante a inicialização correta do estado do usuário.
- * Corrigido para não depender de catálogos estáticos que causavam erros de build.
+ * Corrigido para remover importações obsoletas e usar o sistema dinâmico.
  */
 export function AuthInitializer({ children }: { children: React.ReactNode }) {
   const [isReady, setIsReady] = useState(false);
@@ -24,7 +24,7 @@ export function AuthInitializer({ children }: { children: React.ReactNode }) {
           id: uid,
           displayName: `Explorador_${uid.slice(-4)}`,
           bio: "Explorador Independente UrbeLudo 🌍",
-          ludoCoins: 500, // Capital inicial sapiente
+          ludoCoins: 500,
           psychomotorLevel: 1,
           totalChallengesCompleted: 0,
           currentStreak: 0,
@@ -36,7 +36,7 @@ export function AuthInitializer({ children }: { children: React.ReactNode }) {
           dominantColor: '#9333ea',
           avatar: {
             energy: 100,
-            avatarId: FALLBACK_AVATAR.id, // Uso de exportação resiliente
+            avatarId: FALLBACK_AVATAR.id,
             unlockedItems: ['cama-01'],
             equippedItems: [],
             studioLevel: 1
