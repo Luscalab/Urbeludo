@@ -1,0 +1,105 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * URBELUDO FIREBASE SECURITY RULES
+     * 
+     * CORE PHILOSOPHY:
+     * This ruleset enforces a privacy-first, anonymous user ownership model. The primary goal 
+     * is to ensure that users can only access and manage their own psychomotor challenge data 
+     * while allowing public access to static reference data (Urban Elements and Challenge Definitions).
+     * 
+     * DATA STRUCTURE:
+     * - Public Data: /urban_elements and /challenge_definitions are top-level and publicly readable.
+     * - User Data: All user-specific progress and activities are stored under /user_progress/{userId}.
+     * - Path-Based Ownership: The {userId} in the document path is matched directly against 
+     *   request.auth.uid, providing a high-performance authorization check without extra reads.
+     * 
+     * KEY SECURITY DECISIONS:
+     * - Strict Ownership: Users cannot list, read, or modify other users' progress or activity history.
+     * - Read-Only Public Collections: Urban elements and challenge templates are globally visible 
+     *   to facilitate the app's core functionality but are protected from unauthorized modifications.
+     * - Relational Integrity: In UserProgress and ChallengeActivity, we enforce that the 
+     *   internal 'userId' or 'userProgressId' matches the path to prevent data from being 
+     *   orphaned or misattributed during creation.
+     */
+
+    // --- Helper Functions ---
+
+    /**
+     * @description Checks if the request is coming from a signed-in user (anonymous or password).
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * @description Checks if the provided UID matches the authenticated user's UID.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * @description Verifies ownership and ensures the document exists before allowing modifications.
+     */
+    function isExistingOwner(userId) {
+      return resource != null && isOwner(userId);
+    }
+
+    // --- Collection Rules ---
+
+    /**
+     * @description Static definitions of urban architectural elements.
+     * @path /urban_elements/{elementId}
+     * @allow Public users (get) and (list) to view reference data.
+     * @deny Any user (create), (update), or (delete) operation; admin-only writes not yet implemented.
+     * @principle Public read with restricted writes.
+     */
+    match /urban_elements/{elementId} {
+      allow get, list: if true;
+      allow create, update, delete: if false; // TODO: Add admin role validation once administrative roles are defined.
+    }
+
+    /**
+     * @description Templates for psychomotor challenges, including AI-generated ones.
+     * @path /challenge_definitions/{challengeDefinitionId}
+     * @allow Public users (get) and (list) to browse available challenges.
+     * @deny Any user (create), (update), or (delete) operation; AI/Admin-only writes.
+     * @principle Public read with restricted writes.
+     */
+    match /challenge_definitions/{challengeDefinitionId} {
+      allow get, list: if true;
+      allow create, update, delete: if false; // TODO: Add AI-service or admin role validation.
+    }
+
+    /**
+     * @description Root progress document for an individual user.
+     * @path /user_progress/{userId}
+     * @allow User (create) if path matches auth.uid; User (get), (list), (update), (delete) if they own the record.
+     * @deny Any access where request.auth.uid does not match the {userId} in the path.
+     * @principle Path-based ownership and self-creation enforcement.
+     */
+    match /user_progress/{userId} {
+      allow get, list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
+
+      /**
+       * @description Records of specific challenge attempts performed by the user.
+       * @path /user_progress/{userId}/challenge_activities/{activityId}
+       * @allow User (create) if path matches auth.uid; User (get), (list), (update), (delete) if they own the parent tree.
+       * @deny Mismatched userProgressId during creation or any access by non-owners.
+       * @principle Hierarchical ownership leveraging parent path parameters.
+       */
+      match /challenge_activities/{activityId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && request.resource.data.userProgressId == userId;
+        allow update: if isExistingOwner(userId) && request.resource.data.userProgressId == resource.data.userProgressId;
+        allow delete: if isExistingOwner(userId);
+      }
+    }
+  }
+}
