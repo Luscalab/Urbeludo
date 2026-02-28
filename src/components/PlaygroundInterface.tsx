@@ -1,8 +1,9 @@
+
 'use client';
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
@@ -44,6 +45,7 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
   const { toast } = useToast();
   const { t } = useI18n();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const videoRef = useRef<HTMLVideoElement>(null);
   const trailCanvasRef = useRef<HTMLCanvasElement>(null);
   
@@ -68,9 +70,20 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
   const userProgressRef = useMemoFirebase(() => user ? { id: user.uid, path: `user_progress/${user.uid}` } : null, [user]);
   const { data: profile } = useDoc(userProgressRef);
 
+  // Efeito para detectar se estamos no modo de edição via URL
+  useEffect(() => {
+    const editMode = searchParams.get('edit') === 'true';
+    if (editMode) {
+      setShowGuide(true);
+      setTermsAccepted(true); // Já aceitou se está editando
+    }
+  }, [searchParams]);
+
   useEffect(() => {
     if (profile) {
-      if (profile.displayName && profile.hasSeenTutorial) {
+      // Só esconde o guia se não estivermos forçando o modo de edição via searchParams
+      const editMode = searchParams.get('edit') === 'true';
+      if (profile.displayName && profile.hasSeenTutorial && !editMode) {
         setShowGuide(false);
       }
       setExplorerName(profile.displayName || '');
@@ -78,7 +91,7 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
       setAvatarColor(profile.dominantColor || '#9333ea');
       setSelectedAvatarId(profile.avatar?.avatarId || FALLBACK_AVATAR.id);
     }
-  }, [profile]);
+  }, [profile, searchParams]);
 
   useEffect(() => {
     async function loadModel() {
@@ -188,63 +201,27 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
   const handleSaveProfile = async () => {
     if (!termsAccepted || !explorerName.trim()) return;
     const isSapient = explorerName.toLowerCase() === 'sapient';
+    const isEditMode = searchParams.get('edit') === 'true';
+
     if (userProgressRef) {
       updateDocumentNonBlocking(userProgressRef, { 
         displayName: explorerName,
         ageGroup, 
         dominantColor: avatarColor,
-        hasSeenTutorial: false,
+        // Se já viu o tutorial, mantém como true. Se não, reseta para ver ao ir pro studio.
+        hasSeenTutorial: isEditMode ? (profile?.hasSeenTutorial ?? true) : false,
         ludoCoins: isSapient ? 99999 : (profile?.ludoCoins || 150),
         avatar: { ...profile?.avatar, avatarId: selectedAvatarId }
       });
     }
-    router.push('/studio');
-  };
 
-  const handleStartMission = async (type: 'home' | 'street') => {
-    if ((profile?.avatar?.energy ?? 100) < 10) {
-      toast({ variant: 'destructive', title: 'Energia Baixa', description: 'Descanse no estúdio para recarregar.' });
-      return;
-    }
-
-    setCameraMode(type === 'street' ? 'environment' : 'user');
-    setIsScanning(true);
+    toast({ title: "Perfil Sincronizado", description: "Sua identidade UrbeLudo foi atualizada!" });
     
-    try {
-      let urbanContext: any = null;
-      if (type === 'street' && videoRef.current) {
-        const canvas = document.createElement('canvas');
-        canvas.width = videoRef.current.videoWidth;
-        canvas.height = videoRef.current.videoHeight;
-        canvas.getContext('2d')?.drawImage(videoRef.current, 0, 0);
-        const dataUri = canvas.toDataURL('image/jpeg');
-        urbanContext = await identifyUrbanElements({ webcamFeedDataUri: dataUri });
-      }
-
-      const challenge = await proposeDynamicChallenges({
-        category: selectedCategory,
-        psychomotorLevel: profile?.psychomotorLevel || 1,
-      });
-      
-      await new Promise(r => setTimeout(r, 1500));
-      setActiveChallenge({ ...challenge, missionType: type, urbanElements: urbanContext?.elements });
-    } catch (e) {
-      toast({ variant: 'destructive', title: 'Erro na IA', description: 'Usando motor de backup.' });
-    } finally {
-      setIsScanning(false);
+    if (isEditMode) {
+      router.push('/dashboard');
+    } else {
+      router.push('/studio');
     }
-  };
-
-  const completeMission = () => {
-    if (!activeChallenge || !userProgressRef) return;
-    const updates = {
-      ludoCoins: (profile?.ludoCoins || 0) + activeChallenge.ludoCoinsReward,
-      totalChallengesCompleted: (profile?.totalChallengesCompleted || 0) + 1,
-      avatar: { ...profile?.avatar, energy: Math.max(0, (profile?.avatar?.energy ?? 100) - 20) },
-    };
-    updateDocumentNonBlocking(userProgressRef, updates);
-    setCelebrating(true);
-    setTimeout(() => { setCelebrating(false); setActiveChallenge(null); }, 3000);
   };
 
   return (
@@ -310,7 +287,7 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
             </div>
 
             <Button onClick={handleSaveProfile} disabled={!termsAccepted} className="w-full h-20 rounded-[3rem] font-black uppercase tracking-widest bg-primary shadow-2xl flex justify-between px-12 border-b-6 border-primary/80 active:border-b-0 active:translate-y-1">
-              <span>Sincronizar e Jogar</span>
+              <span>{searchParams.get('edit') === 'true' ? 'Salvar Alterações' : 'Sincronizar e Jogar'}</span>
               <ChevronRight className="w-7 h-7" />
             </Button>
           </div>

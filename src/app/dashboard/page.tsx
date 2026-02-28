@@ -59,12 +59,12 @@ export default function DashboardPage() {
     'street-artist': { label: 'Artista de Rua', icon: '🖌️', rarity: 'legendary' }
   };
 
-  const avatarInfo = getAvatarById(profile?.avatar?.avatarId || 'avatar-01');
+  const avatarInfo = getAvatarById(profile?.avatar?.avatarId || '1.png');
 
   return (
     <div className="min-h-screen bg-background flex flex-col pb-24">
       <header className="px-6 h-16 flex items-center justify-between border-b bg-background/80 backdrop-blur-md sticky top-0 z-50">
-        <Link href="/playground" className="p-2"><ArrowLeft className="w-5 h-5" /></Link>
+        <Link href="/playground" className="p-2"><ArrowLeft className="w-5 h-5 text-primary" /></Link>
         <div className="flex items-center gap-1">
           <UrbeLudoLogo className="w-6 h-6 text-primary" />
           <span className="text-sm font-black uppercase italic tracking-tighter">{t('dashboard.studioTitle')}</span>
@@ -84,7 +84,12 @@ export default function DashboardPage() {
         <div className="flex flex-col items-center text-center space-y-4">
            <div className="relative w-28 h-28 rounded-[2.5rem] overflow-hidden border-4 border-primary/20 shadow-xl bg-muted p-4">
               <img src={avatarInfo.src} alt="Avatar" className="w-full h-full object-contain" />
-              <button className="absolute bottom-1 right-1 bg-primary text-white p-2 rounded-xl shadow-lg"><Edit2 className="w-4 h-4" /></button>
+              <button 
+                onClick={() => router.push('/playground?edit=true')}
+                className="absolute bottom-1 right-1 bg-primary text-white p-2 rounded-xl shadow-lg hover:scale-110 active:scale-95 transition-transform"
+              >
+                <Edit2 className="w-4 h-4" />
+              </button>
            </div>
            <div className="space-y-1">
               <h2 className="text-2xl font-black uppercase italic tracking-tighter leading-none">{profile?.displayName || "Explorador"}</h2>
