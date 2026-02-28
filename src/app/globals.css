@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -31,7 +32,6 @@
     --foreground: 120 10% 95%;
   }
 
-  /* Mobile-first resets */
   * {
     -webkit-tap-highlight-color: transparent;
     user-select: none;
@@ -54,28 +54,28 @@
   @keyframes breathing-avatar {
     0%, 100% {
       transform: scale(1);
-      filter: drop-shadow(0 0 20px rgba(var(--primary-rgb), 0.4));
+      filter: drop-shadow(0 0 20px rgba(51, 153, 61, 0.4));
     }
     50% {
-      transform: scale(1.1);
-      filter: drop-shadow(0 0 40px rgba(var(--primary-rgb), 0.7));
+      transform: scale(1.15);
+      filter: drop-shadow(0 0 45px rgba(51, 153, 61, 0.8));
     }
   }
   .animate-breathing-avatar {
-    animation: breathing-avatar 4s ease-in-out infinite;
+    animation: breathing-avatar 3.5s ease-in-out infinite;
   }
 
   @keyframes pulse-glow {
-    0%, 100% { opacity: 0.5; transform: scale(1); }
-    50% { opacity: 1; transform: scale(1.05); }
+    0%, 100% { opacity: 0.6; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.03); }
   }
   .animate-pulse-glow {
-    animation: pulse-glow 2s ease-in-out infinite;
+    animation: pulse-glow 2.5s ease-in-out infinite;
   }
 
   @keyframes float-libras {
     0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
+    50% { transform: translateY(-15px); }
   }
   .animate-float-libras {
     animation: float-libras 3s ease-in-out infinite;

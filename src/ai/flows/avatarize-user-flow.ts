@@ -15,12 +15,12 @@ export type AvatarizeUserInput = z.infer<typeof AvatarizeUserInputSchema>;
 const AvatarTraitsSchema = z.object({
   hair: z.object({
     style: z.enum(['liso', 'ondulado', 'cacheado', 'crespo', 'careca', 'curto', 'longo']),
-    color: z.string().describe("Ex: Castanho escuro, Loiro mel, Rosa neon"),
+    color: z.string().describe("Ex: #333333, #FFD700, #Rosa"),
     texture: z.string().describe("Ex: Fino, Grosso, Arroz cacheado"),
   }),
   eyes: z.object({
     shape: z.string().describe("Ex: Amendoado, Redondo, Puxado"),
-    color: z.string().describe("Ex: Mel, Verde, Azul, Castanho"),
+    color: z.string().describe("Ex: #00FFFF, #8B4513, #00FF00"),
     eyebrowShape: z.string().describe("Ex: Arqueada, Reta, Grossa"),
   }),
   face: z.object({
@@ -59,7 +59,7 @@ Analise a foto fornecida e identifique detalhadamente as características faciai
 Sua análise deve ser PRECISA mas focada em transformar traços reais em elementos de DESIGN DIGITAL SEGURO.
 
 Características a identificar:
-1. Cabelo: Tipo (liso, ondulado, cacheado, crespo), cor e textura.
+1. Cabelo: Tipo (liso, ondulado, cacheado, crespo), cor (retorne em formato HEX ou cor legível) e textura.
 2. Olhos: Formato, cor e sobrancelhas.
 3. Rosto: Formato geral, tom de pele e subtons (frio/quente).
 4. Boca e Nariz: Formatos predominantes.
@@ -84,8 +84,8 @@ const avatarizeUserFlow = ai.defineFlow(
     } catch (error) {
       console.error("Erro no Flow de Avatarização:", error);
       return {
-        hair: { style: 'curto', color: 'Castanho', texture: 'Liso' },
-        eyes: { shape: 'Amendoado', color: 'Castanho', eyebrowShape: 'Natural' },
+        hair: { style: 'curto', color: '#333333', texture: 'Liso' },
+        eyes: { shape: 'Amendoado', color: '#33993D', eyebrowShape: 'Natural' },
         face: { shape: 'Oval', tone: 'Médio', undertone: 'Quente', noseShape: 'Natural', mouthShape: 'Natural' },
         accessories: [],
         dominantColor: "#33993D",

@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -25,7 +26,8 @@ import {
   Brain,
   Wind,
   Sun,
-  ShieldAlert
+  ShieldAlert,
+  Sparkles
 } from 'lucide-react';
 import { proposeDynamicChallenges, type ProposeDynamicChallengesOutput } from '@/ai/flows/propose-dynamic-challenges';
 import { identifyUrbanElements } from '@/ai/flows/identify-urban-elements-flow';
@@ -46,7 +48,6 @@ export function PlaygroundInterface() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   
   const [showGuide, setShowGuide] = useState(true);
-  const [setupStep, setSetupStep] = useState(0); 
   const [isInitializingCamera, setIsInitializingCamera] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
@@ -63,11 +64,10 @@ export function PlaygroundInterface() {
   const [isAudioEnabled, setIsAudioEnabled] = useState(false);
   const [isLibrasEnabled, setIsLibrasEnabled] = useState(false);
   const [isLowLight, setIsLowLight] = useState(false);
+  const [isBlinking, setIsBlinking] = useState(false);
 
   const [ageGroup, setAgeGroup] = useState('adolescent_adult');
-  const [sex, setSex] = useState('prefer_not_to_say');
   const [neurodivergence, setNeurodivergence] = useState('');
-  const [physicalLimitations, setPhysicalLimitations] = useState('');
 
   const userProgressRef = useMemoFirebase(() => user ? doc(db, 'user_progress', user.uid) : null, [db, user]);
   const { data: profile } = useDoc(userProgressRef);
@@ -75,14 +75,21 @@ export function PlaygroundInterface() {
   useEffect(() => {
     if (profile) {
       setAgeGroup(profile.ageGroup || 'adolescent_adult');
-      setSex(profile.sex || 'prefer_not_to_say');
       setNeurodivergence(profile.neurodivergence || '');
-      setPhysicalLimitations(profile.physicalLimitations || '');
       if (profile.avatar?.traits) {
         setSafeAvatar(profile.avatar.traits as any);
       }
     }
   }, [profile]);
+
+  // Simulação de ações do rosto (piscar)
+  useEffect(() => {
+    const blinkInterval = setInterval(() => {
+      setIsBlinking(true);
+      setTimeout(() => setIsBlinking(false), 150);
+    }, 4000 + Math.random() * 2000);
+    return () => clearInterval(blinkInterval);
+  }, []);
 
   const startCamera = async (mode: 'user' | 'environment') => {
     setIsInitializingCamera(true);
@@ -199,8 +206,8 @@ export function PlaygroundInterface() {
     } catch (e) {
       toast({ variant: 'destructive', title: "Erro no Scan", description: "Tentando novamente com avatar padrão." });
       const fallback = {
-        hair: { style: 'curto' as any, color: 'Verde Neon', texture: 'Liso' },
-        eyes: { shape: 'Amendoado', color: 'Ciano', eyebrowShape: 'Natural' },
+        hair: { style: 'curto' as any, color: '#333333', texture: 'Liso' },
+        eyes: { shape: 'Amendoado', color: '#33993D', eyebrowShape: 'Natural' },
         face: { shape: 'Oval', tone: 'Médio', undertone: 'Neutro', noseShape: 'Natural', mouthShape: 'Natural' },
         accessories: [],
         dominantColor: "#33993D",
@@ -216,10 +223,9 @@ export function PlaygroundInterface() {
   const handleSaveProfile = async () => {
     if (userProgressRef) {
       updateDocumentNonBlocking(userProgressRef, {
-        ageGroup, sex, neurodivergence, physicalLimitations
+        ageGroup, neurodivergence
       });
     }
-    setSetupStep(0);
     setShowGuide(false);
     setCameraMode('user');
   };
@@ -353,15 +359,14 @@ export function PlaygroundInterface() {
   return (
     <div className="flex flex-col h-full bg-background relative overflow-hidden">
       {/* Viewport da Câmera */}
-      <div className="relative w-full aspect-[4/3] bg-black overflow-hidden shadow-2xl">
-        {isInitializingCamera && (
-          <div className="absolute inset-0 z-50 bg-black flex flex-col items-center justify-center gap-4 text-white">
-             <Loader2 className="w-8 h-8 animate-spin text-primary" />
-             <span className="text-[10px] font-black uppercase tracking-widest">Sincronizando Sensores...</span>
-          </div>
-        )}
-        
-        <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
+      <div className="relative w-full aspect-[4/3] bg-black overflow-hidden shadow-2xl z-0">
+        <video 
+          ref={videoRef} 
+          className="w-full h-full object-cover" 
+          autoPlay 
+          muted 
+          playsInline 
+        />
         <canvas ref={canvasRef} className="hidden" />
 
         {/* Alerta de Luz */}
@@ -378,45 +383,54 @@ export function PlaygroundInterface() {
           <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
             <div className="w-60 h-72 border-4 border-dashed border-primary/40 rounded-[3.5rem] relative">
               <div className="absolute inset-0 bg-primary/5 rounded-[3.5rem]" />
-              <div className="absolute -top-12 inset-x-0 text-center text-primary font-black text-[10px] uppercase">Enquadre seu rosto para o "bordado" digital</div>
+              <div className="absolute -top-12 inset-x-0 text-center text-primary font-black text-[10px] uppercase">Enquadre seu rosto para o scan</div>
             </div>
           </div>
         )}
 
-        {/* Representação do Avatar (Character Visual) */}
+        {/* Representação do Avatar Visual (LUDO PERSONA) */}
         {safeAvatar && cameraMode === 'user' && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
              <div 
                className={cn(
-                 "relative w-56 h-56 rounded-full border-4 border-white/40 shadow-2xl flex items-center justify-center overflow-hidden transition-all duration-700",
-                 isBreathingActivity ? "animate-breathing-avatar" : "animate-pulse"
+                 "relative w-64 h-64 rounded-[3.5rem] border-4 border-white/40 shadow-2xl flex flex-col items-center justify-center overflow-hidden transition-all duration-700",
+                 isBreathingActivity ? "animate-breathing-avatar" : "animate-float-libras"
                )}
                style={{ backgroundColor: safeAvatar.dominantColor || '#33993D' }}
              >
-                {/* Stylized Face Elements */}
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                   {/* Hair Representation */}
-                   <div className={cn(
-                     "absolute top-0 w-full h-1/2 rounded-t-full opacity-80",
-                     safeAvatar.hair?.style === 'cacheado' ? "bg-black/40 rounded-[2rem]" : "bg-black/20"
-                   )} style={{ backgroundColor: safeAvatar.hair?.color }} />
-                   
-                   {/* Visor / Accessory */}
-                   <div className="w-40 h-10 bg-white/20 backdrop-blur-md border border-white/30 rounded-full flex items-center justify-around px-6 z-10 animate-pulse-glow">
-                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: safeAvatar.eyes?.color || 'cyan' }} />
-                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: safeAvatar.eyes?.color || 'cyan' }} />
-                   </div>
+                {/* Camada de Estilo: Cabelo */}
+                <div 
+                  className={cn(
+                    "absolute top-0 w-full h-2/5 opacity-90 transition-all",
+                    safeAvatar.hair?.style === 'cacheado' ? "rounded-b-[2rem]" : "rounded-none"
+                  )}
+                  style={{ backgroundColor: safeAvatar.hair?.color || '#333' }}
+                />
 
-                   {/* Character Text Label */}
-                   <div className="mt-4 text-center">
-                      <div className="text-[10px] font-black text-white uppercase italic leading-none">{safeAvatar.accessoryType}</div>
-                      <div className="text-[8px] font-bold text-white/50 uppercase tracking-tighter mt-1">Identidade Urbe</div>
-                   </div>
+                {/* Camada de Olhos / Visor */}
+                <div className="w-48 h-12 bg-black/30 backdrop-blur-xl border border-white/20 rounded-full flex items-center justify-around px-8 z-10 animate-pulse-glow">
+                   <div 
+                     className={cn("w-4 h-4 rounded-full transition-all", isBlinking && "scale-y-0")} 
+                     style={{ backgroundColor: safeAvatar.eyes?.color || 'cyan' }} 
+                   />
+                   <div 
+                     className={cn("w-4 h-4 rounded-full transition-all", isBlinking && "scale-y-0")} 
+                     style={{ backgroundColor: safeAvatar.eyes?.color || 'cyan' }} 
+                   />
+                </div>
+
+                {/* Camada de Expressão / Boca */}
+                <div className="mt-8 w-12 h-1 bg-white/40 rounded-full" />
+
+                {/* Label de Identidade */}
+                <div className="absolute bottom-4 text-center">
+                   <div className="text-[10px] font-black text-white/80 uppercase italic leading-none">{safeAvatar.accessoryType}</div>
+                   <div className="text-[7px] font-bold text-white/30 uppercase tracking-widest mt-1">Identidade UrbeLudo</div>
                 </div>
              </div>
              
-             {/* Security Blur Indicator Overlay */}
-             <div className="absolute inset-0 bg-primary/5 backdrop-blur-[2px] pointer-events-none" />
+             {/* Efeito de Aura de Privacidade */}
+             <div className="absolute inset-0 bg-primary/10 backdrop-blur-[1px] pointer-events-none" />
           </div>
         )}
 
@@ -428,10 +442,18 @@ export function PlaygroundInterface() {
           </div>
         )}
 
-        {/* Prova de Foto Segura */}
+        {/* Inicialização */}
+        {isInitializingCamera && (
+          <div className="absolute inset-0 z-50 bg-black flex flex-col items-center justify-center gap-4 text-white">
+             <Loader2 className="w-8 h-8 animate-spin text-primary" />
+             <span className="text-[10px] font-black uppercase tracking-widest">Sincronizando Sensores...</span>
+          </div>
+        )}
+
+        {/* Prova de Foto Segura (Overlay) */}
         {photoProof && (
-          <div className="absolute inset-0 bg-black/98 flex flex-col items-center justify-center p-6 z-50 animate-in fade-in zoom-in-95">
-             <img src={photoProof} className="max-h-[75vh] rounded-3xl border-2 border-primary/50 shadow-2xl" alt="Prova" />
+          <div className="absolute inset-0 bg-black/98 flex flex-col items-center justify-center p-6 z-[100] animate-in fade-in zoom-in-95">
+             <img src={photoProof} className="max-h-[75vh] rounded-[3rem] border-2 border-primary/50 shadow-2xl" alt="Prova" />
              <Button variant="ghost" className="mt-4 text-white font-black uppercase text-[10px]" onClick={() => setPhotoProof(null)}><RefreshCw className="w-4 h-4 mr-2" /> Refazer Captura</Button>
           </div>
         )}
@@ -440,7 +462,6 @@ export function PlaygroundInterface() {
       {/* Interface de Controle */}
       <div className="flex-1 -mt-10 bg-background rounded-t-[3.5rem] p-8 shadow-[0_-15px_40px_rgba(0,0,0,0.15)] overflow-y-auto space-y-8 z-20">
         
-        {/* Onboarding Guide */}
         {showGuide ? (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-6">
             <div className="flex flex-col items-center text-center space-y-4">
@@ -475,7 +496,6 @@ export function PlaygroundInterface() {
           </div>
         ) : (
           <>
-            {/* Seletor de Categorias */}
             <div className="flex overflow-x-auto gap-3 pb-2 no-scrollbar">
                 <CategoryButton active={selectedCategory === 'artistic'} onClick={() => setSelectedCategory('artistic')} icon={<Palette className="w-4 h-4" />} label="Arte" />
                 <CategoryButton active={selectedCategory === 'motor'} onClick={() => setSelectedCategory('motor')} icon={<Zap className="w-4 h-4" />} label="Motor" />
@@ -483,7 +503,6 @@ export function PlaygroundInterface() {
                 <CategoryButton active={selectedCategory === 'relaxation'} onClick={() => setSelectedCategory('relaxation')} icon={<Wind className="w-4 h-4" />} label="Zen" />
             </div>
 
-            {/* Missões Diárias */}
             {!activeChallenge ? (
               <div className="space-y-4">
                 <ChallengeRow title="O Despertar" subtitle="Espaço Casa" icon={<HomeIcon />} isCompleted={profile?.dailyCycle?.homeMissionCompleted} onClick={() => handleStartMission('home')} disabled={isScanning} />
@@ -524,9 +543,8 @@ export function PlaygroundInterface() {
         )}
       </div>
 
-      {/* Tela de Celebração */}
       {celebrating && (
-        <div className="fixed inset-0 z-[100] bg-primary flex flex-col items-center justify-center p-12 text-center text-white animate-in zoom-in-95">
+        <div className="fixed inset-0 z-[200] bg-primary flex flex-col items-center justify-center p-12 text-center text-white animate-in zoom-in-95">
           <Trophy className="w-24 h-24 mb-6 animate-bounce text-yellow-300" />
           <h2 className="text-5xl font-black uppercase italic mb-6">Incrível!</h2>
           <div className="bg-white/20 px-10 py-5 rounded-[2.5rem] border border-white/30 backdrop-blur-2xl">
