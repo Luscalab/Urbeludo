@@ -216,7 +216,6 @@ export function PlaygroundInterface() {
 
   useEffect(() => {
     if (!showGuide) {
-      // Se não tem avatar, força frontal para o scan
       if (!safeAvatar) {
         setCameraMode('user');
         startCamera('user');
@@ -449,10 +448,10 @@ export function PlaygroundInterface() {
         />
         <canvas ref={canvasRef} className="hidden" />
 
-        {/* CAMADA 3D AO VIVO (Visível apenas em Selfie ou Home) */}
+        {/* CAMADA 3D AO VIVO */}
         {safeAvatar && cameraMode === 'user' && (
           <div className="absolute inset-0 z-30 pointer-events-none">
-            <Canvas shadows alpha>
+            <Canvas shadows gl={{ alpha: true, antialias: true }}>
               <PerspectiveCamera makeDefault position={[0, 0, 4.5]} fov={35} />
               <ambientLight intensity={1.2} />
               <pointLight position={[5, 5, 5]} intensity={1.5} />
