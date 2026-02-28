@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
@@ -5,17 +6,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { 
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
 import { 
   Loader2, 
   CheckCircle2, 
@@ -23,22 +16,15 @@ import {
   MapPin, 
   Coins, 
   Trophy,
-  Volume2,
   Hand,
   Zap,
   Brain,
   Wind,
   ChevronRight,
   User as UserIcon,
-  ZapOff,
   Sparkles,
   Palette as PaletteIcon,
-  ChevronLeft,
   Music,
-  Camera,
-  CameraOff,
-  Info,
-  ChevronDown
 } from 'lucide-react';
 
 import { proposeDynamicChallenges, type ProposeDynamicChallengesOutput } from '@/ai/flows/propose-dynamic-challenges';
@@ -50,7 +36,7 @@ import { useI18n } from '@/components/I18nProvider';
 import { MissionCategory } from '@/lib/types';
 import { STUDIO_CATALOG } from '@/lib/studio-catalog';
 import { AvatarSelection } from '@/components/AvatarSelection';
-import { AVATAR_CATALOG } from '@/lib/avatar-catalog';
+import { FALLBACK_AVATAR } from '@/lib/avatar-catalog';
 
 export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean }) {
   const { user } = useUser();
@@ -74,7 +60,7 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
 
   // Identity States
   const [explorerName, setExplorerName] = useState('');
-  const [selectedAvatarId, setSelectedAvatarId] = useState(AVATAR_CATALOG[0].id);
+  const [selectedAvatarId, setSelectedAvatarId] = useState(FALLBACK_AVATAR.id);
   const [ageGroup, setAgeGroup] = useState('adolescent_adult');
   const [avatarColor, setAvatarColor] = useState('#9333ea');
   const [termsAccepted, setTermsAccepted] = useState(false);
@@ -95,7 +81,7 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
       setExplorerName(profile.displayName || '');
       setAgeGroup(profile.ageGroup || 'adolescent_adult');
       setAvatarColor(profile.dominantColor || '#9333ea');
-      setSelectedAvatarId(profile.avatar?.avatarId || AVATAR_CATALOG[0].id);
+      setSelectedAvatarId(profile.avatar?.avatarId || FALLBACK_AVATAR.id);
     }
   }, [profile]);
 
@@ -412,7 +398,6 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
               <AvatarSelection 
                 initialAvatarId={selectedAvatarId} 
                 onSelect={setSelectedAvatarId} 
-                debugMode={debugMode}
               />
 
               <div className="space-y-2 px-2">

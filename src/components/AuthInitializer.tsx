@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import { LocalPersistence } from '@/lib/local-persistence';
 import { Loader2 } from 'lucide-react';
-import { AVATAR_CATALOG } from '@/lib/avatar-catalog';
+import { FALLBACK_AVATAR } from '@/lib/avatar-catalog';
 
 export function AuthInitializer({ children }: { children: React.ReactNode }) {
   const [isReady, setIsReady] = useState(false);
@@ -32,7 +32,7 @@ export function AuthInitializer({ children }: { children: React.ReactNode }) {
           badges: [],
           avatar: {
             energy: 100,
-            avatarId: AVATAR_CATALOG[0].id,
+            avatarId: FALLBACK_AVATAR.id,
             unlockedItems: ['foundation-sneakers'],
             equippedItems: ['foundation-sneakers'],
             studioLevel: 1

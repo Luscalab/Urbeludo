@@ -20,7 +20,7 @@ interface AvatarSelectionProps {
 
 /**
  * Componente de Seleção de Avatar Otimizado.
- * Exibe um avatar gigante por vez, oculta nomes de arquivos e trata erros de carregamento de forma elegante.
+ * Exibe um avatar gigante por vez, oculta nomes de arquivos e trata erros de carregamento.
  */
 export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionProps) {
   const [avatars, setAvatars] = useState<string[]>([]);
@@ -34,8 +34,8 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
     async function fetchAvatars() {
       try {
         const response = await fetch('/api/avatars');
+        if (!response.ok) throw new Error('API indisponível');
         const files = await response.json();
-        // Filtra apenas arquivos de imagem válidos
         const validFiles = files.filter((f: string) => /\.(png|jpe?g|webp|svg)$/i.test(f));
         setAvatars(validFiles);
         
@@ -73,7 +73,7 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
 
   if (isLoadingList) {
     return (
-      <div className="w-full h-[450px] flex items-center justify-center bg-muted/10 rounded-[4rem] border-4 border-dashed border-primary/20">
+      <div className="w-full h-[400px] flex items-center justify-center bg-muted/10 rounded-[4rem] border-4 border-dashed border-primary/20">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="w-12 h-12 animate-spin text-primary" />
           <span className="text-[10px] font-black uppercase tracking-widest text-primary/60">Sincronizando Heróis...</span>
@@ -84,11 +84,11 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
 
   if (avatars.length === 0) {
      return (
-      <div className="w-full h-[450px] flex items-center justify-center bg-muted/10 rounded-[4rem] border-4 border-dashed border-destructive/20">
+      <div className="w-full h-[400px] flex items-center justify-center bg-muted/10 rounded-[4rem] border-4 border-dashed border-destructive/20">
         <div className="flex flex-col items-center gap-4 p-8 text-center">
           <AlertCircle className="w-12 h-12 text-destructive" />
           <span className="text-[12px] font-black uppercase tracking-widest text-destructive/60">Nenhum herói encontrado.</span>
-          <p className="text-[8px] font-medium text-muted-foreground uppercase">Adicione arquivos na pasta public/assets/avatars</p>
+          <p className="text-[8px] font-medium text-muted-foreground uppercase">Adicione fotos na pasta public/assets/avatars</p>
         </div>
       </div>
     );
@@ -97,40 +97,36 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
   const currentAvatar = avatars[currentIndex];
 
   return (
-    <div className="w-full space-y-8 relative mx-auto overflow-hidden">
-      <div className="flex items-center justify-between px-8">
+    <div className="w-full space-y-6 relative mx-auto overflow-hidden px-2">
+      <div className="flex items-center justify-between px-4">
         <div className="flex flex-col">
-          <h3 className="text-xl font-black uppercase text-foreground tracking-[0.2em] italic flex items-center gap-2">
-            <Sparkles className="w-6 h-6 text-accent" /> Escolha sua Identidade
+          <h3 className="text-lg font-black uppercase text-foreground tracking-[0.2em] italic flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-accent" /> Escolha sua Identidade
           </h3>
-          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-            Opção {currentIndex + 1} de {avatars.length} Identidades
+          <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">
+            {currentIndex + 1} de {avatars.length} Identidades
           </p>
         </div>
       </div>
       
-      <div className="relative flex justify-center items-center px-4 h-[500px]">
-        {/* Navegação de Ultra-Acesso */}
-        {avatars.length > 1 && (
-          <>
-            <button 
-              onClick={handlePrev}
-              className="absolute left-4 z-50 bg-white/90 backdrop-blur-xl p-5 rounded-full shadow-2xl border-4 border-primary/10 text-primary hover:scale-110 active:scale-90 transition-all"
-            >
-              <ChevronLeft className="w-10 h-10 stroke-[4]" />
-            </button>
+      <div className="relative flex justify-center items-center h-[500px]">
+        {/* Navegação por Setas Gigantes */}
+        <button 
+          onClick={handlePrev}
+          className="absolute left-0 z-50 bg-white/90 backdrop-blur-xl p-5 rounded-full shadow-2xl border-4 border-primary/10 text-primary hover:scale-110 active:scale-90 transition-all"
+        >
+          <ChevronLeft className="w-8 h-8 stroke-[4]" />
+        </button>
 
-            <button 
-              onClick={handleNext}
-              className="absolute right-4 z-50 bg-white/90 backdrop-blur-xl p-5 rounded-full shadow-2xl border-4 border-primary/10 text-primary hover:scale-110 active:scale-90 transition-all"
-            >
-              <ChevronRight className="w-10 h-10 stroke-[4]" />
-            </button>
-          </>
-        )}
+        <button 
+          onClick={handleNext}
+          className="absolute right-0 z-50 bg-white/90 backdrop-blur-xl p-5 rounded-full shadow-2xl border-4 border-primary/10 text-primary hover:scale-110 active:scale-90 transition-all"
+        >
+          <ChevronRight className="w-8 h-8 stroke-[4]" />
+        </button>
 
-        {/* Exibidor Único com Tamanho Maximizado */}
-        <div className="relative w-full max-w-[450px] aspect-square flex items-center justify-center">
+        {/* Exibidor Unitário Gigante */}
+        <div className="relative w-full max-w-lg aspect-square flex items-center justify-center">
           <AnimatePresence mode="wait">
             <motion.div
               key={currentAvatar}
@@ -142,53 +138,48 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
                 "relative w-full h-full rounded-[5rem] border-8 flex flex-col items-center justify-center bg-white shadow-2xl overflow-hidden border-primary ring-[20px] ring-primary/5"
               )}
             >
-              {/* Overlay de Loading Local */}
+              {/* Spinner de Loading */}
               {!loadedImages[currentAvatar] && !loadErrors[currentAvatar] && (
                 <div className="absolute inset-0 z-20 bg-muted/20 backdrop-blur-md flex flex-col items-center justify-center">
                   <Loader2 className="w-16 h-16 animate-spin text-primary/40" />
-                  <span className="text-[10px] font-black uppercase tracking-widest text-primary/40 mt-4">Processando...</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-primary/40 mt-4">Sincronizando...</span>
                 </div>
               )}
 
-              {/* Renderização da Imagem ou Fallback de Erro Silencioso */}
+              {/* Imagem do Avatar */}
               {!loadErrors[currentAvatar] ? (
                 <img 
                   src={`/assets/avatars/${currentAvatar}`} 
-                  alt="Herói UrbeLudo" 
+                  alt="Avatar UrbeLudo" 
                   onLoad={() => handleImageLoad(currentAvatar)}
                   onError={() => handleImageError(currentAvatar)}
                   className={cn(
-                    "w-[92%] h-[92%] object-contain drop-shadow-[0_20px_50px_rgba(0,0,0,0.3)] transition-all duration-700",
-                    loadedImages[currentAvatar] ? "opacity-100 scale-110" : "opacity-0 scale-90"
+                    "w-[95%] h-[95%] object-contain drop-shadow-[0_25px_60px_rgba(0,0,0,0.4)] transition-all duration-700",
+                    loadedImages[currentAvatar] ? "opacity-100 scale-105" : "opacity-0 scale-90"
                   )} 
                 />
               ) : (
                 <div className="flex flex-col items-center justify-center text-destructive text-center p-8 bg-destructive/5 w-full h-full">
                   <AlertCircle className="w-16 h-16 mb-4" />
-                  <span className="text-[12px] font-black uppercase">Imagem Indisponível</span>
-                  <p className="text-[8px] font-medium text-muted-foreground uppercase mt-4">
-                    Este arquivo não pôde ser processado. Tente o próximo.
-                  </p>
+                  <span className="text-[12px] font-black uppercase tracking-widest">Erro de Sincronia</span>
+                  <p className="text-[8px] font-medium text-muted-foreground uppercase mt-4">Este arquivo não pode ser carregado.</p>
                 </div>
               )}
 
               {/* Selo de Seleção */}
-              <div className="absolute top-8 right-8 bg-primary text-white rounded-full w-16 h-16 flex items-center justify-center border-4 border-white shadow-xl z-30">
-                <Check className="w-8 h-8 stroke-[4]" />
+              <div className="absolute top-8 right-8 bg-primary text-white rounded-full w-14 h-14 flex items-center justify-center border-4 border-white shadow-xl z-30">
+                <Check className="w-7 h-7 stroke-[4]" />
               </div>
             </motion.div>
           </AnimatePresence>
         </div>
       </div>
       
-      {/* Indicadores de Progresso Inferiores */}
-      <div className="text-center space-y-2">
-        <p className="text-[10px] font-black uppercase text-muted-foreground/60 tracking-[0.4em] animate-pulse">
-          Navegue para sincronizar sua identidade
-        </p>
-        <div className="flex justify-center gap-1.5">
+      {/* Indicadores de Página */}
+      <div className="text-center pt-4">
+        <div className="flex justify-center gap-2">
           {avatars.slice(Math.max(0, currentIndex - 2), currentIndex + 3).map((_, i) => (
-             <div key={i} className={cn("h-1.5 rounded-full transition-all", i === 2 ? "w-10 bg-primary" : "w-3 bg-primary/20")} />
+             <div key={i} className={cn("h-2 rounded-full transition-all", i === 2 ? "w-12 bg-primary" : "w-2.5 bg-primary/20")} />
           ))}
         </div>
       </div>

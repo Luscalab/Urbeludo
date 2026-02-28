@@ -66,7 +66,8 @@ export default function StudioPage() {
     }
   };
 
-  const avatarSrc = profile?.avatar?.avatarId ? `/assets/avatars/${profile.avatar.avatarId}` : '/assets/avatars/1.png';
+  const avatarFilename = profile?.avatar?.avatarId || '1.png';
+  const avatarSrc = `/assets/avatars/${avatarFilename}`;
   const auraColor = profile?.dominantColor || '#9333ea';
   const avatarPos = studioState.avatar.lastPosition;
   const isSapient = profile?.displayName?.toLowerCase() === 'sapient';
@@ -181,7 +182,7 @@ export default function StudioPage() {
                   className="w-full h-full object-contain drop-shadow-[0_25px_25px_rgba(0,0,0,0.4)]"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
-                    target.src = '/assets/avatars/1.png';
+                    target.src = '/assets/avatars/1.png'; // Fallback total
                   }}
                 />
               </div>

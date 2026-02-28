@@ -12,16 +12,27 @@ export async function GET() {
   
   try {
     if (!fs.existsSync(avatarsDir)) {
+      console.warn('Diretório de avatares não encontrado:', avatarsDir);
       return NextResponse.json([]);
     }
 
     const files = fs.readdirSync(avatarsDir);
-    // Filtra apenas arquivos de imagem comuns
-    const images = files.filter(file => /\.(png|jpe?g|svg|webp)$/i.test(file));
+    // Filtra apenas arquivos de imagem comuns e ignora arquivos ocultos
+    const images = files.filter(file => 
+      !file.startsWith('.') && /\.(png|jpe?g|svg|webp)$/i.test(file)
+    );
+    
+    // Ordenação alfabética ou numérica para consistência
+    images.sort((a, b) => {
+      const numA = parseInt(a.match(/\d+/)?.[0] || '0');
+      const numB = parseInt(b.match(/\d+/)?.[0] || '0');
+      if (numA && numB) return numA - numB;
+      return a.localeCompare(b);
+    });
     
     return NextResponse.json(images);
   } catch (error) {
-    console.error('Erro ao ler diretório de avatares:', error);
+    console.error('Erro crítico ao ler diretório de avatares:', error);
     return NextResponse.json([]);
   }
 }
