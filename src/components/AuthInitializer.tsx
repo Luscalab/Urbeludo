@@ -14,7 +14,6 @@ export function AuthInitializer({ children }: { children: React.ReactNode }) {
       let uid = await LocalPersistence.getUserId();
       
       if (!uid) {
-        // Criar nova identidade local permanente
         uid = `URBE_${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
         await LocalPersistence.saveUserId(uid);
         
@@ -22,7 +21,7 @@ export function AuthInitializer({ children }: { children: React.ReactNode }) {
           id: uid,
           displayName: `Explorador_${uid.slice(-4)}`,
           bio: "Explorador Independente UrbeLudo 🌍",
-          ludoCoins: 100, // Bônus inicial Standalone
+          ludoCoins: 150,
           psychomotorLevel: 1,
           totalChallengesCompleted: 0,
           currentStreak: 0,
@@ -33,9 +32,16 @@ export function AuthInitializer({ children }: { children: React.ReactNode }) {
           avatar: {
             energy: 100,
             avatarId: FALLBACK_AVATAR.id,
-            unlockedItems: ['foundation-sneakers'],
-            equippedItems: ['foundation-sneakers'],
+            unlockedItems: ['cama-01'],
+            equippedItems: [],
             studioLevel: 1
+          },
+          studioState: {
+            unlockedItemIds: ['tapete-01'],
+            placedItems: [],
+            backgroundId: 'default',
+            worldConfig: { width: 1200, height: 1200, theme: 'minimalist-purple' },
+            avatar: { lastPosition: { x: 600, y: 800 } }
           },
           dailyCycle: {
             homeMissionCompleted: false,
