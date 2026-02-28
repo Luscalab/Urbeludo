@@ -11,6 +11,7 @@ import { TutorialOverlay } from '@/components/studio/TutorialOverlay';
 import { useStudio } from '@/hooks/use-studio';
 import { useUser, useDoc, useMemoFirebase } from '@/firebase';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { AVATAR_CATALOG, getAvatarById } from '@/lib/avatar-catalog';
 import { 
   ArrowLeft, 
   Edit3, 
@@ -84,7 +85,7 @@ export default function StudioPage() {
     }
   };
 
-  const avatarUrl = profile?.avatar?.equippedItems?.[0] || 'https://picsum.photos/seed/ludo/400';
+  const avatarInfo = getAvatarById(profile?.avatar?.avatarId || 'avatar-01');
   const auraColor = profile?.dominantColor || '#9333ea';
   const avatarPos = studioState.avatar.lastPosition;
   const isSapient = profile?.displayName?.toLowerCase() === 'sapient';
@@ -95,7 +96,7 @@ export default function StudioPage() {
         {showTutorial && profile && (
           <TutorialOverlay 
             userName={profile.displayName}
-            avatarUrl={avatarUrl}
+            avatarUrl={avatarInfo.src}
             onComplete={() => {
               setShowTutorial(false);
               if (userProgressRef) updateDocumentNonBlocking(userProgressRef, { hasSeenTutorial: true });
@@ -202,7 +203,7 @@ export default function StudioPage() {
             <div className="relative">
               <div className="w-32 h-48 flex items-center justify-center">
                 <img 
-                  src={avatarUrl} 
+                  src={avatarInfo.src} 
                   alt="Avatar" 
                   className="w-full h-full object-contain drop-shadow-[0_20px_20px_rgba(0,0,0,0.3)]" 
                 />

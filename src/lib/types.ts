@@ -1,3 +1,4 @@
+
 /**
  * Categorias de missão definidas para o ecossistema UrbeLudo.
  */
@@ -76,6 +77,7 @@ export interface UserProgress {
   hasSeenTutorial: boolean;
   avatar: {
     energy: number;
+    avatarId: string; // ID do avatar escolhido no catálogo
     unlockedItems: string[];
     equippedItems: string[];
     studioLevel: number;

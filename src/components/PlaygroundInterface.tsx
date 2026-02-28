@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
@@ -49,13 +50,8 @@ import { cn } from '@/lib/utils';
 import { useI18n } from '@/components/I18nProvider';
 import { MissionCategory } from '@/lib/types';
 import { STUDIO_CATALOG } from '@/lib/studio-catalog';
-
-const AVATAR_OPTIONS = [
-  'https://picsum.photos/seed/explorador1/400',
-  'https://picsum.photos/seed/explorador2/400',
-  'https://picsum.photos/seed/explorador3/400',
-  'https://picsum.photos/seed/explorador4/400',
-];
+import { AvatarSelection } from '@/components/AvatarSelection';
+import { AVATAR_CATALOG } from '@/lib/avatar-catalog';
 
 export function PlaygroundInterface() {
   const { user } = useUser();
@@ -79,7 +75,7 @@ export function PlaygroundInterface() {
 
   // Identity States
   const [explorerName, setExplorerName] = useState('');
-  const [selectedAvatarIdx, setSelectedAvatarIdx] = useState(0);
+  const [selectedAvatarId, setSelectedAvatarId] = useState(AVATAR_CATALOG[0].id);
   const [ageGroup, setAgeGroup] = useState('adolescent_adult');
   const [avatarColor, setAvatarColor] = useState('#9333ea');
   const [termsAccepted, setTermsAccepted] = useState(false);
@@ -100,6 +96,7 @@ export function PlaygroundInterface() {
       setExplorerName(profile.displayName || '');
       setAgeGroup(profile.ageGroup || 'adolescent_adult');
       setAvatarColor(profile.dominantColor || '#9333ea');
+      setSelectedAvatarId(profile.avatar?.avatarId || AVATAR_CATALOG[0].id);
     }
   }, [profile]);
 
@@ -287,7 +284,7 @@ export function PlaygroundInterface() {
         psychomotorLevel: isSapient ? 4 : (profile?.psychomotorLevel || 1),
         avatar: {
           ...profile?.avatar,
-          equippedItems: [AVATAR_OPTIONS[selectedAvatarIdx]],
+          avatarId: selectedAvatarId,
           unlockedItems: isSapient ? allItems : (profile?.avatar?.unlockedItems || ['foundation-sneakers'])
         }
       });
@@ -395,7 +392,7 @@ export function PlaygroundInterface() {
             {selectedCategory === 'Arte' && !isScanning && !isModelLoading && (
               <div className="absolute top-4 left-4 z-30 flex items-center gap-2 bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 animate-pulse">
                 <PaletteIcon className="w-4 h-4 text-accent" />
-                <span className="text-[9px] font-black uppercase text-white tracking-widest">{t('playground.drawingActive')}</span>
+                <span className="text-[9px] font-black uppercase text-white tracking-widest">{t('playground.art')}</span>
               </div>
             )}
 
@@ -419,17 +416,6 @@ export function PlaygroundInterface() {
         {showGuide ? (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-5 duration-500 pb-12 max-w-md mx-auto">
             <div className="flex flex-col items-center text-center space-y-4">
-               <div className="flex items-center gap-4 w-full justify-center">
-                 <Button variant="ghost" size="icon" className="rounded-full" onClick={() => setSelectedAvatarIdx(p => (p === 0 ? AVATAR_OPTIONS.length - 1 : p - 1))}>
-                   <ChevronLeft className="w-5 h-5" />
-                 </Button>
-                 <div className="w-28 h-28 bg-primary/10 rounded-[2.5rem] overflow-hidden border-4 border-primary/20 shadow-xl">
-                   <img src={AVATAR_OPTIONS[selectedAvatarIdx]} alt="Avatar" className="w-full h-full object-cover" />
-                 </div>
-                 <Button variant="ghost" size="icon" className="rounded-full" onClick={() => setSelectedAvatarIdx(p => (p === AVATAR_OPTIONS.length - 1 ? 0 : p + 1))}>
-                   <ChevronRight className="w-5 h-5" />
-                 </Button>
-               </div>
                <div className="space-y-1">
                  <h2 className="text-4xl font-black uppercase italic tracking-tighter leading-none">{t('playground.configTitle')}</h2>
                  <p className="text-[11px] font-medium text-muted-foreground">{t('playground.configDesc')}</p>
@@ -437,6 +423,8 @@ export function PlaygroundInterface() {
             </div>
             
             <div className="grid gap-6">
+              <AvatarSelection initialAvatarId={selectedAvatarId} onSelect={setSelectedAvatarId} />
+
               <div className="space-y-2 px-2">
                 <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">{t('auth.nameLabel')}</Label>
                 <Input 
@@ -625,3 +613,4 @@ function ChallengeRow({ title, subtitle, icon, isCompleted, onClick, disabled }:
     </button>
   );
 }
+
