@@ -1,20 +1,20 @@
-
 {
   "name": "UrbeLudo",
   "short_name": "UrbeLudo",
-  "description": "Seu Playground Urbano Digital",
+  "description": "Seu Estúdio de Movimento Urbano com IA",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#33993D",
   "icons": [
     {
-      "src": "https://picsum.photos/seed/ludo-icon/192/192",
+      "src": "https://picsum.photos/seed/ludo/192/192",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
-      "src": "https://picsum.photos/seed/ludo-icon-large/512/512",
+      "src": "https://picsum.photos/seed/ludo/512/512",
       "sizes": "512x512",
       "type": "image/png"
     }
