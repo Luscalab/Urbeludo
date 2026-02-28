@@ -10,13 +10,13 @@ import {
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { STUDIO_CATALOG } from '@/lib/studio-catalog';
-import { Coins, ShoppingBag, Plus } from 'lucide-react';
+import { Coins, ShoppingBag, Plus, Check } from 'lucide-react';
 import { useUser, useDoc, useMemoFirebase } from '@/firebase';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 
-export function ShopDrawer({ onBuy }: { onBuy: (itemId: string) => void }) {
+export function ShopDrawer({ onBuy, unlockedItemIds = [] }: { onBuy: (itemId: string) => void, unlockedItemIds: string[] }) {
   const { user } = useUser();
   const { toast } = useToast();
   const userProgressRef = useMemoFirebase(() => user ? { id: user.uid, path: `user_progress/${user.uid}` } : null, [user]);
@@ -25,6 +25,7 @@ export function ShopDrawer({ onBuy }: { onBuy: (itemId: string) => void }) {
   const ludoCoins = profile?.ludoCoins || 0;
 
   const handlePurchase = (item: any) => {
+    // 1. Verificação de Saldo Local (Stand-alone logic)
     if (ludoCoins < item.price) {
       toast({
         variant: 'destructive',
@@ -34,11 +35,14 @@ export function ShopDrawer({ onBuy }: { onBuy: (itemId: string) => void }) {
       return;
     }
 
+    // 2. Débito imediato no armazenamento local
     updateDocumentNonBlocking(userProgressRef, {
       ludoCoins: ludoCoins - item.price
     });
 
+    // 3. Notifica o motor do estúdio para adicionar ao inventário
     onBuy(item.id);
+    
     toast({
       title: 'Item Adquirido!',
       description: `${item.name} foi adicionado ao seu estúdio.`
@@ -66,27 +70,35 @@ export function ShopDrawer({ onBuy }: { onBuy: (itemId: string) => void }) {
           </div>
         </SheetHeader>
         <div className="grid gap-4 overflow-y-auto pb-16 px-2 no-scrollbar">
-          {STUDIO_CATALOG.map(item => (
-            <div key={item.id} className="bg-white rounded-[2.5rem] p-5 flex items-center gap-5 shadow-sm border border-primary/5 hover:border-primary/20 transition-colors">
-              <div className="w-20 h-20 bg-muted/30 rounded-3xl flex items-center justify-center text-4xl shadow-inner border border-white">
-                {item.assetPath}
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <h4 className="font-black uppercase text-xs italic">{item.name}</h4>
-                  <Badge variant="outline" className="text-[7px] font-black uppercase py-0 px-2 h-4">{item.category}</Badge>
+          {STUDIO_CATALOG.map(item => {
+            const isUnlocked = unlockedItemIds.includes(item.id);
+            
+            return (
+              <div key={item.id} className="bg-white rounded-[2.5rem] p-5 flex items-center gap-5 shadow-sm border border-primary/5 hover:border-primary/20 transition-colors">
+                <div className="w-20 h-20 bg-muted/30 rounded-3xl flex items-center justify-center text-4xl shadow-inner border border-white">
+                  {item.assetPath}
                 </div>
-                <p className="text-[10px] text-muted-foreground leading-tight mt-1 line-clamp-2">{item.description}</p>
-                <div className="flex items-center gap-1 mt-2">
-                  <Coins className="w-3 h-3 text-yellow-600" />
-                  <span className="text-[11px] font-black">{item.price} LC</span>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-black uppercase text-xs italic">{item.name}</h4>
+                    <Badge variant="outline" className="text-[7px] font-black uppercase py-0 px-2 h-4">{item.category}</Badge>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground leading-tight mt-1 line-clamp-2">{item.description}</p>
+                  <div className="flex items-center gap-1 mt-2">
+                    <Coins className="w-3 h-3 text-yellow-600" />
+                    <span className="text-[11px] font-black">{item.price} LC</span>
+                  </div>
                 </div>
+                <Button 
+                  onClick={() => handlePurchase(item)} 
+                  disabled={isUnlocked && item.category !== 'Ativo'} // Permite múltiplas unidades de itens ativos
+                  className="rounded-2xl h-12 w-12 p-0 bg-primary/10 text-primary hover:bg-primary hover:text-white transition-all shadow-sm"
+                >
+                  {isUnlocked && item.category !== 'Ativo' ? <Check className="w-6 h-6" /> : <Plus className="w-6 h-6" />}
+                </Button>
               </div>
-              <Button onClick={() => handlePurchase(item)} className="rounded-2xl h-12 w-12 p-0 bg-primary/10 text-primary hover:bg-primary hover:text-white transition-all shadow-sm">
-                <Plus className="w-6 h-6" />
-              </Button>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </SheetContent>
     </Sheet>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { FurniturePiece } from '@/components/studio/FurniturePiece';
@@ -12,10 +12,12 @@ import {
   Edit3, 
   Check, 
   Smartphone,
-  Sparkles
+  Sparkles,
+  Zap
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UrbeLudoLogo } from '@/components/UrbeLudoLogo';
+import { STUDIO_CATALOG } from '@/lib/studio-catalog';
 
 export default function StudioPage() {
   const { user } = useUser();
@@ -24,6 +26,14 @@ export default function StudioPage() {
   
   const userProgressRef = useMemoFirebase(() => user ? { id: user.uid, path: `user_progress/${user.uid}` } : null, [user]);
   const { data: profile } = useDoc(userProgressRef);
+
+  // Observador de Itens Ativos (Gatilho Pedagógico)
+  const activeItemsCount = useMemo(() => {
+    return studioState.placedItems.filter(pi => {
+      const catalogItem = STUDIO_CATALOG.find(ci => ci.id === pi.itemId);
+      return catalogItem?.category === 'Ativo';
+    }).length;
+  }, [studioState.placedItems]);
 
   return (
     <div className="min-h-screen bg-background overflow-hidden flex flex-col relative">
@@ -67,6 +77,7 @@ export default function StudioPage() {
             />
           ))}
 
+          {/* Avatar com Feedback de Itens Ativos */}
           <motion.div 
             animate={{ 
               y: [0, -10, 0],
@@ -75,12 +86,23 @@ export default function StudioPage() {
             transition={{ duration: 4, repeat: Infinity }}
             className="absolute bottom-12 left-1/2 -translate-x-1/2 z-[90]"
           >
-            <div className="w-32 h-32 rounded-[3.5rem] overflow-hidden border-4 border-primary shadow-2xl bg-muted">
-              <img 
-                src={profile?.avatar?.equippedItems?.[0] || 'https://picsum.photos/seed/ludo/400'} 
-                alt="Avatar" 
-                className="w-full h-full object-cover"
-              />
+            <div className="relative">
+              <div className="w-32 h-32 rounded-[3.5rem] overflow-hidden border-4 border-primary shadow-2xl bg-muted">
+                <img 
+                  src={profile?.avatar?.equippedItems?.[0] || 'https://picsum.photos/seed/ludo/400'} 
+                  alt="Avatar" 
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              {activeItemsCount > 0 && !isEditing && (
+                <motion.div 
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="absolute -top-2 -right-2 bg-accent text-white p-2 rounded-full shadow-lg border-2 border-white"
+                >
+                  <Zap className="w-4 h-4 animate-pulse" />
+                </motion.div>
+              )}
             </div>
             <div className="absolute -bottom-2 inset-x-0 flex justify-center">
               <span className="bg-primary text-white text-[8px] font-black uppercase px-4 py-1.5 rounded-full shadow-lg border border-white/20">
@@ -104,11 +126,25 @@ export default function StudioPage() {
               </motion.div>
             )}
           </AnimatePresence>
+
+          {activeItemsCount > 0 && !isEditing && (
+            <motion.div 
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="absolute bottom-32 right-8 z-[100]"
+            >
+              <div className="bg-white/90 backdrop-blur-md p-4 rounded-3xl shadow-xl border border-primary/10 max-w-[140px]">
+                <p className="text-[9px] font-bold text-primary leading-tight">
+                  Seu estúdio está equipado! Vamos treinar equilíbrio hoje?
+                </p>
+              </div>
+            </motion.div>
+          )}
         </div>
       </main>
 
       <div className="fixed bottom-10 right-8 flex flex-col gap-4 z-[120]">
-        <ShopDrawer onBuy={addItem} />
+        <ShopDrawer onBuy={addItem} unlockedItemIds={studioState.unlockedItemIds} />
       </div>
 
       {!studioState.placedItems.length && !isEditing && (
