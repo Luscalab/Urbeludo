@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -19,7 +20,7 @@ import {
   Coins,
   Sparkles,
   ShoppingBag,
-  Navigation as NavIcon
+  Navigation as NavIconIcon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -58,7 +59,6 @@ export default function StudioPage() {
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
       
-      // Limite para caminhar apenas no chão (área isométrica)
       if (y > 450) {
         updateAvatarPosition(x, y);
       }
@@ -118,7 +118,6 @@ export default function StudioPage() {
           className="w-[1200px] h-[1200px] relative bg-white flex flex-col shadow-[0_0_100px_rgba(0,0,0,0.5)]"
           initial={{ x: -400, y: -200 }} 
         >
-          {/* Paredes Isométricas em V */}
           <div className="relative w-full h-[40%] flex" style={{ 
             background: `linear-gradient(to bottom, ${auraColor}20, ${auraColor}40)` 
           }}>
@@ -199,7 +198,7 @@ export default function StudioPage() {
               className="bg-black/90 text-white text-[11px] font-black uppercase px-8 py-4 rounded-full flex items-center gap-4 backdrop-blur-xl border border-white/10 shadow-2xl"
             >
               {mode === 'explore' ? (
-                <><NavIcon className="w-5 h-5 text-accent rotate-45" /> Toque no chão para caminhar</>
+                <><NavIconIcon className="w-5 h-5 text-accent rotate-45" /> Toque no chão para caminhar</>
               ) : (
                 <><Smartphone className="w-5 h-5 text-primary animate-bounce" /> Arraste para decorar</>
               )}
