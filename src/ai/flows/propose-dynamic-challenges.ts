@@ -1,7 +1,8 @@
+
 'use server';
 /**
  * @fileOverview A Genkit flow for dynamically proposing psychomotor challenges
- * based on detected urban architectural elements.
+ * based on detected urban architectural elements and user profile (age and skill).
  *
  * - proposeDynamicChallenges - A function that generates a psychomotor challenge.
  * - ProposeDynamicChallengesInput - The input type for the proposeDynamicChallenges function.
@@ -24,7 +25,11 @@ const ProposeDynamicChallengesInputSchema = z.object({
   userSkillLevel: z
     .enum(['beginner', 'intermediate', 'advanced'])
     .default('intermediate')
-    .describe('The user's current skill level to tailor challenge difficulty.'),
+    .describe('The user\'s current skill level to tailor challenge difficulty.'),
+  userAgeGroup: z
+    .enum(['preschool', 'school_age', 'adolescent_adult'])
+    .default('adolescent_adult')
+    .describe('The user\'s age group for psychomotor pedagogical tailoring (preschool: 2-5y, school_age: 6-12y, adolescent_adult: 13y+).'),
 });
 export type ProposeDynamicChallengesInput = z.infer<
   typeof ProposeDynamicChallengesInputSchema
@@ -69,18 +74,22 @@ const proposeDynamicChallengesPrompt = ai.definePrompt({
   name: 'proposeDynamicChallengesPrompt',
   input: {schema: ProposeDynamicChallengesInputSchema},
   output: {schema: ProposeDynamicChallengesOutputSchema},
-  prompt: `You are an AI assistant for UrbeLudo, an app that turns urban spaces into a psychomotor playground.
-Your task is to propose unique, engaging psychomotor challenges based on detected urban architectural elements.
-The challenges should stimulate balance, muscle tone, laterality, and spatial structuring.
+  prompt: `You are an AI assistant for UrbeLudo, an app based on Psychomotricity studies (Wallon, Piaget, Gallahue).
+Your task is to propose unique psychomotor challenges based on detected urban architectural elements.
 
-Consider the user's skill level: {{{userSkillLevel}}}.
-Avoid proposing challenges similar to these recent ones: {{{previousChallenges}}}.
+PEDAGOGICAL GUIDELINES BASED ON AGE GROUP: {{{userAgeGroup}}}
+1. Preschool (2-5y): Focus on global coordination, static/dynamic balance, and simple spatial notions (inside/outside, up/down). Use playful language.
+2. School Age (6-12y): Focus on laterality refinement, rhythm, motor precision, and complex spatial structuring (sequences of movements).
+3. Adolescent/Adult (13y+): Focus on muscle tone, functional balance, cardiovascular endurance, and motor refinement for health and well-being.
 
-Detected urban elements available:
+Consider user skill: {{{userSkillLevel}}}.
+Avoid repetition: {{{previousChallenges}}}.
+
+Detected elements:
 {{#each detectedElements}}- {{{this}}}
 {{/each}}
 
-Based on these elements, propose ONE psychomotor challenge. Focus on creativity and physical engagement.
+Propose ONE psychomotor challenge that respects the pedagogical needs of the user's age group.
 `,
 });
 

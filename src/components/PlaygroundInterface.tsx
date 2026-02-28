@@ -91,6 +91,7 @@ export function PlaygroundInterface() {
         const challenge = await proposeDynamicChallenges({
           detectedElements: result.elements.map(e => e.description),
           userSkillLevel: (userStats?.skillLevel as any) || 'intermediate',
+          userAgeGroup: (userStats?.ageGroup as any) || 'adolescent_adult',
         });
         setCurrentChallenge(challenge);
         setIsGenerating(false);
@@ -134,14 +135,15 @@ export function PlaygroundInterface() {
       currentStreak: (userStats?.currentStreak || 0) + 1,
       longestStreak: Math.max(userStats?.longestStreak || 0, (userStats?.currentStreak || 0) + 1),
       totalTimeSpentSeconds: (userStats?.totalTimeSpentSeconds || 0) + (currentChallenge.estimatedDurationSeconds || 60),
-      skillLevel: userStats?.skillLevel || 'intermediate'
+      skillLevel: userStats?.skillLevel || 'intermediate',
+      ageGroup: userStats?.ageGroup || 'adolescent_adult'
     };
 
     setDocumentNonBlocking(userProgressRef, newStats, { merge: true });
     
     toast({
       title: "Desafio Concluído!",
-      description: "Você ganhou pontos de progresso.",
+      description: "Excelente progresso motor.",
     });
 
     setCurrentChallenge(null);
@@ -172,11 +174,16 @@ export function PlaygroundInterface() {
                 <ScanLine className="w-3 h-3 text-primary" /> 
                 {isScanning ? "Analisando Ambiente..." : "Observação Ativa"}
               </Badge>
-              {userStats?.currentStreak && userStats.currentStreak > 0 && (
-                <div className="bg-accent/80 text-accent-foreground px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 backdrop-blur-sm animate-pulse">
-                  <Trophy className="w-3 h-3" /> STREAK: {userStats.currentStreak}
+              <div className="flex flex-col gap-1">
+                {userStats?.currentStreak && userStats.currentStreak > 0 && (
+                  <div className="bg-accent/80 text-accent-foreground px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 backdrop-blur-sm animate-pulse">
+                    <Trophy className="w-3 h-3" /> STREAK: {userStats.currentStreak}
+                  </div>
+                )}
+                <div className="bg-primary/80 text-primary-foreground px-3 py-1 rounded-full text-[10px] font-bold uppercase backdrop-blur-sm w-fit">
+                   Modo: {userStats?.ageGroup === 'preschool' ? 'Infantil' : userStats?.ageGroup === 'school_age' ? 'Escolar' : 'Adulto'}
                 </div>
-              )}
+              </div>
             </div>
           </div>
 
@@ -212,7 +219,7 @@ export function PlaygroundInterface() {
             <Card className="p-5 bg-background/95 backdrop-blur-xl border-primary/20 shadow-2xl animate-in slide-in-from-bottom-4 duration-500">
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <div className="text-[10px] uppercase font-bold tracking-widest text-primary mb-1">Desafio Atual</div>
+                  <div className="text-[10px] uppercase font-bold tracking-widest text-primary mb-1">Desafio de Psicomotricidade</div>
                   <h3 className="font-headline font-bold text-lg leading-tight">{currentChallenge.challengeDescription}</h3>
                 </div>
                 <Badge className="bg-accent text-accent-foreground uppercase text-[10px]">
@@ -249,7 +256,7 @@ export function PlaygroundInterface() {
                 <div className="bg-background/90 backdrop-blur-md p-6 rounded-3xl flex items-center gap-4 border animate-pulse">
                   <Loader2 className="w-6 h-6 animate-spin text-primary" />
                   <span className="font-medium text-sm">
-                    {isScanning ? "Identificando arquitetura..." : "Propondo desafio..."}
+                    {isScanning ? "Lendo o espaço..." : "Gerando desafio pedagógico..."}
                   </span>
                 </div>
               ) : (

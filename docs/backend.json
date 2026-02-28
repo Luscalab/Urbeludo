@@ -36,6 +36,11 @@
           "type": "string",
           "enum": ["beginner", "intermediate", "advanced"],
           "description": "The user's self-reported skill level for challenge tailoring."
+        },
+        "ageGroup": {
+          "type": "string",
+          "enum": ["preschool", "school_age", "adolescent_adult"],
+          "description": "The user's age group for psychomotor pedagogical tailoring (2-5y, 6-12y, 13y+)."
         }
       },
       "required": [

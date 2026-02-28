@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { UrbeLudoLogo } from '@/components/UrbeLudoLogo';
-import { ArrowLeft, Brain, Move, Activity, Crosshair, Settings } from 'lucide-react';
+import { ArrowLeft, Brain, Move, Activity, Crosshair, Settings, UserCircle } from 'lucide-react';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, doc } from 'firebase/firestore';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
@@ -50,12 +50,12 @@ export default function DashboardPage() {
     },
   };
 
-  const handleSkillChange = (value: string) => {
+  const handleUpdateProfile = (field: string, value: string) => {
     if (userProgressRef) {
-      updateDocumentNonBlocking(userProgressRef, { skillLevel: value });
+      updateDocumentNonBlocking(userProgressRef, { [field]: value });
       toast({
         title: "Perfil Atualizado",
-        description: `Nível de habilidade definido como ${value === 'beginner' ? 'Iniciante' : value === 'intermediate' ? 'Intermediário' : 'Avançado'}.`,
+        description: "Suas preferências de psicomotricidade foram salvas.",
       });
     }
   };
@@ -117,13 +117,29 @@ export default function DashboardPage() {
           <Card>
             <CardHeader>
               <CardTitle className="text-lg font-bold flex items-center gap-2">
-                <Settings className="w-4 h-4" /> Preferências
+                <Settings className="w-4 h-4" /> Perfil Psicomotor
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2">
-                <label className="text-xs font-bold uppercase text-muted-foreground">Nível de Dificuldade</label>
-                <Select onValueChange={handleSkillChange} value={userProfile?.skillLevel || 'intermediate'}>
+                <label className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1.5">
+                  <UserCircle className="w-3 h-3" /> Faixa Etária
+                </label>
+                <Select onValueChange={(v) => handleUpdateProfile('ageGroup', v)} value={userProfile?.ageGroup || 'adolescent_adult'}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione sua idade" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="preschool">Educação Infantil (2-5 anos)</SelectItem>
+                    <SelectItem value="school_age">Fundamental (6-12 anos)</SelectItem>
+                    <SelectItem value="adolescent_adult">Adolescente / Adulto (13+)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase text-muted-foreground">Nível de Habilidade</label>
+                <Select onValueChange={(v) => handleUpdateProfile('skillLevel', v)} value={userProfile?.skillLevel || 'intermediate'}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione seu nível" />
                   </SelectTrigger>
@@ -134,12 +150,12 @@ export default function DashboardPage() {
                   </SelectContent>
                 </Select>
                 <p className="text-[10px] text-muted-foreground leading-relaxed mt-2">
-                  Isso ajusta como a IA gera os desafios para você no Playground.
+                  A IA utiliza sua idade e nível para sugerir movimentos pedagogicamente seguros e desafiadores.
                 </p>
               </div>
 
               <div className="p-4 bg-muted/50 rounded-lg">
-                <div className="text-xs font-bold uppercase text-muted-foreground mb-1">ID Anônimo</div>
+                <div className="text-xs font-bold uppercase text-muted-foreground mb-1">ID do Jogador</div>
                 <div className="text-[10px] font-mono break-all opacity-60">{user?.uid}</div>
               </div>
             </CardContent>
@@ -149,20 +165,20 @@ export default function DashboardPage() {
         <div className="grid md:grid-cols-2 gap-6">
           <Card className="p-6 bg-muted/50 border-none">
             <h3 className="font-bold mb-4 flex items-center gap-2">
-              <Activity className="w-4 h-4 text-primary" /> Por que Psicomotricidade?
+              <Activity className="w-4 h-4 text-primary" /> Lógica Pedagógica
             </h3>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Cada desafio concluído fortalece a conexão entre seus processos cognitivos e movimentos físicos. O brincar urbano desenvolve:
+              Baseado em Gallahue e Piaget, o UrbeLudo adapta os desafios ao seu estágio de desenvolvimento motor:
             </p>
             <ul className="mt-4 space-y-2 text-sm">
               <li className="flex gap-2">
-                <span className="text-primary font-bold">●</span> Lateralidade e Dominância
+                <span className="text-primary font-bold">●</span> <strong className="text-foreground">Sensório-motor:</strong> Exploração do ambiente.
               </li>
               <li className="flex gap-2">
-                <span className="text-primary font-bold">●</span> Consciência do Esquema Corporal
+                <span className="text-primary font-bold">●</span> <strong className="text-foreground">Operatório:</strong> Coordenação e lateralidade.
               </li>
               <li className="flex gap-2">
-                <span className="text-primary font-bold">●</span> Ritmo e Coordenação Global
+                <span className="text-primary font-bold">●</span> <strong className="text-foreground">Refinamento:</strong> Performance e saúde.
               </li>
             </ul>
           </Card>
