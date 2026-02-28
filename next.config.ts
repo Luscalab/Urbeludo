@@ -12,7 +12,8 @@ const nextConfig: NextConfig = {
     '@tensorflow-models/pose-detection',
     '@tensorflow/tfjs-core',
     '@tensorflow/tfjs-backend-webgl',
-    '@tensorflow/tfjs-converter'
+    '@tensorflow/tfjs-converter',
+    '@mediapipe/pose'
   ],
   images: {
     unoptimized: true,
