@@ -4,6 +4,7 @@ import { StudioItem } from './types';
 /**
  * Catálogo Central de Ativos da Studio Update.
  * Aponta exclusivamente para a pasta /public/assets/studio/
+ * Certifique-se de que os nomes dos arquivos PNG correspondam exatamente.
  */
 export const STUDIO_CATALOG: StudioItem[] = [
   {

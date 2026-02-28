@@ -5,7 +5,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PlacedItem } from '@/lib/types';
 import { STUDIO_CATALOG } from '@/lib/studio-catalog';
-import { Package, Coins } from 'lucide-react';
+import { Package, Coins, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface StudioItemProps {
@@ -37,7 +37,7 @@ export function StudioItem({ data, onUpdate, onStore, onSell, isEditing, auraCol
           const x = info.point.x - rect.left;
           const y = info.point.y - rect.top;
           
-          // Snap-to-Grid Magnético (Habbo Style)
+          // Snap-to-Grid Magnético Isométrico
           const snappedX = Math.round(x / GRID_SIZE) * GRID_SIZE;
           const snappedY = Math.round(y / GRID_SIZE) * GRID_SIZE;
           
@@ -55,19 +55,19 @@ export function StudioItem({ data, onUpdate, onStore, onSell, isEditing, auraCol
       }}
       exit={{ 
         opacity: 0, 
-        scale: 1.5, 
-        filter: 'blur(10px)',
-        transition: { duration: 0.4, ease: "backIn" } 
+        scale: 1.8, 
+        filter: 'blur(20px)',
+        transition: { duration: 0.4, ease: "circIn" } 
       }}
       whileDrag={{ 
         scale: 1.1,
-        filter: "drop-shadow(0px 30px 20px rgba(0,0,0,0.4))",
-        zIndex: 2000
+        filter: "drop-shadow(0px 40px 30px rgba(0,0,0,0.5))",
+        zIndex: 5000
       }}
       transition={{ type: "spring", stiffness: 300, damping: 25 }}
       className={cn(
         "absolute cursor-grab active:cursor-grabbing select-none pointer-events-auto touch-none",
-        isEditing && isSelected && "ring-4 ring-primary ring-offset-4 rounded-3xl"
+        isEditing && isSelected && "ring-4 ring-primary ring-offset-8 rounded-[2rem]"
       )}
       style={{ 
         transform: 'translate(-50%, -50%)',
@@ -76,7 +76,6 @@ export function StudioItem({ data, onUpdate, onStore, onSell, isEditing, auraCol
       }}
     >
       <div className="relative group">
-        {/* Renderização do PNG Isométrico */}
         <div 
           className="relative flex items-center justify-center"
           style={{ 
@@ -87,32 +86,31 @@ export function StudioItem({ data, onUpdate, onStore, onSell, isEditing, auraCol
           <img 
             src={itemInfo.assetPath} 
             alt={itemInfo.name}
-            className="w-full h-full object-contain pointer-events-none drop-shadow-md"
+            className="w-full h-full object-contain pointer-events-none drop-shadow-lg"
           />
         </div>
 
-        {/* Menu de Ação com Efeito Poof */}
         <AnimatePresence>
           {isEditing && isSelected && (
             <motion.div 
-              initial={{ opacity: 0, y: 10, scale: 0.8 }}
+              initial={{ opacity: 0, y: 15, scale: 0.7 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 10, scale: 0.8 }}
-              className="absolute -top-16 left-1/2 -translate-x-1/2 flex gap-2 bg-white p-2 rounded-2xl shadow-2xl z-[2100] border-2 border-primary/20"
+              exit={{ opacity: 0, y: 15, scale: 0.7 }}
+              className="absolute -top-16 left-1/2 -translate-x-1/2 flex gap-2 bg-white p-2 rounded-2xl shadow-2xl z-[5100] border-2 border-primary/20 backdrop-blur-md"
             >
               <button 
                 onClick={(e) => { e.stopPropagation(); onStore(data.instanceId); }}
-                className="bg-blue-50 text-blue-600 p-2 rounded-xl flex items-center gap-1.5 hover:bg-blue-100 transition-colors"
+                className="bg-blue-50 text-blue-600 px-3 py-2 rounded-xl flex items-center gap-1.5 hover:bg-blue-100 transition-colors"
               >
                 <Package className="w-4 h-4" />
-                <span className="text-[9px] font-black uppercase">Guardar</span>
+                <span className="text-[10px] font-black uppercase">Guardar</span>
               </button>
               <button 
                 onClick={(e) => { e.stopPropagation(); onSell(data.instanceId); }}
-                className="bg-red-50 text-red-600 p-2 rounded-xl flex items-center gap-1.5 hover:bg-red-100 transition-colors"
+                className="bg-red-50 text-red-600 px-3 py-2 rounded-xl flex items-center gap-1.5 hover:bg-red-100 transition-colors"
               >
                 <Coins className="w-4 h-4" />
-                <span className="text-[9px] font-black uppercase">Vender</span>
+                <span className="text-[10px] font-black uppercase">Vender</span>
               </button>
             </motion.div>
           )}
