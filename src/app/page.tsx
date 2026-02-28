@@ -1,3 +1,4 @@
+
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
@@ -18,7 +19,7 @@ export default function Home() {
             Playground
           </Link>
           <Button asChild variant="default" className="bg-primary text-primary-foreground font-semibold">
-            <Link href="/playground">Start Playing</Link>
+            <Link href="/auth">Entrar / Cadastrar</Link>
           </Button>
         </nav>
       </header>
@@ -36,10 +37,10 @@ export default function Home() {
               </p>
               <div className="flex gap-4">
                 <Button asChild size="lg" className="h-14 px-8 text-lg font-bold">
-                  <Link href="/playground">Enter Playground</Link>
+                  <Link href="/auth">Começar Jornada</Link>
                 </Button>
                 <Button asChild variant="outline" size="lg" className="h-14 px-8 text-lg font-bold">
-                  <Link href="#how-it-works">How it works</Link>
+                  <Link href="#how-it-works">Saiba Mais</Link>
                 </Button>
               </div>
             </div>

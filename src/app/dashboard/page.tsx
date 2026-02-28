@@ -17,32 +17,34 @@ import {
   Edit2,
   Share2,
   User,
-  Home
+  Home,
+  LogOut
 } from 'lucide-react';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useDoc, useMemoFirebase, useAuth } from '@/firebase';
 import { doc } from 'firebase/firestore';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { initiateSignOut } from '@/firebase/non-blocking-login';
 import { useToast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
-import { Input } from '@/components/ui/input';
+import { useRouter } from 'next/navigation';
 
 export default function DashboardPage() {
   const { user } = useUser();
+  const auth = useAuth();
   const db = useFirestore();
   const { toast } = useToast();
+  const router = useRouter();
 
   const userProgressRef = useMemoFirebase(() => user ? doc(db, 'user_progress', user.uid) : null, [db, user]);
   const { data: profile } = useDoc(userProgressRef);
 
-  const handleUpdateProfile = (field: string, value: any) => {
-    if (userProgressRef) {
-      updateDocumentNonBlocking(userProgressRef, { [field]: value });
-      toast({ title: "Sincronizado", description: "Seu perfil foi atualizado." });
-    }
+  const handleSignOut = () => {
+    initiateSignOut(auth);
+    router.push('/');
+    toast({ title: "Sessão Encerrada", description: "Até a próxima exploração!" });
   };
 
   const energy = profile?.avatar?.energy ?? 100;
@@ -63,9 +65,14 @@ export default function DashboardPage() {
           <UrbeLudoLogo className="w-6 h-6 text-primary" />
           <span className="text-sm font-black uppercase italic tracking-tighter">Estúdio Ludo</span>
         </div>
-        <div className="bg-primary/10 px-3 py-1 rounded-xl flex items-center gap-2">
-            <Coins className="w-3 h-3 text-yellow-600" />
-            <span className="text-xs font-black">{profile?.ludoCoins || 0}</span>
+        <div className="flex items-center gap-2">
+          <div className="bg-primary/10 px-3 py-1 rounded-xl flex items-center gap-2">
+              <Coins className="w-3 h-3 text-yellow-600" />
+              <span className="text-xs font-black">{profile?.ludoCoins || 0}</span>
+          </div>
+          <Button variant="ghost" size="icon" onClick={handleSignOut} className="rounded-full h-8 w-8">
+            <LogOut className="w-4 h-4 text-muted-foreground" />
+          </Button>
         </div>
       </header>
 

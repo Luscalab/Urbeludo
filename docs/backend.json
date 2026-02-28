@@ -5,7 +5,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "UserProgress",
       "type": "object",
-      "description": "Tracks progress, streaks, and profile data for an anonymous user.",
+      "description": "Tracks progress, streaks, and profile data for an anonymous or registered user.",
       "properties": {
         "id": { "type": "string" },
         "displayName": { "type": "string" },
@@ -20,6 +20,7 @@
         "badges": { "type": "array", "items": { "type": "string" } },
         "equippedBadges": { "type": "array", "items": { "type": "string" } },
         "totalLikesReceived": { "type": "number", "default": 0 },
+        "termsAccepted": { "type": "boolean", "default": false },
         "avatar": {
           "type": "object",
           "properties": {
@@ -75,7 +76,7 @@
     }
   },
   "auth": {
-    "providers": ["anonymous"]
+    "providers": ["anonymous", "google", "password"]
   },
   "firestore": {
     "structure": [
