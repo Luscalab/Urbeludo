@@ -80,6 +80,7 @@ export function ShopDrawer({ isOpen, onClose, userCoins, unlockedItemIds, onBuyI
 
             <div className="flex-1 overflow-y-auto p-6 grid grid-cols-2 gap-4 pb-24 no-scrollbar">
               {filteredCatalog.map((item) => {
+                // No modo Sapient, todos os itens aparecem como desbloqueados ou gratuitos
                 const isUnlocked = isSapient || unlockedItemIds.includes(item.id);
                 const canAfford = isSapient || userCoins >= item.price;
                 const isSpecial = item.category === 'Especial';
@@ -121,23 +122,23 @@ export function ShopDrawer({ isOpen, onClose, userCoins, unlockedItemIds, onBuyI
                       <p className="text-[8px] text-muted-foreground font-bold leading-tight px-2">{item.description}</p>
                     </div>
                     
-                    {isUnlocked && item.category !== 'Ativo' ? (
+                    {isUnlocked && !isSapient ? (
                        <div className="mt-auto w-full py-3 bg-green-100 text-green-700 rounded-2xl text-[9px] font-black uppercase flex items-center justify-center gap-2">
-                         <CheckCircle2 className="w-4 h-4" /> {isSapient ? 'Admin' : 'Adquirido'}
+                         <CheckCircle2 className="w-4 h-4" /> Adquirido
                        </div>
                     ) : (
                       <button 
-                        disabled={!canAfford}
-                        onClick={() => onBuyItem(item.id, item.price)}
+                        disabled={!canAfford && !isSapient}
+                        onClick={() => onBuyItem(item.id, isSapient ? 0 : item.price)}
                         className={cn(
                           "mt-auto w-full py-3 rounded-2xl text-[10px] font-black uppercase flex items-center justify-center gap-2 transition-all active:scale-95 shadow-md",
-                          canAfford 
+                          (canAfford || isSapient) 
                             ? "bg-primary text-white hover:bg-primary/90 shadow-primary/20" 
                             : "bg-muted text-muted-foreground opacity-50 cursor-not-allowed"
                         )}
                       >
-                        {!canAfford && <Lock className="w-3.5 h-3.5" />}
-                        <Coins className="w-3.5 h-3.5" /> {isSapient ? 'Free' : item.price}
+                        {!canAfford && !isSapient && <Lock className="w-3.5 h-3.5" />}
+                        <Coins className="w-3.5 h-3.5" /> {isSapient ? 'GRÁTIS' : item.price}
                       </button>
                     )}
                   </motion.div>
