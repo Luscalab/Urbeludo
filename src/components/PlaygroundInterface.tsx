@@ -6,7 +6,6 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { 
   Loader2, 
   CheckCircle2, 
@@ -20,17 +19,14 @@ import {
   ChevronRight,
   ShieldCheck,
   Share2,
-  Lock,
-  EyeOff,
+  Scan,
+  Volume2,
+  Hand,
+  Info,
   Palette,
   Zap,
   Brain,
-  Wind,
-  Info,
-  UserCheck,
-  Scan,
-  Volume2,
-  Hand
+  Wind
 } from 'lucide-react';
 import { proposeDynamicChallenges, type ProposeDynamicChallengesOutput } from '@/ai/flows/propose-dynamic-challenges';
 import { identifyUrbanElements } from '@/ai/flows/identify-urban-elements-flow';
@@ -62,12 +58,12 @@ export function PlaygroundInterface() {
   
   const [isAvatarizing, setIsAvatarizing] = useState(false);
   const [safeAvatar, setSafeAvatar] = useState<AvatarizeUserOutput | null>(null);
-  const [cameraMode, setCameraMode] = useState<'user' | 'environment'>('user'); // Default to 'user' for initial scan
+  const [cameraMode, setCameraMode] = useState<'user' | 'environment'>('user');
   const [isAudioEnabled, setIsAudioEnabled] = useState(false);
   const [isLibrasEnabled, setIsLibrasEnabled] = useState(false);
 
   const userProgressRef = useMemoFirebase(() => user ? doc(db, 'user_progress', user.uid) : null, [db, user]);
-  const { data: profile, isLoading: isProfileLoading } = useDoc(userProgressRef);
+  const { data: profile } = useDoc(userProgressRef);
 
   const startCamera = async (mode: 'user' | 'environment') => {
     try {
@@ -82,21 +78,32 @@ export function PlaygroundInterface() {
         } 
       });
       setHasCameraPermission(true);
-      if (videoRef.current) videoRef.current.srcObject = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        // Garantir que o vídeo comece a tocar
+        videoRef.current.play().catch(e => console.error("Erro ao tocar vídeo:", e));
+      }
     } catch (error) {
       console.error("Erro ao acessar câmera:", error);
       setHasCameraPermission(false);
+      toast({
+        variant: 'destructive',
+        title: 'Câmera Bloqueada',
+        description: 'Por favor, permita o acesso à câmera nas configurações do seu navegador.'
+      });
     }
   };
 
   useEffect(() => {
-    startCamera(cameraMode);
+    if (!showGuide) {
+      startCamera(cameraMode);
+    }
     return () => {
       if (videoRef.current?.srcObject) {
         (videoRef.current.srcObject as MediaStream).getTracks().forEach(track => track.stop());
       }
     };
-  }, [cameraMode]);
+  }, [cameraMode, showGuide]);
 
   // Audio Guide Logic
   useEffect(() => {
@@ -110,41 +117,58 @@ export function PlaygroundInterface() {
 
   const handleFaceScan = async () => {
     if (!videoRef.current) return;
+    
+    // Verificar se o vídeo está realmente pronto para captura
+    if (videoRef.current.videoWidth === 0 || videoRef.current.videoHeight === 0) {
+      toast({ 
+        variant: 'destructive', 
+        title: "Câmera Iniciando", 
+        description: "Aguarde um momento e tente novamente." 
+      });
+      return;
+    }
+
     setIsAvatarizing(true);
     
-    // Pequeno delay para garantir frame pronto
-    setTimeout(async () => {
-      try {
-        const canvas = document.createElement('canvas');
-        canvas.width = videoRef.current!.videoWidth;
-        canvas.height = videoRef.current!.videoHeight;
-        canvas.getContext('2d')?.drawImage(videoRef.current!, 0, 0);
-        const photo = canvas.toDataURL('image/jpeg');
-        
-        const result = await avatarizeUser({ photoDataUri: photo });
-        setSafeAvatar(result);
-        setCameraMode('environment'); // Switch to back camera for missions
-        toast({ 
-          title: "Avatar Seguro Gerado", 
-          description: "Sua foto original foi descartada por segurança." 
-        });
-      } catch (e) {
-        toast({ variant: 'destructive', title: "Erro no Scan", description: "Tente novamente posicionando melhor o rosto." });
-      } finally {
-        setIsAvatarizing(false);
-      }
-    }, 1500);
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = videoRef.current.videoWidth;
+      canvas.height = videoRef.current.videoHeight;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error("Não foi possível obter contexto 2D");
+      
+      ctx.drawImage(videoRef.current, 0, 0);
+      const photo = canvas.toDataURL('image/jpeg');
+      
+      const result = await avatarizeUser({ photoDataUri: photo });
+      setSafeAvatar(result);
+      setCameraMode('environment'); // Muda para a câmera traseira para as missões
+      
+      toast({ 
+        title: "Avatar Seguro Gerado", 
+        description: "Sua identidade está protegida. Foto original descartada." 
+      });
+    } catch (e) {
+      console.error("Erro no Face Scan:", e);
+      toast({ 
+        variant: 'destructive', 
+        title: "Erro no Scan", 
+        description: "Não foi possível capturar sua imagem. Tente novamente." 
+      });
+    } finally {
+      setIsAvatarizing(false);
+    }
   };
 
   const handleStartMission = async (type: 'home' | 'street') => {
     if ((profile?.avatar?.energy ?? 100) < 15) {
-      toast({ variant: 'destructive', title: 'Energia Baixa', description: 'Descanse para recuperar stamina.' });
+      toast({ variant: 'destructive', title: 'Energia Baixa', description: 'O seu avatar precisa descansar.' });
       return;
     }
     setIsScanning(true);
     try {
       let detected: string[] = [];
-      if (type === 'street' && videoRef.current) {
+      if (type === 'street' && videoRef.current && videoRef.current.videoWidth > 0) {
         const canvas = document.createElement('canvas');
         canvas.width = videoRef.current.videoWidth;
         canvas.height = videoRef.current.videoHeight;
@@ -164,7 +188,7 @@ export function PlaygroundInterface() {
       setCurrentStep(0);
       setPhotoProof(null);
     } catch (e) {
-      toast({ variant: 'destructive', title: 'Erro na IA', description: 'Tente novamente em instantes.' });
+      toast({ variant: 'destructive', title: 'Erro na IA', description: 'Falha ao propor desafio. Tente novamente.' });
     } finally {
       setIsScanning(false);
     }
@@ -175,6 +199,12 @@ export function PlaygroundInterface() {
       setIsCapturing(true);
       const video = videoRef.current;
       const canvas = canvasRef.current;
+      
+      if (video.videoWidth === 0) {
+        setIsCapturing(false);
+        return;
+      }
+
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
       const ctx = canvas.getContext('2d');
@@ -182,7 +212,7 @@ export function PlaygroundInterface() {
       if (ctx) {
         ctx.drawImage(video, 0, 0);
         
-        // Simulação de Filtro de Avatar
+        // Sobreposição do Avatar (Filtro de Privacidade)
         const centerX = canvas.width / 2;
         const centerY = canvas.height * 0.4;
         const radius = Math.min(canvas.width, canvas.height) * 0.22;
@@ -193,20 +223,25 @@ export function PlaygroundInterface() {
         ctx.clip();
         ctx.fillStyle = safeAvatar?.dominantColor || '#33993D';
         ctx.fillRect(centerX - radius, centerY - radius, radius * 2, radius * 2);
+        
+        // Elementos visuais do avatar
         ctx.strokeStyle = 'white';
         ctx.lineWidth = 4;
         ctx.strokeRect(centerX - radius/2, centerY - radius/4, radius, radius/8);
         ctx.restore();
 
-        ctx.fillStyle = 'rgba(0,0,0,0.7)';
-        ctx.fillRect(0, canvas.height - 50, canvas.width, 50);
+        // Banner de Privacidade
+        ctx.fillStyle = 'rgba(0,0,0,0.8)';
+        ctx.fillRect(0, canvas.height - 60, canvas.width, 60);
         ctx.fillStyle = 'white';
-        ctx.font = 'bold 10px Inter';
+        ctx.font = 'bold 12px Inter';
         ctx.textAlign = 'center';
-        ctx.fillText('IDENTIDADE PROTEGIDA: AVATAR SEGURO ATIVO', canvas.width / 2, canvas.height - 28);
+        ctx.fillText('IDENTIDADE PROTEGIDA POR IA', canvas.width / 2, canvas.height - 35);
+        ctx.font = '10px Inter';
+        ctx.fillText('BIO-DADOS DESCARTADOS LOCALMENTE', canvas.width / 2, canvas.height - 15);
 
         setPhotoProof(canvas.toDataURL('image/jpeg'));
-        toast({ title: "Privacidade Garantida", description: "Identidade bio-protegida." });
+        toast({ title: "Privacidade Garantida", description: "Sua identidade está protegida por desfoque bio-digital." });
       }
       setIsCapturing(false);
     }
@@ -258,22 +293,22 @@ export function PlaygroundInterface() {
           <Info className="w-10 h-10" />
         </div>
         <div className="space-y-4">
-          <h2 className="text-3xl font-black uppercase italic tracking-tighter leading-none">Bem-vindo à Jornada</h2>
+          <h2 className="text-3xl font-black uppercase italic tracking-tighter leading-none">Guia de Exploração</h2>
           <p className="text-sm text-muted-foreground font-medium max-w-xs mx-auto">
-            O UrbeLudo conecta seu corpo à cidade de forma acessível e segura.
+            O UrbeLudo transforma o seu ambiente em um estúdio de movimento seguro e acessível.
           </p>
         </div>
         <div className="grid gap-4 w-full max-w-xs">
           <Button variant="outline" className="h-14 rounded-2xl gap-3" onClick={() => setIsAudioEnabled(!isAudioEnabled)}>
             <Volume2 className={cn("w-5 h-5", isAudioEnabled ? "text-primary" : "text-muted-foreground")} />
-            <span className="text-[10px] font-black uppercase">{isAudioEnabled ? "Guia por Áudio Ativo" : "Ativar Áudio Guia"}</span>
+            <span className="text-[10px] font-black uppercase">{isAudioEnabled ? "Áudio Guia Ativo" : "Ativar Áudio Guia"}</span>
           </Button>
           <Button variant="outline" className="h-14 rounded-2xl gap-3" onClick={() => setIsLibrasEnabled(!isLibrasEnabled)}>
             <Hand className={cn("w-5 h-5", isLibrasEnabled ? "text-primary" : "text-muted-foreground")} />
             <span className="text-[10px] font-black uppercase">{isLibrasEnabled ? "Libras Ativo" : "Ativar Libras"}</span>
           </Button>
         </div>
-        <Button onClick={() => setShowGuide(false)} className="w-full max-w-xs h-16 rounded-[2.5rem] font-black uppercase tracking-widest shadow-xl">Começar Agora</Button>
+        <Button onClick={() => setShowGuide(false)} className="w-full max-w-xs h-16 rounded-[2.5rem] font-black uppercase tracking-widest shadow-xl">Iniciar Jornada</Button>
       </div>
     );
   }
@@ -281,7 +316,13 @@ export function PlaygroundInterface() {
   return (
     <div className="flex flex-col h-full bg-background relative overflow-hidden">
       <div className="relative w-full aspect-[4/3] bg-black overflow-hidden shadow-inner">
-        <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
+        <video 
+          ref={videoRef} 
+          className="w-full h-full object-cover" 
+          autoPlay 
+          muted 
+          playsInline 
+        />
         <canvas ref={canvasRef} className="hidden" />
         
         {/* Libras Avatar Overlay */}
@@ -332,12 +373,12 @@ export function PlaygroundInterface() {
              <div className="space-y-1">
                 <h3 className="text-xl font-black uppercase italic tracking-tighter">Scan de Identidade</h3>
                 <p className="text-[10px] font-medium text-muted-foreground leading-relaxed">
-                  Posicione seu rosto para gerar o Avatar Seguro. <br/>
-                  <span className="text-primary font-bold">A foto será descartada imediatamente após o scan.</span>
+                  Posicione o rosto para gerar o seu Avatar Seguro. <br/>
+                  <span className="text-primary font-bold">A imagem original será descartada imediatamente após o scan.</span>
                 </p>
              </div>
              <Button onClick={handleFaceScan} disabled={isAvatarizing} className="w-full h-14 rounded-2xl font-black uppercase bg-accent text-accent-foreground">
-               {isAvatarizing ? <Loader2 className="animate-spin" /> : "Iniciar Scan de Segurança"}
+               {isAvatarizing ? <Loader2 className="animate-spin" /> : "Iniciar Captura Segura"}
              </Button>
           </div>
         )}
@@ -391,11 +432,11 @@ export function PlaygroundInterface() {
               </div>
 
               {currentStep < activeChallenge.steps.length - 1 ? (
-                <Button onClick={() => setCurrentStep(prev => prev + 1)} className="w-full h-14 rounded-2xl font-black uppercase">Seguir <ChevronRight className="w-4 h-4 ml-2" /></Button>
+                <Button onClick={() => setCurrentStep(prev => prev + 1)} className="w-full h-14 rounded-2xl font-black uppercase">Próximo Passo <ChevronRight className="w-4 h-4 ml-2" /></Button>
               ) : !photoProof ? (
                 <Button onClick={takePhotoWithAvatarOverlay} disabled={isCapturing} className="w-full h-16 rounded-2xl font-black uppercase bg-accent text-accent-foreground shadow-lg">
                   {isCapturing ? <Loader2 className="w-6 h-6 animate-spin" /> : <Camera className="w-6 h-6 mr-3" />} 
-                  Capturar Prova Segura
+                  Comprovar Atividade
                 </Button>
               ) : (
                 <Button onClick={completeMission} className="w-full h-16 rounded-2xl font-black uppercase bg-primary text-white shadow-xl">
@@ -410,7 +451,7 @@ export function PlaygroundInterface() {
       {celebrating && (
         <div className="fixed inset-0 z-[100] bg-primary flex flex-col items-center justify-center p-8 text-center text-white animate-in zoom-in">
           <Trophy className="w-24 h-24 mb-8 animate-bounce" />
-          <h2 className="text-4xl font-black uppercase italic mb-4">Bravo!</h2>
+          <h2 className="text-4xl font-black uppercase italic mb-4">Excelente!</h2>
           <div className="bg-white/20 px-8 py-4 rounded-3xl border border-white/30 backdrop-blur-xl">
              <span className="text-4xl font-black flex items-center gap-2"><Coins className="w-8 h-8 text-yellow-300" /> +{activeChallenge?.ludoCoinsReward}</span>
           </div>
