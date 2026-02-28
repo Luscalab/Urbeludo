@@ -6,6 +6,15 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
+import { 
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { 
   Loader2, 
   CheckCircle2, 
@@ -26,7 +35,9 @@ import {
   ChevronLeft,
   Music,
   Camera,
-  CameraOff
+  CameraOff,
+  Info,
+  ChevronDown
 } from 'lucide-react';
 import { proposeDynamicChallenges, type ProposeDynamicChallengesOutput } from '@/ai/flows/propose-dynamic-challenges';
 import { identifyUrbanElements } from '@/ai/flows/identify-urban-elements-flow';
@@ -36,6 +47,13 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/components/I18nProvider';
 import { MissionCategory } from '@/lib/types';
+
+const AVATAR_OPTIONS = [
+  'https://picsum.photos/seed/explorador1/400',
+  'https://picsum.photos/seed/explorador2/400',
+  'https://picsum.photos/seed/explorador3/400',
+  'https://picsum.photos/seed/explorador4/400',
+];
 
 export function PlaygroundInterface() {
   const { user } = useUser();
@@ -58,12 +76,24 @@ export function PlaygroundInterface() {
   const [isLibrasEnabled, setIsLibrasEnabled] = useState(false);
   const [isLowLight, setIsLowLight] = useState(false);
 
+  // Identity States
+  const [explorerName, setExplorerName] = useState('');
+  const [selectedAvatarIdx, setSelectedAvatarIdx] = useState(0);
   const [ageGroup, setAgeGroup] = useState('adolescent_adult');
   const [avatarColor, setAvatarColor] = useState('#9333ea');
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   // Standalone: Usamos referências fake já que a persistência é local
   const userProgressRef = useMemoFirebase(() => user ? { id: user.uid, path: `user_progress/${user.uid}` } : null, [user]);
   const { data: profile } = useDoc(userProgressRef);
+
+  useEffect(() => {
+    if (profile) {
+      setExplorerName(profile.displayName || '');
+      setAgeGroup(profile.ageGroup || 'adolescent_adult');
+      setAvatarColor(profile.dominantColor || '#9333ea');
+    }
+  }, [profile]);
 
   const isCameraRequired = useMemo(() => {
     if (showGuide) return false;
@@ -210,8 +240,25 @@ export function PlaygroundInterface() {
   };
 
   const handleSaveProfile = async () => {
+    if (!termsAccepted) {
+      toast({ variant: 'destructive', title: 'Atenção', description: t('auth.termsAccept') });
+      return;
+    }
+    if (!explorerName.trim()) {
+      toast({ variant: 'destructive', title: 'Atenção', description: 'Por favor, defina seu nome de explorador.' });
+      return;
+    }
+
     if (userProgressRef) {
-      updateDocumentNonBlocking(userProgressRef, { ageGroup, dominantColor: avatarColor });
+      updateDocumentNonBlocking(userProgressRef, { 
+        displayName: explorerName,
+        ageGroup, 
+        dominantColor: avatarColor,
+        avatar: {
+          ...profile?.avatar,
+          equippedItems: [AVATAR_OPTIONS[selectedAvatarIdx]]
+        }
+      });
     }
     setShowGuide(false);
   };
@@ -246,12 +293,8 @@ export function PlaygroundInterface() {
       }
 
       const challenge = await proposeDynamicChallenges({
-        missionType: type,
         category: selectedCategory,
         psychomotorLevel: profile?.psychomotorLevel || 1,
-        userAgeGroup: profile?.ageGroup || 'adolescent_adult',
-        userSkillLevel: profile?.skillLevel || 'intermediate',
-        detectedElements: detected
       });
       setActiveChallenge({ ...challenge, missionType: type });
       setCurrentStep(0);
@@ -281,7 +324,6 @@ export function PlaygroundInterface() {
       isPublic: false
     };
 
-    // Standalone: Passamos apenas metadados da coleção
     addDocumentNonBlocking({ path: 'activities' }, activityData);
     
     const updates = {
@@ -289,7 +331,7 @@ export function PlaygroundInterface() {
       totalChallengesCompleted: (profile?.totalChallengesCompleted || 0) + 1,
       avatar: { ...profile?.avatar, energy: Math.max(0, (profile?.avatar?.energy ?? 100) - 15) },
     };
-    setDocumentNonBlocking(userProgressRef, updates, { merge: true });
+    updateDocumentNonBlocking(userProgressRef, updates);
     setCelebrating(true);
     setTimeout(() => { 
       setCelebrating(false); 
@@ -361,16 +403,34 @@ export function PlaygroundInterface() {
         {showGuide ? (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-5 duration-500 pb-12">
             <div className="flex flex-col items-center text-center space-y-4">
-               <div className="w-20 h-20 bg-primary/10 rounded-[2.5rem] flex items-center justify-center text-primary border border-primary/20">
-                 <UserIcon className="w-10 h-10" />
+               <div className="flex items-center gap-4 w-full justify-center">
+                 <Button variant="ghost" size="icon" className="rounded-full" onClick={() => setSelectedAvatarIdx(p => (p === 0 ? AVATAR_OPTIONS.length - 1 : p - 1))}>
+                   <ChevronLeft className="w-5 h-5" />
+                 </Button>
+                 <div className="w-24 h-24 bg-primary/10 rounded-[2.5rem] overflow-hidden border-2 border-primary/20 shadow-xl">
+                   <img src={AVATAR_OPTIONS[selectedAvatarIdx]} alt="Avatar" className="w-full h-full object-cover" />
+                 </div>
+                 <Button variant="ghost" size="icon" className="rounded-full" onClick={() => setSelectedAvatarIdx(p => (p === AVATAR_OPTIONS.length - 1 ? 0 : p + 1))}>
+                   <ChevronRight className="w-5 h-5" />
+                 </Button>
                </div>
-               <div className="space-y-1">
+               <div className="space-y-1 w-full max-w-xs mx-auto">
                  <h2 className="text-3xl font-black uppercase italic tracking-tighter leading-none">{t('playground.configTitle')}</h2>
-                 <p className="text-[10px] font-medium text-muted-foreground max-w-[240px] mx-auto">{t('playground.configDesc')}</p>
+                 <p className="text-[10px] font-medium text-muted-foreground">{t('playground.configDesc')}</p>
                </div>
             </div>
             
             <div className="grid gap-6">
+              <div className="space-y-2 px-2">
+                <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">{t('auth.nameLabel')}</Label>
+                <Input 
+                  value={explorerName} 
+                  onChange={(e) => setExplorerName(e.target.value)} 
+                  placeholder="Ex: Super Ludo" 
+                  className="rounded-2xl h-14 bg-muted/20 border-transparent focus:border-primary font-bold text-sm"
+                />
+              </div>
+
               <div className="space-y-3 px-2">
                  <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">{t('playground.auraColor')}</Label>
                  <div className="flex justify-between items-center bg-muted/20 p-3 rounded-[2rem]">
@@ -380,15 +440,18 @@ export function PlaygroundInterface() {
                  </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <AcessibilityToggle active={isAudioEnabled} onClick={() => setIsAudioEnabled(!isAudioEnabled)} icon={<Music />} label="Sinfonia" />
-                <AcessibilityToggle active={isLibrasEnabled} onClick={() => setIsLibrasEnabled(!isLibrasEnabled)} icon={<Hand />} label="Libras" />
+              <div className="space-y-3">
+                <Label className="text-[10px] font-black uppercase text-muted-foreground px-2">{t('playground.accessibility')}</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  <AcessibilityToggle active={isAudioEnabled} onClick={() => setIsAudioEnabled(!isAudioEnabled)} icon={<Music />} label="Sinfonia" />
+                  <AcessibilityToggle active={isLibrasEnabled} onClick={() => setIsLibrasEnabled(!isLibrasEnabled)} icon={<Hand />} label="Libras" />
+                </div>
               </div>
 
               <div className="space-y-2">
                  <Label className="text-[10px] font-black uppercase text-muted-foreground px-2">{t('playground.ageGroup')}</Label>
                  <Select value={ageGroup} onValueChange={setAgeGroup}>
-                   <SelectTrigger className="rounded-[2rem] h-16 bg-muted/30 border-2 border-primary/5 font-black px-6 shadow-sm focus:ring-primary/40">
+                   <SelectTrigger className="rounded-[2rem] h-14 bg-muted/30 border-none font-black px-6 shadow-sm">
                      <SelectValue />
                    </SelectTrigger>
                    <SelectContent className="rounded-[2rem]">
@@ -398,20 +461,52 @@ export function PlaygroundInterface() {
                    </SelectContent>
                  </Select>
               </div>
+
+              <div className="flex items-center space-x-3 px-2">
+                <Checkbox 
+                  id="terms-play" 
+                  checked={termsAccepted} 
+                  onCheckedChange={(checked) => setTermsAccepted(!!checked)}
+                  className="w-5 h-5 rounded-md border-2 border-primary"
+                />
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <label htmlFor="terms-play" className="text-[9px] font-bold text-muted-foreground leading-tight hover:text-primary transition-colors cursor-pointer">
+                      {t('auth.termsAccept')} <Info className="inline w-3 h-3 mb-0.5" />
+                    </label>
+                  </DialogTrigger>
+                  <DialogContent className="rounded-[2rem] max-w-[90vw] overflow-y-auto max-h-[80vh]">
+                    <DialogHeader>
+                      <DialogTitle className="text-xl font-black uppercase italic italic">{t('auth.termsTitle')}</DialogTitle>
+                    </DialogHeader>
+                    <div className="text-[10px] font-medium leading-relaxed space-y-4 py-4 text-muted-foreground">
+                      <p><strong>1. Natureza do Aplicativo:</strong> O UrbeLudo é uma ferramenta de apoio à psicomotricidade que propõe atividades físicas e lúdicas.</p>
+                      <p><strong>2. Segurança e Supervisão:</strong> As atividades devem ser obrigatoriamente supervisionadas por um adulto responsável. O app não se responsabiliza por acidentes em locais inadequados.</p>
+                      <p><strong>3. Privacidade e Dados Locais:</strong> Operamos de forma "Local-First". A câmera é processada em tempo real e nenhuma imagem é gravada ou enviada para fora deste dispositivo.</p>
+                      <p><strong>4. Propriedade Intelectual:</strong> Todo o conteúdo e lógica pedagógica são de propriedade exclusiva do UrbeLudo.</p>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
             </div>
 
-            <Button onClick={handleSaveProfile} className="w-full h-18 rounded-[2.5rem] font-black uppercase tracking-widest bg-primary shadow-xl flex justify-between px-10 border-b-4 border-primary/80 active:border-b-0 active:translate-y-1 transition-all mt-4">
+            <Button onClick={handleSaveProfile} disabled={!termsAccepted} className="w-full h-18 rounded-[2.5rem] font-black uppercase tracking-widest bg-primary shadow-xl flex justify-between px-10 border-b-4 border-primary/80 active:border-b-0 active:translate-y-1 transition-all mt-4 disabled:opacity-50">
               <span>{t('playground.syncPlayground')}</span>
               <ChevronRight className="w-6 h-6" />
             </Button>
           </div>
         ) : (
           <div className="space-y-8 pb-12">
-            <div className="flex overflow-x-auto gap-3 pb-4 no-scrollbar -mx-8 px-8">
-                <CategoryButton active={selectedCategory === 'Arte'} onClick={() => setSelectedCategory('Arte')} icon={<PaletteIcon className="w-4 h-4" />} label={t('playground.art')} />
-                <CategoryButton active={selectedCategory === 'Motor'} onClick={() => setSelectedCategory('Motor')} icon={<Zap className="w-4 h-4" />} label={t('playground.motor')} />
-                <CategoryButton active={selectedCategory === 'Mente'} onClick={() => setSelectedCategory('Mente')} icon={<Brain className="w-4 h-4" />} label={t('playground.mind')} />
-                <CategoryButton active={selectedCategory === 'Zen'} onClick={() => setSelectedCategory('Zen')} icon={<Wind className="w-4 h-4" />} label={t('playground.zen')} />
+            <div className="flex items-center justify-between">
+              <div className="flex overflow-x-auto gap-3 pb-2 no-scrollbar -mx-8 px-8">
+                  <CategoryButton active={selectedCategory === 'Arte'} onClick={() => setSelectedCategory('Arte')} icon={<PaletteIcon className="w-4 h-4" />} label={t('playground.art')} />
+                  <CategoryButton active={selectedCategory === 'Motor'} onClick={() => setSelectedCategory('Motor')} icon={<Zap className="w-4 h-4" />} label={t('playground.motor')} />
+                  <CategoryButton active={selectedCategory === 'Mente'} onClick={() => setSelectedCategory('Mente')} icon={<Brain className="w-4 h-4" />} label={t('playground.mind')} />
+                  <CategoryButton active={selectedCategory === 'Zen'} onClick={() => setSelectedCategory('Zen')} icon={<Wind className="w-4 h-4" />} label={t('playground.zen')} />
+              </div>
+              <Button variant="ghost" size="icon" className="rounded-full shrink-0" onClick={() => setShowGuide(true)}>
+                <UserIcon className="w-5 h-5 text-muted-foreground" />
+              </Button>
             </div>
 
             {!activeChallenge ? (
@@ -480,11 +575,11 @@ export function PlaygroundInterface() {
 
 function AcessibilityToggle({ active, onClick, icon, label }: any) {
   return (
-    <button className={cn("h-20 rounded-[2.5rem] transition-all px-4 border-2 flex flex-col items-center justify-center gap-1 text-center w-full", active ? "border-primary bg-primary/5 shadow-inner" : "bg-muted/40 border-transparent")} onClick={onClick}>
-      <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center transition-all", active ? "text-primary bg-primary/10" : "text-muted-foreground bg-muted")}>
-        {React.cloneElement(icon, { className: "w-4 h-4" })}
+    <button className={cn("h-16 rounded-2xl transition-all px-4 border-2 flex flex-col items-center justify-center gap-1 text-center w-full", active ? "border-primary bg-primary/5 shadow-inner" : "bg-muted/40 border-transparent")} onClick={onClick}>
+      <div className={cn("w-6 h-6 rounded-lg flex items-center justify-center transition-all", active ? "text-primary bg-primary/10" : "text-muted-foreground bg-muted")}>
+        {React.cloneElement(icon, { className: "w-3.5 h-3.5" })}
       </div>
-      <span className="text-[9px] font-black uppercase leading-none tracking-widest">{label}</span>
+      <span className="text-[8px] font-black uppercase leading-none tracking-widest">{label}</span>
     </button>
   );
 }
