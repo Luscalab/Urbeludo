@@ -23,6 +23,7 @@ import {
   Navigation as NavIcon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { UrbeLudoLogo } from '@/components/UrbeLudoLogo';
 
 export default function StudioPage() {
   const { user } = useUser();
@@ -59,6 +60,7 @@ export default function StudioPage() {
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
       
+      // Só caminha se for na área do chão (y > 400)
       if (y > 400) {
         updateAvatarPosition(x, y);
       }
@@ -118,22 +120,25 @@ export default function StudioPage() {
           className="w-[1200px] h-[1200px] relative bg-white flex flex-col shadow-[0_0_100px_rgba(0,0,0,0.5)]"
           initial={{ x: -400, y: -200 }} 
         >
+          {/* PAREDES EM V (PERSPECTIVA DE CANTO) */}
           <div className="relative w-full h-[40%] flex" style={{ 
             background: `linear-gradient(to bottom, ${auraColor}20, ${auraColor}40)` 
           }}>
-            <div className="flex-1 border-r border-white/20 relative overflow-hidden" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 100%, 0 88%)' }}>
+            <div className="flex-1 border-r border-white/20 relative overflow-hidden bg-muted/20" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 100%, 0 88%)' }}>
                <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:24px_24px]" />
             </div>
-            <div className="flex-1 relative overflow-hidden" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 88%, 0 100%)' }}>
+            <div className="flex-1 relative overflow-hidden bg-muted/20" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 88%, 0 100%)' }}>
                <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:24px_24px]" />
             </div>
           </div>
 
+          {/* RODAPÉ TRIDIMENSIONAL */}
           <div className="relative z-10 w-full h-8 flex -mt-4">
              <div className="flex-1 bg-white shadow-lg border-b-4 border-zinc-200" style={{ clipPath: 'polygon(0 0, 100% 100%, 100% 100%, 0 100%)' }} />
              <div className="flex-1 bg-white shadow-lg border-b-4 border-zinc-200" style={{ clipPath: 'polygon(0 100%, 0 100%, 100% 0, 100% 100%)' }} />
           </div>
 
+          {/* CHÃO COM GRID ISOMÉTRICO (DIAMANTE) */}
           <div className="relative w-full h-[60%] bg-[#F5F2EC] overflow-hidden">
             <div className="absolute inset-0 opacity-15" style={{ 
                backgroundImage: `linear-gradient(45deg, #000 1px, transparent 1px), linear-gradient(-45deg, #000 1px, transparent 1px)`,
@@ -142,6 +147,7 @@ export default function StudioPage() {
             }} />
           </div>
 
+          {/* ITENS POSICIONADOS */}
           <div className="absolute inset-0 z-20 pointer-events-none">
             <AnimatePresence>
               {studioState.placedItems.map(item => (
@@ -158,6 +164,7 @@ export default function StudioPage() {
             </AnimatePresence>
           </div>
 
+          {/* AVATAR DE CORPO INTEIRO */}
           <motion.div 
             id="studio-avatar"
             animate={{ 
@@ -184,6 +191,7 @@ export default function StudioPage() {
           </motion.div>
         </motion.div>
 
+        {/* TOOLTIP DE INSTRUÇÃO */}
         <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-[110] pointer-events-none">
           <AnimatePresence mode="wait">
             <motion.div 

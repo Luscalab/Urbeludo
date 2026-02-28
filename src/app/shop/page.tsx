@@ -33,7 +33,6 @@ export default function ShopPage() {
 
   const ludoCoins = profile?.ludoCoins || 0;
   const unlockedItems = profile?.avatar?.unlockedItems || [];
-  const currentLevel = profile?.psychomotorLevel || 1;
   const isSapient = profile?.displayName?.toLowerCase() === 'sapient';
 
   const handleBuy = (item: any) => {
@@ -75,6 +74,9 @@ export default function ShopPage() {
             </TabsTrigger>
             <TabsTrigger value="Ativo" className="flex-1 py-3 rounded-xl gap-2 font-black uppercase text-[9px]">
               <Zap className="w-4 h-4" /> Ativos
+            </TabsTrigger>
+            <TabsTrigger value="Estético" className="flex-1 py-3 rounded-xl gap-2 font-black uppercase text-[9px]">
+              <ShoppingBag className="w-4 h-4" /> Decoração
             </TabsTrigger>
           </TabsList>
 
