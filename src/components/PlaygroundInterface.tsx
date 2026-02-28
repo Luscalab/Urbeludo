@@ -30,7 +30,9 @@ import {
   Zap,
   Brain,
   Wind,
-  UserCircle
+  UserCircle,
+  AlertTriangle,
+  Sun
 } from 'lucide-react';
 import { proposeDynamicChallenges, type ProposeDynamicChallengesOutput } from '@/ai/flows/propose-dynamic-challenges';
 import { identifyUrbanElements } from '@/ai/flows/identify-urban-elements-flow';
@@ -67,6 +69,7 @@ export function PlaygroundInterface() {
   const [cameraMode, setCameraMode] = useState<'user' | 'environment'>('user');
   const [isAudioEnabled, setIsAudioEnabled] = useState(false);
   const [isLibrasEnabled, setIsLibrasEnabled] = useState(false);
+  const [isLowLight, setIsLowLight] = useState(false);
 
   // Form State
   const [ageGroup, setAgeGroup] = useState('adolescent_adult');
@@ -130,29 +133,39 @@ export function PlaygroundInterface() {
     };
   }, [cameraMode, showGuide]);
 
-  useEffect(() => {
-    if (isAudioEnabled && activeChallenge) {
-      const stepText = activeChallenge.steps[currentStep];
-      if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(stepText);
-        utterance.lang = 'pt-BR';
-        window.speechSynthesis.speak(utterance);
-      }
+  const speak = (text: string) => {
+    if (isAudioEnabled && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'pt-BR';
+      window.speechSynthesis.speak(utterance);
     }
-  }, [currentStep, activeChallenge, isAudioEnabled]);
+  };
 
-  const handleSaveProfile = async () => {
-    if (userProgressRef) {
-      updateDocumentNonBlocking(userProgressRef, {
-        ageGroup,
-        sex,
-        neurodivergence,
-        physicalLimitations
-      });
+  useEffect(() => {
+    if (activeChallenge) {
+      const stepText = activeChallenge.steps[currentStep];
+      speak(stepText);
     }
-    setSetupStep(0);
-    setShowGuide(false);
+  }, [currentStep, activeChallenge]);
+
+  const checkBrightness = (video: HTMLVideoElement): number => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 50;
+    canvas.height = 50;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return 255;
+
+    ctx.drawImage(video, 0, 0, 50, 50);
+    const imageData = ctx.getImageData(0, 0, 50, 50);
+    const data = imageData.data;
+    let totalBrightness = 0;
+
+    for (let i = 0; i < data.length; i += 4) {
+      totalBrightness += (data[i] + data[i+1] + data[i+2]) / 3;
+    }
+
+    return totalBrightness / (data.length / 4);
   };
 
   const handleFaceScan = async () => {
@@ -166,6 +179,22 @@ export function PlaygroundInterface() {
         description: "Aguarde o sinal de vídeo aparecer e tente novamente." 
       });
       return;
+    }
+
+    // Checagem de luz
+    const brightness = checkBrightness(video);
+    if (brightness < 60) {
+      setIsLowLight(true);
+      const lowLightMsg = "Ambiente muito escuro. Por favor, vá para um local mais iluminado para o scan facial.";
+      speak(lowLightMsg);
+      toast({ 
+        variant: 'destructive', 
+        title: "Luz Insuficiente", 
+        description: lowLightMsg 
+      });
+      return;
+    } else {
+      setIsLowLight(false);
     }
 
     setIsAvatarizing(true);
@@ -187,7 +216,6 @@ export function PlaygroundInterface() {
         description: "Sua identidade foi preservada. Dados originais descartados." 
       });
       
-      // Muda para câmera traseira após o scan bem sucedido
       setTimeout(() => setCameraMode('environment'), 1500);
     } catch (e) {
       console.error("Erro no scan:", e);
@@ -200,6 +228,19 @@ export function PlaygroundInterface() {
     } finally {
       setIsAvatarizing(false);
     }
+  };
+
+  const handleSaveProfile = async () => {
+    if (userProgressRef) {
+      updateDocumentNonBlocking(userProgressRef, {
+        ageGroup,
+        sex,
+        neurodivergence,
+        physicalLimitations
+      });
+    }
+    setSetupStep(0);
+    setShowGuide(false);
   };
 
   const handleStartMission = async (type: 'home' | 'street') => {
@@ -442,6 +483,17 @@ export function PlaygroundInterface() {
         />
         <canvas ref={canvasRef} className="hidden" />
 
+        {/* Visor de Alerta de Luz */}
+        {isLowLight && !safeAvatar && (
+          <div className="absolute inset-0 z-40 bg-black/40 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center animate-pulse">
+            <div className="w-16 h-16 bg-destructive/20 rounded-full flex items-center justify-center mb-4 border-2 border-destructive">
+               <Sun className="w-8 h-8 text-destructive" />
+            </div>
+            <h3 className="text-white font-black uppercase italic text-sm mb-2">Ambiente Escuro</h3>
+            <p className="text-white/80 text-[8px] font-bold uppercase max-w-[180px]">Vá para um local mais iluminado para garantir o scan facial.</p>
+          </div>
+        )}
+
         {/* Overlay do Avatar Seguro */}
         {safeAvatar && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
@@ -468,10 +520,19 @@ export function PlaygroundInterface() {
           </div>
         )}
         
-        {isLibrasEnabled && activeChallenge && (
+        {isLibrasEnabled && (activeChallenge || isLowLight) && (
           <div className="absolute bottom-4 right-4 w-20 h-20 bg-black/60 backdrop-blur-md rounded-2xl border border-primary/40 flex flex-col items-center justify-center z-30 animate-pulse">
-             <Hand className="w-8 h-8 text-primary" />
-             <span className="text-[7px] font-black text-white uppercase mt-1 tracking-widest">Libras</span>
+             {isLowLight && !safeAvatar ? (
+               <div className="flex flex-col items-center">
+                  <AlertTriangle className="w-8 h-8 text-destructive" />
+                  <span className="text-[6px] font-black text-white uppercase mt-1 tracking-widest text-center">Luz Requerida</span>
+               </div>
+             ) : (
+               <>
+                 <Hand className="w-8 h-8 text-primary" />
+                 <span className="text-[7px] font-black text-white uppercase mt-1 tracking-widest">Libras</span>
+               </>
+             )}
           </div>
         )}
 
