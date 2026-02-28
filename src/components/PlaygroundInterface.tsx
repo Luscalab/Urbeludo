@@ -30,8 +30,7 @@ import {
 } from 'lucide-react';
 import { proposeDynamicChallenges, type ProposeDynamicChallengesOutput } from '@/ai/flows/propose-dynamic-challenges';
 import { identifyUrbanElements } from '@/ai/flows/identify-urban-elements-flow';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, collection } from 'firebase/firestore';
+import { useUser, useDoc, useMemoFirebase } from '@/firebase';
 import { setDocumentNonBlocking, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -40,7 +39,6 @@ import { MissionCategory } from '@/lib/types';
 
 export function PlaygroundInterface() {
   const { user } = useUser();
-  const db = useFirestore();
   const { toast } = useToast();
   const { t } = useI18n();
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -63,7 +61,8 @@ export function PlaygroundInterface() {
   const [ageGroup, setAgeGroup] = useState('adolescent_adult');
   const [avatarColor, setAvatarColor] = useState('#9333ea');
 
-  const userProgressRef = useMemoFirebase(() => user ? doc(db, 'user_progress', user.uid) : null, [db, user]);
+  // Standalone: Usamos referências fake já que a persistência é local
+  const userProgressRef = useMemoFirebase(() => user ? { id: user.uid, path: `user_progress/${user.uid}` } : null, [user]);
   const { data: profile } = useDoc(userProgressRef);
 
   const isCameraRequired = useMemo(() => {
@@ -282,7 +281,9 @@ export function PlaygroundInterface() {
       isPublic: false
     };
 
-    addDocumentNonBlocking(collection(db, 'user_progress', user.uid, 'challenge_activities'), activityData);
+    // Standalone: Passamos apenas metadados da coleção
+    addDocumentNonBlocking({ path: 'activities' }, activityData);
+    
     const updates = {
       ludoCoins: (profile?.ludoCoins || 0) + activeChallenge.ludoCoinsReward,
       totalChallengesCompleted: (profile?.totalChallengesCompleted || 0) + 1,

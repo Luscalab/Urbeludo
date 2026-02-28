@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState } from 'react';
@@ -20,8 +19,7 @@ import {
   Check,
   ShoppingBag
 } from 'lucide-react';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { useUser, useDoc, useMemoFirebase } from '@/firebase';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -93,12 +91,12 @@ const LUDO_SHOP_ITEMS: ShopItem[] = [
 
 export default function ShopPage() {
   const { user } = useUser();
-  const db = useFirestore();
   const { toast } = useToast();
   const { t } = useI18n();
   const [previewItem, setPreviewItem] = useState<ShopItem | null>(null);
   
-  const userProgressRef = useMemoFirebase(() => user ? doc(db, 'user_progress', user.uid) : null, [db, user]);
+  // Standalone: Usamos referências fake
+  const userProgressRef = useMemoFirebase(() => user ? { id: user.uid, path: `user_progress/${user.uid}` } : null, [user]);
   const { data: profile } = useDoc(userProgressRef);
 
   const ludoCoins = profile?.ludoCoins || 0;
@@ -118,10 +116,12 @@ export default function ShopPage() {
     }
 
     const newUnlocked = [...unlockedItems, item.id];
-    updateDocumentNonBlocking(userProgressRef!, {
-      ludoCoins: ludoCoins - item.price,
-      avatar: { ...profile?.avatar, unlockedItems: newUnlocked }
-    });
+    if (userProgressRef) {
+      updateDocumentNonBlocking(userProgressRef, {
+        ludoCoins: ludoCoins - item.price,
+        avatar: { ...profile?.avatar, unlockedItems: newUnlocked }
+      });
+    }
 
     toast({ title: t('shop.unlocked'), description: `${item.name} ${t('shop.unlockedDesc')}` });
   };

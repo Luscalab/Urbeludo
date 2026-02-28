@@ -5,23 +5,19 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { UrbeLudoLogo } from '@/components/UrbeLudoLogo';
 import { ArrowLeft, CheckCircle2, Calendar, Trophy, Zap } from 'lucide-react';
-import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, doc } from 'firebase/firestore';
+import { useUser, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 
 export default function HistoryPage() {
   const { user } = useUser();
-  const db = useFirestore();
 
-  const userProgressRef = useMemoFirebase(() => user ? doc(db, 'user_progress', user.uid) : null, [db, user]);
+  // Standalone: Usamos referências fake
+  const userProgressRef = useMemoFirebase(() => user ? { id: user.uid, path: `user_progress/${user.uid}` } : null, [user]);
   const { data: stats } = useDoc(userProgressRef);
 
   const activitiesQuery = useMemoFirebase(() => {
     if (!user) return null;
-    return query(
-      collection(db, 'user_progress', user.uid, 'challenge_activities'),
-      orderBy('startTime', 'desc')
-    );
-  }, [db, user]);
+    return { path: `user_progress/${user.uid}/challenge_activities` };
+  }, [user]);
 
   const { data: history, isLoading } = useCollection(activitiesQuery);
 
@@ -68,7 +64,7 @@ export default function HistoryPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {history.map((item) => (
+            {history.map((item: any) => (
               <Card key={item.id} className="p-4 hover:border-primary/40 transition-colors">
                 <div className="flex gap-4">
                   <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">

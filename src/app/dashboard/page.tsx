@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from 'next/link';
@@ -20,8 +19,7 @@ import {
   Home,
   LogOut
 } from 'lucide-react';
-import { useUser, useFirestore, useDoc, useMemoFirebase, useAuth } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { useUser, useDoc, useMemoFirebase, useAuth } from '@/firebase';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { initiateSignOut } from '@/firebase/non-blocking-login';
 import { useToast } from '@/hooks/use-toast';
@@ -35,12 +33,12 @@ import { useI18n } from '@/components/I18nProvider';
 export default function DashboardPage() {
   const { user } = useUser();
   const auth = useAuth();
-  const db = useFirestore();
   const { toast } = useToast();
   const router = useRouter();
   const { t } = useI18n();
 
-  const userProgressRef = useMemoFirebase(() => user ? doc(db, 'user_progress', user.uid) : null, [db, user]);
+  // Standalone: Usamos referências fake
+  const userProgressRef = useMemoFirebase(() => user ? { id: user.uid, path: `user_progress/${user.uid}` } : null, [user]);
   const { data: profile } = useDoc(userProgressRef);
 
   const handleSignOut = () => {
@@ -79,7 +77,6 @@ export default function DashboardPage() {
       </header>
 
       <main className="flex-1 p-6 space-y-8 container max-w-lg mx-auto">
-        {/* Header Profile */}
         <div className="flex flex-col items-center text-center space-y-4">
            <div className="relative w-28 h-28 rounded-[2.5rem] overflow-hidden border-4 border-primary/20 shadow-xl bg-muted">
               <Image src={`https://picsum.photos/seed/${user?.uid}/200`} alt="Avatar" fill className="object-cover" />
@@ -94,7 +91,6 @@ export default function DashboardPage() {
            </div>
         </div>
 
-        {/* Studio Progress */}
         <Card className="p-5 border-none rounded-[2rem] bg-primary/5 space-y-3">
            <div className="flex justify-between items-center">
               <div className="flex items-center gap-2">
@@ -106,7 +102,6 @@ export default function DashboardPage() {
            <Progress value={(5 - challengesToNextLevel) * 20} className="h-2.5 rounded-full bg-primary/10" />
         </Card>
 
-        {/* Energy Check */}
         <div className="grid grid-cols-2 gap-3">
            <Card className="p-4 bg-muted/20 border-none rounded-3xl flex items-center gap-3">
               <Battery className={cn("w-5 h-5", energy < 30 ? "text-destructive" : "text-primary")} />
@@ -124,7 +119,6 @@ export default function DashboardPage() {
            </Card>
         </div>
 
-        {/* Badges */}
         <div className="space-y-3">
            <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-2">{t('dashboard.badges')}</h4>
            <div className="flex flex-wrap gap-2">
@@ -146,7 +140,6 @@ export default function DashboardPage() {
            </div>
         </div>
 
-        {/* Action Button */}
         <Button asChild className="w-full h-16 rounded-[2.5rem] font-black uppercase tracking-widest shadow-xl flex justify-between px-8 bg-black hover:bg-slate-900 border-b-4 border-slate-800 active:border-b-0 active:translate-y-1 transition-all">
           <Link href="/shop">
             <span className="flex items-center gap-3"><ShoppingBag className="w-6 h-6" /> {t('dashboard.visitShop')}</span>
