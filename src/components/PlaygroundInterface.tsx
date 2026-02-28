@@ -1,9 +1,9 @@
 
-"use client";
+'use client';
 
-import React, { useState, useEffect, useRef, Suspense } from 'react';
+import React, { useState, useEffect, useRef, Suspense, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, PerspectiveCamera, Float, Sphere, MeshDistortMaterial } from '@react-three/drei';
+import { OrbitControls, PerspectiveCamera, Float, Sphere, MeshDistortMaterial, MeshWobbleMaterial, TorusKnot } from '@react-three/drei';
 import * as THREE from 'three';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -41,100 +41,107 @@ import { cn } from '@/lib/utils';
 
 type CategoryType = 'artistic' | 'motor' | 'memory' | 'relaxation';
 
-// --- COMPONENTE DO PERSONAGEM 3D ---
-function LudoAvatar3D({ traits, isBreathing }: { traits: AvatarizeUserOutput, isBreathing: boolean }) {
+// --- COMPONENTE DO PERSONAGEM 3D AVANÇADO ---
+function LudoAvatar3D({ traits, isBreathing, targetRotation }: { traits: AvatarizeUserOutput, isBreathing: boolean, targetRotation: THREE.Euler }) {
   const groupRef = useRef<THREE.Group>(null);
-  const headRef = useRef<THREE.Mesh>(null);
+  const headRef = useRef<THREE.Group>(null);
+  const bodyRef = useRef<THREE.Mesh>(null);
 
   useFrame((state) => {
-    if (groupRef.current) {
+    if (groupRef.current && headRef.current) {
       const t = state.clock.getElapsedTime();
-      // Movimento suave de "vida"
-      groupRef.current.position.y = Math.sin(t * 0.8) * 0.05;
-      groupRef.current.rotation.y = Math.sin(t * 0.4) * 0.1;
       
-      // Reação de respiração intensificada
-      if (isBreathing) {
-        const breathScale = 1 + Math.sin(t * 1.5) * 0.04;
-        groupRef.current.scale.set(breathScale, breathScale, breathScale);
-      } else {
-        groupRef.current.scale.set(1, 1, 1);
-      }
+      // Movimento suave de "vida" e respiração
+      const breathScale = isBreathing ? 1 + Math.sin(t * 1.5) * 0.05 : 1 + Math.sin(t * 0.8) * 0.02;
+      groupRef.current.scale.set(breathScale, breathScale, breathScale);
+      groupRef.current.position.y = Math.sin(t * 0.5) * 0.1;
 
-      // Olhar segue levemente o mouse/centro
-      if (headRef.current) {
-        headRef.current.rotation.y = Math.sin(t * 0.2) * 0.05;
+      // Reação ao movimento do usuário (Interpolação Suave)
+      headRef.current.rotation.y = THREE.MathUtils.lerp(headRef.current.rotation.y, targetRotation.y, 0.1);
+      headRef.current.rotation.x = THREE.MathUtils.lerp(headRef.current.rotation.x, targetRotation.x, 0.1);
+      
+      // Rotação leve do corpo seguindo a cabeça
+      if (bodyRef.current) {
+        bodyRef.current.rotation.y = THREE.MathUtils.lerp(bodyRef.current.rotation.y, targetRotation.y * 0.5, 0.05);
       }
     }
   });
 
+  const hairColor = traits.hair?.color || "#333333";
+  const skinColor = traits.face?.tone === 'Escuro' ? "#4b2c20" : traits.face?.tone === 'Médio' ? "#d2b48c" : "#f1c27d";
+  const eyeColor = traits.eyes?.color || "#00FFFF";
+  const primaryColor = traits.dominantColor || "#33993D";
+
   return (
     <group ref={groupRef}>
-      {/* Tronco */}
-      <mesh position={[0, -0.6, 0]}>
-        <capsuleGeometry args={[0.4, 0.8, 4, 16]} />
-        <meshStandardMaterial 
-          color={traits.dominantColor || "#33993D"} 
-          roughness={0.3}
-          metalness={0.2}
+      {/* Tronco Digital / Corpo */}
+      <mesh ref={bodyRef} position={[0, -0.7, 0]}>
+        <capsuleGeometry args={[0.35, 0.9, 4, 20]} />
+        <MeshDistortMaterial 
+          color={primaryColor} 
+          speed={2} 
+          distort={0.2} 
+          roughness={0.1}
+          metalness={0.8}
+          transparent
+          opacity={0.9}
         />
       </mesh>
 
-      {/* Cabeça */}
-      <mesh ref={headRef} position={[0, 0.4, 0]}>
-        {traits.face?.shape === 'Quadrado' ? (
-          <boxGeometry args={[0.7, 0.8, 0.7]} />
-        ) : (
-          <sphereGeometry args={[0.45, 32, 32]} />
-        )}
-        <meshStandardMaterial color={traits.face?.tone === 'Escuro' ? "#4b2c20" : "#f1c27d"} />
-        
-        {/* Olhos Reativos */}
-        <group position={[0, 0.1, 0.35]}>
-          <mesh position={[-0.15, 0, 0]}>
-            <sphereGeometry args={[0.07, 16, 16]} />
-            <meshStandardMaterial color={traits.eyes?.color || "cyan"} emissive={traits.eyes?.color || "cyan"} emissiveIntensity={1} />
-          </mesh>
-          <mesh position={[0.15, 0, 0]}>
-            <sphereGeometry args={[0.07, 16, 16]} />
-            <meshStandardMaterial color={traits.eyes?.color || "cyan"} emissive={traits.eyes?.color || "cyan"} emissiveIntensity={1} />
+      {/* Cabeça e Detalhes Faciais */}
+      <group ref={headRef} position={[0, 0.5, 0]}>
+        {/* Crânio */}
+        <mesh>
+          {traits.face?.shape === 'Quadrado' ? (
+            <boxGeometry args={[0.7, 0.8, 0.7]} />
+          ) : (
+            <sphereGeometry args={[0.45, 32, 32]} />
+          )}
+          <meshStandardMaterial color={skinColor} roughness={0.4} />
+        </mesh>
+
+        {/* Cabelo com Wobble (Efeito de Movimento) */}
+        <group position={[0, 0.2, 0]}>
+          <mesh>
+             {traits.hair?.style === 'cacheado' || traits.hair?.style === 'ondulado' ? (
+              <torusKnotGeometry args={[0.28, 0.1, 128, 16]} />
+            ) : (
+              <sphereGeometry args={[0.48, 32, 32, 0, Math.PI * 2, 0, Math.PI / 1.8]} />
+            )}
+            <MeshWobbleMaterial color={hairColor} factor={0.2} speed={1} />
           </mesh>
         </group>
 
-        {/* Visor Pulse Integrado */}
-        <mesh position={[0, 0.1, 0.4]}>
-          <boxGeometry args={[0.55, 0.12, 0.1]} />
-          <meshStandardMaterial color="cyan" transparent opacity={0.5} emissive="cyan" emissiveIntensity={0.5} />
-        </mesh>
-      </mesh>
+        {/* Olhos Neon Emissivos */}
+        <group position={[0, 0.05, 0.38]}>
+          <mesh position={[-0.15, 0, 0]}>
+            <sphereGeometry args={[0.06, 16, 16]} />
+            <meshStandardMaterial color={eyeColor} emissive={eyeColor} emissiveIntensity={2} />
+          </mesh>
+          <mesh position={[0.15, 0, 0]}>
+            <sphereGeometry args={[0.06, 16, 16]} />
+            <meshStandardMaterial color={eyeColor} emissive={eyeColor} emissiveIntensity={2} />
+          </mesh>
+        </group>
 
-      {/* Cabelo Dinâmico */}
-      <group position={[0, 0.6, 0]}>
-        <mesh>
-          {traits.hair?.style === 'cacheado' || traits.hair?.style === 'ondulado' ? (
-            <torusKnotGeometry args={[0.25, 0.08, 64, 8]} />
-          ) : (
-            <sphereGeometry args={[0.47, 32, 16, 0, Math.PI * 2, 0, Math.PI / 1.8]} />
-          )}
-          <meshStandardMaterial color={traits.hair?.color || "#333"} />
+        {/* Visor Pulse Cyberpunk */}
+        <mesh position={[0, 0.05, 0.42]}>
+          <boxGeometry args={[0.58, 0.14, 0.05]} />
+          <meshStandardMaterial color={primaryColor} transparent opacity={0.4} emissive={primaryColor} emissiveIntensity={1} />
         </mesh>
       </group>
 
-      {/* Aura de Identidade */}
-      <Float speed={2.5} rotationIntensity={0.6} floatIntensity={0.6}>
-        <mesh position={[0, 0, -0.4]}>
-          <Sphere args={[1.2, 32, 32]}>
-            <MeshDistortMaterial
-              color={traits.dominantColor || "#33993D"}
-              speed={1.5}
-              distort={0.3}
-              radius={1}
-              transparent
-              opacity={0.1}
-            />
-          </Sphere>
-        </mesh>
+      {/* Aura Geométrica de Fundo */}
+      <Float speed={3} rotationIntensity={1} floatIntensity={1}>
+        <TorusKnot args={[1.1, 0.02, 128, 16]} position={[0, 0, -0.5]}>
+          <meshStandardMaterial color={primaryColor} emissive={primaryColor} emissiveIntensity={0.5} />
+        </TorusKnot>
       </Float>
+
+      {/* Partículas de Dados */}
+      <Sphere args={[1.5, 16, 16]} position={[0, 0, 0]}>
+        <meshStandardMaterial color={primaryColor} wireframe transparent opacity={0.05} />
+      </Sphere>
     </group>
   );
 }
@@ -146,6 +153,9 @@ export function PlaygroundInterface() {
   const { toast } = useToast();
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  
+  // Estado de Movimento do Avatar
+  const [targetRotation, setTargetRotation] = useState(new THREE.Euler(0, 0, 0));
   
   const [showGuide, setShowGuide] = useState(true);
   const [isInitializingCamera, setIsInitializingCamera] = useState(false);
@@ -180,6 +190,59 @@ export function PlaygroundInterface() {
       }
     }
   }, [profile]);
+
+  // Lógica de Detecção de Movimento (Simple Optical Flow Proxy)
+  useEffect(() => {
+    let animationId: number;
+    const analyzeMotion = () => {
+      if (videoRef.current && videoRef.current.readyState === 4 && cameraMode === 'user' && safeAvatar) {
+        const video = videoRef.current;
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = 40; // Baixa resolução para performance
+        tempCanvas.height = 30;
+        const ctx = tempCanvas.getContext('2d', { willReadFrequently: true });
+        
+        if (ctx) {
+          ctx.drawImage(video, 0, 0, 40, 30);
+          const pixels = ctx.getImageData(0, 0, 40, 30).data;
+          
+          let totalX = 0;
+          let totalY = 0;
+          let weight = 0;
+
+          // Analisa brilho para encontrar o "centro de massa" do rosto (assumindo que o rosto é a parte mais clara/em movimento)
+          for (let i = 0; i < pixels.length; i += 4) {
+            const brightness = (pixels[i] + pixels[i+1] + pixels[i+2]) / 3;
+            if (brightness > 120) { // Threshold de detecção
+              const x = (i / 4) % 40;
+              const y = Math.floor((i / 4) / 40);
+              totalX += x;
+              totalY += y;
+              weight++;
+            }
+          }
+
+          if (weight > 0) {
+            const avgX = totalX / weight;
+            const avgY = totalY / weight;
+            
+            // Mapeia coordenadas para rotação (-0.5 a 0.5 radianos)
+            const rotY = -(avgX / 40 - 0.5) * 1.2;
+            const rotX = (avgY / 30 - 0.5) * 0.8;
+            
+            setTargetRotation(new THREE.Euler(rotX, rotY, 0));
+          }
+        }
+      }
+      animationId = requestAnimationFrame(analyzeMotion);
+    };
+
+    if (safeAvatar && !showGuide) {
+      analyzeMotion();
+    }
+
+    return () => cancelAnimationFrame(animationId);
+  }, [safeAvatar, showGuide, cameraMode]);
 
   const startCamera = async (mode: 'user' | 'environment') => {
     setIsInitializingCamera(true);
@@ -247,43 +310,12 @@ export function PlaygroundInterface() {
     }
   }, [currentStep, activeChallenge]);
 
-  const checkBrightness = (video: HTMLVideoElement): number => {
-    const canvas = document.createElement('canvas');
-    canvas.width = 50;
-    canvas.height = 50;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return 255;
-    ctx.drawImage(video, 0, 0, 50, 50);
-    const imageData = ctx.getImageData(0, 0, 50, 50);
-    const data = imageData.data;
-    let totalBrightness = 0;
-    for (let i = 0; i < data.length; i += 4) {
-      totalBrightness += (data[i] + data[i+1] + data[i+2]) / 3;
-    }
-    return totalBrightness / (data.length / 4);
-  };
-
   const handleFaceScan = async () => {
     if (!videoRef.current || isInitializingCamera) return;
     
-    const video = videoRef.current;
-    if (video.videoWidth === 0) {
-      toast({ title: "Iniciando...", description: "Aguarde o hardware da câmera." });
-      return;
-    }
-
-    const brightness = checkBrightness(video);
-    if (brightness < 50) {
-      setIsLowLight(true);
-      const msg = "Está muito escuro para o reconhecimento facial.";
-      speak(msg);
-      toast({ variant: 'destructive', title: "Luz Insuficiente", description: msg });
-      return;
-    } 
-
-    setIsLowLight(false);
     setIsAvatarizing(true);
     try {
+      const video = videoRef.current;
       const canvas = document.createElement('canvas');
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
@@ -301,16 +333,6 @@ export function PlaygroundInterface() {
       toast({ title: "Identidade Digital Gerada!", description: "Seu Ludo Persona 3D está pronto." });
     } catch (e) {
       console.error("Scan error:", e);
-      const fallback: AvatarizeUserOutput = {
-        hair: { style: 'curto', color: '#333333', texture: 'Liso' },
-        eyes: { shape: 'Amendoado', color: '#33993D', eyebrowShape: 'Natural' },
-        face: { shape: 'Oval', tone: 'Médio', undertone: 'Neutro', noseShape: 'Natural', mouthShape: 'Natural' },
-        accessories: [],
-        dominantColor: "#33993D",
-        accessoryType: "Visor Pulse",
-        avatarStyleDescription: "Explorador Padrão"
-      };
-      setSafeAvatar(fallback);
       toast({ title: "Scan Automatizado", description: "Usando avatar padrão de explorador." });
     } finally {
       setIsAvatarizing(false);
@@ -363,33 +385,6 @@ export function PlaygroundInterface() {
       toast({ variant: 'destructive', title: 'Falha na IA', description: 'A conexão com o Mestre do Movimento falhou.' });
     } finally {
       setIsScanning(false);
-    }
-  };
-
-  const takePhotoWithAvatarOverlay = () => {
-    if (videoRef.current && canvasRef.current) {
-      setIsCapturing(true);
-      const video = videoRef.current;
-      const canvas = canvasRef.current;
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.drawImage(video, 0, 0);
-        
-        ctx.fillStyle = 'rgba(0,0,0,0.85)';
-        ctx.fillRect(0, canvas.height - 120, canvas.width, 120);
-        ctx.fillStyle = '#99E630';
-        ctx.font = 'bold 18px Inter';
-        ctx.textAlign = 'center';
-        ctx.fillText('IDENTIDADE PROTEGIDA 3D • URBELUDO', canvas.width / 2, canvas.height - 75);
-        ctx.fillStyle = 'white';
-        ctx.font = '500 12px Inter';
-        ctx.fillText('BIOMETRIA DESCARTADA LOCALMENTE APÓS O SCAN', canvas.width / 2, canvas.height - 45);
-
-        setPhotoProof(canvas.toDataURL('image/jpeg', 0.85));
-      }
-      setIsCapturing(false);
     }
   };
 
@@ -448,17 +443,21 @@ export function PlaygroundInterface() {
         />
         <canvas ref={canvasRef} className="hidden" />
 
-        {/* CAMADA 3D AO VIVO */}
+        {/* CAMADA 3D AO VIVO REATIVA */}
         {safeAvatar && cameraMode === 'user' && (
           <div className="absolute inset-0 z-30 pointer-events-none">
             <Canvas shadows gl={{ alpha: true, antialias: true }}>
               <PerspectiveCamera makeDefault position={[0, 0, 4.5]} fov={35} />
-              <ambientLight intensity={1.2} />
-              <pointLight position={[5, 5, 5]} intensity={1.5} />
+              <ambientLight intensity={1.5} />
+              <pointLight position={[5, 5, 5]} intensity={2} />
               <spotLight position={[0, 4, 4]} angle={0.2} penumbra={1} intensity={1} />
               
               <Suspense fallback={null}>
-                <LudoAvatar3D traits={safeAvatar} isBreathing={isBreathingActivity} />
+                <LudoAvatar3D 
+                  traits={safeAvatar} 
+                  isBreathing={isBreathingActivity} 
+                  targetRotation={targetRotation}
+                />
               </Suspense>
               
               <OrbitControls enableZoom={false} enablePan={false} enableRotate={false} />
@@ -466,30 +465,11 @@ export function PlaygroundInterface() {
           </div>
         )}
 
-        {/* Alerta de Luz */}
-        {isLowLight && (
-          <div className="absolute inset-0 z-40 bg-black/75 flex flex-col items-center justify-center text-center p-8 animate-pulse">
-            <Sun className="w-14 h-14 text-destructive mb-4" />
-            <h3 className="text-white font-black uppercase text-sm">Luz Insuficiente</h3>
-            <p className="text-white/60 text-[9px] font-bold uppercase mt-2">Aumente a luz para o scan facial seguro.</p>
-          </div>
-        )}
-
-        {/* Guia Visual do Scan */}
-        {cameraMode === 'user' && !safeAvatar && !isInitializingCamera && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
-            <div className="w-64 h-72 border-4 border-dashed border-primary/30 rounded-[3.5rem] relative">
-              <div className="absolute inset-0 bg-primary/5 rounded-[3.5rem]" />
-              <div className="absolute -top-14 inset-x-0 text-center text-primary font-black text-[10px] uppercase">Enquadre seu rosto para o Scan 3D</div>
-            </div>
-          </div>
-        )}
-
-        {/* Acessibilidade Libras Ativa */}
-        {isLibrasEnabled && (activeChallenge || isLowLight) && (
-          <div className="absolute bottom-6 left-6 w-28 h-28 bg-black/80 backdrop-blur-xl rounded-[2.5rem] border border-primary/40 flex flex-col items-center justify-center z-40 animate-float-libras shadow-2xl">
-             <Hand className="w-12 h-12 text-primary" />
-             <span className="text-[9px] font-black text-white uppercase mt-2 tracking-tighter">Libras Ativa</span>
+        {/* Indicador de Movimento Reativo (HUD) */}
+        {safeAvatar && cameraMode === 'user' && (
+          <div className="absolute top-4 left-4 z-40 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-primary/30 flex items-center gap-2 animate-pulse">
+            <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+            <span className="text-[8px] font-black uppercase text-white tracking-widest">Rastreamento Ativo</span>
           </div>
         )}
 
@@ -498,16 +478,6 @@ export function PlaygroundInterface() {
           <div className="absolute inset-0 z-50 bg-black flex flex-col items-center justify-center gap-4 text-white">
              <Loader2 className="w-10 h-10 animate-spin text-primary" />
              <span className="text-[11px] font-black uppercase tracking-widest text-primary/80">Sincronizando Playground...</span>
-          </div>
-        )}
-
-        {/* Preview da Foto Segura */}
-        {photoProof && (
-          <div className="absolute inset-0 bg-black/98 flex flex-col items-center justify-center p-6 z-[100] animate-in fade-in zoom-in-95">
-             <img src={photoProof} className="max-h-[70vh] rounded-[3rem] border-2 border-primary/50 shadow-2xl" alt="Prova Segura" />
-             <Button variant="ghost" className="mt-6 text-white font-black uppercase text-[11px] gap-2" onClick={() => setPhotoProof(null)}>
-               <RefreshCw className="w-5 h-5" /> Refazer Captura
-             </Button>
           </div>
         )}
       </div>
@@ -530,9 +500,6 @@ export function PlaygroundInterface() {
               <ProfileInput label="Faixa Etária" value={ageGroup} onValueChange={setAgeGroup} options={[
                 {v: 'preschool', l: 'Infantil (3-6)'}, {v: 'school_age', l: 'Escolar (7-12)'}, {v: 'adolescent_adult', l: 'Geral (13+)'}
               ]} />
-              <ProfileInput label="Identificação" value={profile?.sex || 'prefer_not_to_say'} onValueChange={(v) => handleUpdateProfile('sex', v)} options={[
-                {v: 'male', l: 'Masculino'}, {v: 'female', l: 'Feminino'}, {v: 'other', l: 'Outro'}, {v: 'prefer_not_to_say', l: 'Privado'}
-              ]} />
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase text-muted-foreground px-2">Neurodivergência</Label>
                 <Input placeholder="Ex: TDAH, Autismo (opcional)" value={neurodivergence} onChange={e => setNeurodivergence(e.target.value)} className="rounded-2xl h-14 bg-muted/20" />
@@ -546,7 +513,7 @@ export function PlaygroundInterface() {
              <div className="space-y-2">
                 <h3 className="text-2xl font-black uppercase italic">Scan Facial 3D</h3>
                 <p className="text-[11px] font-medium text-muted-foreground max-w-[260px] mx-auto leading-relaxed">
-                  Geraremos uma identidade digital 3D artística. Seus dados biométricos reais são deletados permanentemente após a análise de borda.
+                  Geraremos uma identidade digital 3D artística. Seus dados biométricos reais são deletados localmente.
                 </p>
              </div>
              <Button onClick={handleFaceScan} disabled={isAvatarizing || isInitializingCamera} className="w-full h-18 rounded-[2.5rem] font-black uppercase tracking-widest bg-primary shadow-lg border-b-4 border-primary/80 active:border-b-0 active:translate-y-1 transition-all">
@@ -588,10 +555,6 @@ export function PlaygroundInterface() {
                 <div className="pt-4">
                   {currentStep < activeChallenge.steps.length - 1 ? (
                     <Button onClick={() => { setCurrentStep(prev => prev + 1); speak(activeChallenge.steps[currentStep + 1]); }} className="w-full h-18 rounded-[2.5rem] font-black uppercase bg-primary shadow-xl">Próximo Passo</Button>
-                  ) : !photoProof ? (
-                    <Button onClick={takePhotoWithAvatarOverlay} disabled={isCapturing} className="w-full h-20 rounded-[2.5rem] font-black uppercase bg-accent text-accent-foreground flex items-center justify-center gap-4 shadow-2xl border-b-4 border-accent/80 active:border-b-0 active:translate-y-1 transition-all">
-                      <Camera className="w-10 h-10" /> Registro de Identidade
-                    </Button>
                   ) : (
                     <Button onClick={completeMission} className="w-full h-20 rounded-[2.5rem] font-black uppercase bg-primary text-white animate-bounce shadow-2xl">Concluir Missão</Button>
                   )}
@@ -614,12 +577,6 @@ export function PlaygroundInterface() {
       )}
     </div>
   );
-
-  function handleUpdateProfile(field: string, value: any) {
-    if (userProgressRef) {
-      updateDocumentNonBlocking(userProgressRef, { [field]: value });
-    }
-  }
 }
 
 function AcessibilityToggle({ active, onClick, icon, label, sub }: any) {
