@@ -7,13 +7,14 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { UrbeLudoLogo } from '@/components/UrbeLudoLogo';
 import { 
   ArrowLeft, 
-  Settings, 
   UserCircle, 
   Coins, 
   Sparkles, 
-  Home as HomeIcon, 
   ShoppingBag,
-  History
+  History,
+  Lock,
+  Zap,
+  Target
 } from 'lucide-react';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
@@ -23,6 +24,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import Image from 'next/image';
 
 export default function DashboardPage() {
   const { user } = useUser();
@@ -35,7 +37,7 @@ export default function DashboardPage() {
   const handleUpdateProfile = (field: string, value: string | number) => {
     if (userProgressRef) {
       updateDocumentNonBlocking(userProgressRef, { [field]: value });
-      toast({ title: "Perfil Atualizado" });
+      toast({ title: "Perfil Sincronizado", description: "Sua jornada de evolução continua." });
     }
   };
 
@@ -46,143 +48,157 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <header className="px-6 h-20 flex items-center border-b bg-background/80 backdrop-blur-md sticky top-0 z-50">
-        <Link href="/playground" className="flex items-center gap-2 mr-6">
+        <Link href="/playground" className="flex items-center gap-2 mr-6 hover:text-primary transition-colors">
           <ArrowLeft className="w-5 h-5" />
+          <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">Playground</span>
         </Link>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-1 justify-center sm:justify-start">
           <UrbeLudoLogo className="w-8 h-8 text-primary" />
-          <span className="text-lg font-headline font-bold tracking-tight">Evolução do Avatar</span>
+          <span className="text-lg font-black tracking-tighter uppercase italic">Estúdio do Avatar</span>
         </div>
       </header>
 
-      <main className="flex-1 p-6 container mx-auto max-w-4xl space-y-8">
-        {/* Avatar Section */}
-        <div className="grid md:grid-cols-2 gap-8 items-center">
-          <Card className="aspect-square flex flex-col items-center justify-center bg-gradient-to-br from-primary/10 to-accent/10 relative overflow-hidden group rounded-3xl">
-             <div className="absolute inset-0 bg-[url('https://picsum.photos/seed/studio/800')] opacity-10 grayscale group-hover:scale-110 transition-transform duration-1000" />
-             <div className="z-10 text-center space-y-4">
-                <div className="w-40 h-40 rounded-full bg-white shadow-2xl flex items-center justify-center border-4 border-primary relative">
-                  <Sparkles className="w-20 h-20 text-primary animate-pulse" />
-                  <div className="absolute -bottom-2 -right-2 bg-accent text-accent-foreground px-2 py-1 rounded-lg text-[10px] font-black uppercase">LVL {pLevel}</div>
+      <main className="flex-1 p-6 container mx-auto max-w-5xl space-y-8 animate-in fade-in slide-in-from-top-4 duration-700">
+        
+        <div className="grid lg:grid-cols-12 gap-8 items-start">
+          
+          {/* Coluna do Avatar */}
+          <div className="lg:col-span-5 space-y-6">
+            <Card className="aspect-square relative overflow-hidden rounded-[3rem] shadow-2xl border-none group bg-slate-900">
+               <Image 
+                src="https://images.unsplash.com/photo-1587321965030-035a856311d6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080"
+                alt="Avatar"
+                fill
+                className="object-cover opacity-60 grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-1000"
+                data-ai-hint="cyberpunk avatar"
+              />
+               <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent" />
+               
+               <div className="absolute inset-0 flex flex-col items-center justify-center space-y-4">
+                  <div className="w-48 h-48 rounded-full border-4 border-primary/50 flex items-center justify-center backdrop-blur-sm bg-white/5 relative">
+                    <Sparkles className="w-24 h-24 text-primary animate-pulse" />
+                    <Badge className="absolute -bottom-2 bg-accent text-accent-foreground font-black px-4 py-1 rounded-full text-xs shadow-xl">
+                      LVL {pLevel}
+                    </Badge>
+                  </div>
+                  <div className="text-center">
+                    <h2 className="text-3xl font-black text-white uppercase tracking-tighter italic">Seu Herói</h2>
+                    <Badge variant="outline" className="border-primary text-primary font-black uppercase tracking-widest bg-primary/10">
+                      {levelNames[pLevel-1]}
+                    </Badge>
+                  </div>
+               </div>
+
+               <div className="absolute top-6 right-6">
+                 <div className="bg-black/50 backdrop-blur-xl border border-white/20 px-4 py-2 rounded-2xl flex items-center gap-2 shadow-2xl">
+                    <Coins className="w-5 h-5 text-yellow-500" />
+                    <span className="text-white font-black text-xl">{profile?.ludoCoins || 0}</span>
+                 </div>
+               </div>
+            </Card>
+
+            <Card className="p-6 bg-muted/40 border-none rounded-[2rem] space-y-4">
+              <div className="flex justify-between items-center">
+                <h3 className="font-black uppercase tracking-tighter text-sm flex items-center gap-2 text-muted-foreground">
+                  <Target className="w-4 h-4" /> Domínio Psicomotor
+                </h3>
+                <span className="text-[10px] font-black uppercase text-primary">Nível {pLevel}</span>
+              </div>
+              <Progress value={progressToNext} className="h-4 rounded-full bg-slate-200" />
+              <p className="text-[10px] text-muted-foreground font-bold italic text-center">
+                Vença mais {5 - ((profile?.totalChallengesCompleted || 0) % 5)} desafios para desbloquear o próximo estágio.
+              </p>
+            </Card>
+          </div>
+
+          {/* Coluna de Configuração e Loja */}
+          <div className="lg:col-span-7 space-y-6">
+            
+            <div className="grid sm:grid-cols-2 gap-4">
+              <Card className="rounded-[2rem] border-none bg-primary/5 p-6 space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center">
+                    <UserCircle className="w-6 h-6" />
+                  </div>
+                  <h3 className="font-black uppercase tracking-tighter italic">Bio-Perfil</h3>
                 </div>
-                <div className="space-y-1">
-                  <h2 className="text-2xl font-black uppercase tracking-tighter">Seu Avatar</h2>
-                  <div className="flex gap-2 justify-center">
-                    <Badge className="bg-primary">{levelNames[pLevel-1]}</Badge>
-                    <Badge variant="outline" className="flex gap-1 bg-white/50"><Coins className="w-3 h-3 text-yellow-600"/> {profile?.ludoCoins || 0}</Badge>
+                <div className="space-y-4">
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Faixa Etária</label>
+                    <Select onValueChange={(v) => handleUpdateProfile('ageGroup', v)} value={profile?.ageGroup || 'adolescent_adult'}>
+                      <SelectTrigger className="h-12 rounded-2xl border-none bg-background shadow-sm"><SelectValue /></SelectTrigger>
+                      <SelectContent className="rounded-2xl border-none">
+                        <SelectItem value="preschool">Educação Infantil (2-5 anos)</SelectItem>
+                        <SelectItem value="school_age">Fundamental (6-12 anos)</SelectItem>
+                        <SelectItem value="adolescent_adult">Adolescente / Adulto (13+)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Habilidade</label>
+                    <Select onValueChange={(v) => handleUpdateProfile('skillLevel', v)} value={profile?.skillLevel || 'intermediate'}>
+                      <SelectTrigger className="h-12 rounded-2xl border-none bg-background shadow-sm"><SelectValue /></SelectTrigger>
+                      <SelectContent className="rounded-2xl border-none">
+                        <SelectItem value="beginner">Iniciante</SelectItem>
+                        <SelectItem value="intermediate">Intermediário</SelectItem>
+                        <SelectItem value="advanced">Avançado</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
-             </div>
-          </Card>
+              </Card>
 
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <div className="flex justify-between text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                <span>Progresso Motor</span>
-                <span>Nível {pLevel}</span>
-              </div>
-              <Progress value={progressToNext} className="h-4 rounded-full" />
-              <p className="text-[10px] text-muted-foreground italic">Faltam {5 - ((profile?.totalChallengesCompleted || 0) % 5)} desafios para o Nível {pLevel < 4 ? pLevel + 1 : 4}.</p>
-            </div>
-
-            <Card className="p-6 bg-muted/50 border-none rounded-3xl">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="font-black uppercase tracking-tighter flex items-center gap-2">
-                  <ShoppingBag className="w-4 h-4 text-primary" /> Estúdio & Loja
-                </h3>
-                <Button asChild size="sm" className="rounded-xl font-bold uppercase text-[10px] tracking-widest h-8">
+              <Card className="rounded-[2rem] border-none bg-accent/10 p-6 space-y-4 flex flex-col justify-between">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-accent text-accent-foreground flex items-center justify-center">
+                      <ShoppingBag className="w-6 h-6" />
+                    </div>
+                    <h3 className="font-black uppercase tracking-tighter italic">Arsenal Neon</h3>
+                  </div>
+                  <p className="text-xs text-muted-foreground font-medium leading-tight">Equipe itens épicos resgatados com seu movimento real.</p>
+                </div>
+                <Button asChild className="w-full h-12 rounded-2xl font-black uppercase tracking-widest shadow-xl">
                   <Link href="/shop">Abrir Loja</Link>
                 </Button>
-              </div>
-              <div className="grid grid-cols-4 gap-3">
-                {profile?.avatar?.unlockedItems?.slice(0, 4).map((itemId: string) => (
-                  <div key={itemId} className="aspect-square bg-background rounded-xl border flex items-center justify-center text-[10px] font-bold overflow-hidden">
-                    <img src={`https://picsum.photos/seed/${itemId}/100`} alt={itemId} className="w-full h-full object-cover" />
-                  </div>
-                )) || [1,2,3,4].map(i => (
-                  <div key={i} className="aspect-square bg-background rounded-xl border-2 border-dashed flex items-center justify-center text-muted-foreground">
-                    <Lock className="w-4 h-4 opacity-20" />
+              </Card>
+            </div>
+
+            <Card className="p-8 rounded-[3rem] border-none bg-slate-900 text-white space-y-6">
+              <h3 className="font-black uppercase tracking-tighter text-xl italic flex items-center gap-2">
+                <Zap className="w-5 h-5 text-accent" /> Status da Escada
+              </h3>
+              <div className="grid grid-cols-1 gap-3">
+                {levelNames.map((name, i) => (
+                  <div key={i} className={cn(
+                    "flex items-center gap-4 p-4 rounded-3xl transition-all duration-500",
+                    pLevel === i + 1 ? "bg-white text-slate-950 scale-105 shadow-[0_0_30px_rgba(255,255,255,0.15)]" : 
+                    pLevel > i + 1 ? "bg-white/10 opacity-60" : "bg-white/5 opacity-20 border border-white/10"
+                  )}>
+                    <div className={cn(
+                      "w-10 h-10 rounded-full border-2 flex items-center justify-center font-black",
+                      pLevel === i + 1 ? "bg-primary text-white border-primary" : "border-white/20"
+                    )}>{i+1}</div>
+                    <span className="uppercase tracking-[0.2em] text-[10px] font-black">{name}</span>
+                    {pLevel > i + 1 && <Sparkles className="w-4 h-4 ml-auto text-primary" />}
+                    {pLevel === i + 1 && <Zap className="w-4 h-4 ml-auto text-accent animate-pulse" />}
                   </div>
                 ))}
               </div>
             </Card>
 
-            <Button asChild variant="outline" className="w-full h-14 rounded-2xl font-bold uppercase tracking-widest">
+            <Button asChild variant="outline" className="w-full h-16 rounded-3xl border-2 font-black uppercase tracking-widest text-xs hover:bg-muted/50">
               <Link href="/history">
-                <History className="w-4 h-4 mr-2" /> Histórico de Jornada
+                <History className="w-5 h-5 mr-3" /> Ver Histórico de Jornada
               </Link>
             </Button>
           </div>
         </div>
-
-        <div className="grid md:grid-cols-2 gap-6">
-          <Card className="rounded-3xl border-none shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-lg font-black uppercase tracking-tighter flex items-center gap-2">
-                <UserCircle className="w-4 h-4" /> Perfil Psicomotor
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Faixa Etária</label>
-                <Select onValueChange={(v) => handleUpdateProfile('ageGroup', v)} value={profile?.ageGroup || 'adolescent_adult'}>
-                  <SelectTrigger className="h-12 rounded-xl"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="preschool">Educação Infantil (2-5 anos)</SelectItem>
-                    <SelectItem value="school_age">Fundamental (6-12 anos)</SelectItem>
-                    <SelectItem value="adolescent_adult">Adolescente / Adulto (13+)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Habilidade Base</label>
-                <Select onValueChange={(v) => handleUpdateProfile('skillLevel', v)} value={profile?.skillLevel || 'intermediate'}>
-                  <SelectTrigger className="h-12 rounded-xl"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="beginner">Iniciante</SelectItem>
-                    <SelectItem value="intermediate">Intermediário</SelectItem>
-                    <SelectItem value="advanced">Avançado</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="p-6 bg-primary/5 border-primary/20 rounded-3xl">
-            <h3 className="font-black uppercase tracking-tighter mb-4">Hierarquia de Domínio</h3>
-            <div className="space-y-3">
-              {levelNames.map((name, i) => (
-                <div key={i} className={cn(
-                  "flex items-center gap-3 p-3 rounded-xl text-sm transition-all",
-                  pLevel === i + 1 ? "bg-primary text-white font-bold shadow-lg scale-105" : 
-                  pLevel > i + 1 ? "opacity-60 bg-primary/10" : "opacity-30 border-dashed border"
-                )}>
-                  <div className={cn(
-                    "w-8 h-8 rounded-full border flex items-center justify-center font-black text-xs",
-                    pLevel === i + 1 ? "bg-white text-primary" : ""
-                  )}>{i+1}</div>
-                  <span className="uppercase tracking-widest text-[10px] font-black">{name}</span>
-                  {pLevel > i + 1 && <Sparkles className="w-3 h-3 ml-auto" />}
-                </div>
-              ))}
-            </div>
-          </Card>
-        </div>
       </main>
-    </div>
-  );
-}
 
-function Lock({ className }: { className?: string }) {
-  return (
-    <svg 
-      xmlns="http://www.w3.org/2000/svg" 
-      width="24" height="24" viewBox="0 0 24 24" 
-      fill="none" stroke="currentColor" strokeWidth="2" 
-      strokeLinecap="round" strokeLinejoin="round" 
-      className={className}
-    >
-      <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-    </svg>
+      <footer className="p-12 text-center opacity-40">
+        <p className="text-[10px] font-black uppercase tracking-[0.5em]">UrbeLudo © Sincronização Biométrica Ativa</p>
+      </footer>
+    </div>
   );
 }

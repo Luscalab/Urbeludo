@@ -2,25 +2,25 @@
   "placeholderImages": [
     {
       "id": "hero-urban",
-      "description": "A modern urban square with stairs and concrete elements",
+      "description": "Arquitetura urbana moderna com escadas e elementos de concreto",
       "imageUrl": "https://images.unsplash.com/photo-1581175990636-0c75be2d4aea?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHx1cmJhbiUyMGFyY2hpdGVjdHVyZXxlbnwwfHx8fDE3NzIyMTY2NjF8MA&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "urban architecture"
     },
     {
       "id": "play-movement",
-      "description": "Someone balancing on a urban curb",
+      "description": "Alguém se equilibrando em uma guia urbana",
       "imageUrl": "https://images.unsplash.com/photo-1572101954010-2f3c78fc3ab6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxiYWxhbmNlJTIwbW92ZW1lbnR8ZW58MHx8fHwxNzcyMjU3NzU3fDA&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "balance movement"
     },
     {
-      "id": "avatar-default",
-      "description": "Futuristic urban character avatar",
+      "id": "avatar-studio",
+      "description": "Avatar de personagem urbano futurista em um estúdio",
       "imageUrl": "https://images.unsplash.com/photo-1587321965030-035a856311d6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxjeWJlcnB1bmslMjBhdmF0YXJ8ZW58MHx8fHwxNzcyMTUxNDgxfDA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "cyberpunk avatar"
+      "imageHint": "cyberpunk character"
     },
     {
-      "id": "shop-bg",
-      "description": "Neon lit futuristic shop interior",
+      "id": "shop-neon",
+      "description": "Interior de loja futurista iluminada por neon",
       "imageUrl": "https://images.unsplash.com/photo-1711700840221-b0fd86dcf90e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxmdXR1cmlzdGljJTIwc2hvcHxlbnwwfHx8fDE3NzIyNTkwNTZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "futuristic shop"
     }
