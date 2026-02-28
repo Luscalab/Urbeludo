@@ -10,7 +10,8 @@ import {
   Sparkles, 
   ChevronLeft, 
   ChevronRight,
-  ShieldCheck
+  ShieldCheck,
+  Maximize2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -20,9 +21,8 @@ interface AvatarSelectionProps {
 }
 
 /**
- * Seletor de Avatar Gigante e Unitário.
- * Exibe apenas UMA foto por vez em tamanho máximo.
- * Sem nomes de arquivos, focado 100% na imagem.
+ * Seletor de Avatar Gigante e Síncrono.
+ * Otimizado para visualização unitária de heróis sem nomes de arquivos.
  */
 export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionProps) {
   const [avatars, setAvatars] = useState<string[]>([]);
@@ -45,8 +45,8 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
         if (idx !== -1) setCurrentIndex(idx);
       }
     } catch (error) {
-      console.warn("Navegação offline ativa");
-      setAvatars(['1.png']); // Fallback
+      console.warn("Modo Offline Ativo");
+      setAvatars(['1.png']); // Fallback resiliente
     } finally {
       setIsLoadingList(false);
     }
@@ -74,8 +74,8 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
 
   if (isLoadingList) {
     return (
-      <div className="w-full h-[500px] flex items-center justify-center bg-muted/10 rounded-[4rem] border-8 border-dashed border-primary/10">
-        <Loader2 className="w-16 h-16 animate-spin text-primary/40" />
+      <div className="w-full h-[500px] flex items-center justify-center bg-muted/20 rounded-[4rem] border-8 border-dashed border-primary/10">
+        <Loader2 className="w-12 h-12 animate-spin text-primary/30" />
       </div>
     );
   }
@@ -83,55 +83,54 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
   const currentAvatar = avatars[currentIndex] || '1.png';
 
   return (
-    <div className="w-full space-y-10 relative">
-      <div className="flex flex-col items-center text-center space-y-2">
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent/10 border border-accent/20 text-accent text-[10px] font-black uppercase tracking-widest">
+    <div className="w-full space-y-12 relative select-none">
+      <div className="flex flex-col items-center text-center space-y-3">
+        <div className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-primary/10 border-2 border-primary/20 text-primary text-[10px] font-black uppercase tracking-[0.3em]">
            <Sparkles className="w-3 h-3" /> Galeria de Heróis
         </div>
-        <h3 className="text-3xl font-black uppercase italic tracking-tighter">Escolha seu Herói</h3>
-        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-40">
-          Opção {currentIndex + 1} de {avatars.length}
+        <h3 className="text-5xl font-black uppercase italic tracking-tighter leading-none">Escolha sua Identidade</h3>
+        <p className="text-[11px] font-black text-muted-foreground uppercase tracking-[0.4em] opacity-40">
+          Explorador {currentIndex + 1} de {avatars.length}
         </p>
       </div>
       
-      <div className="relative flex justify-center items-center h-[550px] group">
-        {/* Setas Flutuantes Premium */}
+      <div className="relative flex justify-center items-center h-[600px] group px-12">
+        {/* Setas Flutuantes Mobile-First */}
         <button 
           onClick={handlePrev}
-          className="absolute -left-4 z-[60] bg-white text-primary p-6 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.1)] border-4 border-primary/5 hover:scale-110 active:scale-90 transition-all group-hover:left-2"
+          className="absolute left-0 z-[100] bg-white text-primary p-6 rounded-full shadow-[0_30px_60px_rgba(0,0,0,0.15)] border-4 border-primary/10 hover:scale-110 active:scale-90 transition-all"
         >
           <ChevronLeft className="w-12 h-12 stroke-[4]" />
         </button>
 
         <button 
           onClick={handleNext}
-          className="absolute -right-4 z-[60] bg-white text-primary p-6 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.1)] border-4 border-primary/5 hover:scale-110 active:scale-90 transition-all group-hover:right-2"
+          className="absolute right-0 z-[100] bg-white text-primary p-6 rounded-full shadow-[0_30px_60px_rgba(0,0,0,0.15)] border-4 border-primary/10 hover:scale-110 active:scale-90 transition-all"
         >
           <ChevronRight className="w-12 h-12 stroke-[4]" />
         </button>
 
-        <div className="relative w-full max-w-sm aspect-[3/4]">
+        <div className="relative w-full max-w-lg aspect-[4/5]">
           <AnimatePresence mode="wait">
             <motion.div
               key={currentAvatar}
-              initial={{ opacity: 0, scale: 0.9, x: 100 }}
-              animate={{ opacity: 1, scale: 1, x: 0 }}
-              exit={{ opacity: 0, scale: 0.9, x: -100 }}
-              transition={{ type: "spring", stiffness: 200, damping: 25 }}
-              className="relative w-full h-full rounded-[4.5rem] border-[12px] border-white bg-white shadow-[0_50px_100px_rgba(0,0,0,0.1)] overflow-hidden flex items-center justify-center p-6"
+              initial={{ opacity: 0, scale: 0.8, rotateY: 45 }}
+              animate={{ opacity: 1, scale: 1, rotateY: 0 }}
+              exit={{ opacity: 0, scale: 0.8, rotateY: -45 }}
+              transition={{ type: "spring", stiffness: 150, damping: 20 }}
+              className="relative w-full h-full rounded-[5rem] border-[16px] border-white bg-white shadow-[0_60px_120px_rgba(0,0,0,0.2)] overflow-hidden flex items-center justify-center p-8"
             >
-              {/* Overlay de carregamento para fotos pesadas */}
               {(!loadedImages[currentAvatar] && !loadError[currentAvatar]) && (
-                <div className="absolute inset-0 bg-muted/5 flex flex-col items-center justify-center z-10 backdrop-blur-md">
-                  <Loader2 className="w-16 h-16 animate-spin text-primary/40" />
-                  <span className="text-[9px] font-black uppercase text-primary/40 mt-6 tracking-widest">Sincronizando...</span>
+                <div className="absolute inset-0 bg-muted/5 flex flex-col items-center justify-center z-10 backdrop-blur-xl">
+                  <Loader2 className="w-20 h-20 animate-spin text-primary/20" />
+                  <span className="text-[10px] font-black uppercase text-primary/40 mt-10 tracking-[0.5em] animate-pulse">Materializando...</span>
                 </div>
               )}
 
               {loadError[currentAvatar] ? (
-                <div className="absolute inset-0 bg-destructive/5 flex flex-col items-center justify-center z-10 p-12 text-center">
-                  <AlertCircle className="w-14 h-14 text-destructive/40 mb-6" />
-                  <span className="text-[10px] font-black uppercase text-destructive/60 tracking-widest">Falha na materialização. Tente a próxima foto.</span>
+                <div className="absolute inset-0 bg-destructive/5 flex flex-col items-center justify-center z-10 p-16 text-center">
+                  <AlertCircle className="w-20 h-20 text-destructive/30 mb-8" />
+                  <span className="text-[12px] font-black uppercase text-destructive/60 tracking-widest leading-relaxed">Erro no Sensor. Tente outro perfil.</span>
                 </div>
               ) : (
                 <img 
@@ -140,20 +139,25 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
                   onLoad={() => setLoadedImages(prev => ({ ...prev, [currentAvatar]: true }))}
                   onError={() => setLoadError(prev => ({ ...prev, [currentAvatar]: true }))}
                   className={cn(
-                    "w-full h-full object-contain drop-shadow-[0_40px_60px_rgba(0,0,0,0.3)] transition-all duration-1000",
+                    "w-full h-full object-contain drop-shadow-[0_50px_80px_rgba(0,0,0,0.4)] transition-all duration-1000",
                     loadedImages[currentAvatar] ? "opacity-100 scale-100" : "opacity-0 scale-90"
                   )} 
                 />
               )}
 
-              {/* Selo de Selecionado */}
-              <div className="absolute top-8 right-8 bg-primary text-white rounded-full w-16 h-16 flex items-center justify-center border-4 border-white shadow-2xl z-40">
-                <Check className="w-9 h-9 stroke-[4]" />
+              {/* HUD do Visor 2026 */}
+              <div className="absolute inset-0 border-[2px] border-primary/10 rounded-[4.5rem] pointer-events-none" />
+              <div className="absolute top-10 left-10 p-4 bg-black/5 rounded-3xl backdrop-blur-md">
+                 <ShieldCheck className="w-6 h-6 text-primary/40" />
+              </div>
+              <div className="absolute top-10 right-10 p-4 bg-black/5 rounded-3xl backdrop-blur-md">
+                 <Maximize2 className="w-6 h-6 text-primary/40" />
               </div>
 
-              {/* HUD Interno do Visor */}
-              <div className="absolute bottom-10 left-10 flex items-center gap-3 text-[9px] font-black uppercase text-primary/30 tracking-[0.3em] z-40">
-                 <ShieldCheck className="w-4 h-4" /> 2026_GEN_ID
+              {/* Selo de Selecionado Sims Style */}
+              <div className="absolute bottom-12 right-12 bg-primary text-white rounded-[2rem] px-8 py-4 flex items-center gap-3 shadow-[0_20px_40px_rgba(0,0,0,0.3)] border-4 border-white z-50">
+                <Check className="w-8 h-8 stroke-[5]" />
+                <span className="text-sm font-black uppercase">Pronto</span>
               </div>
             </motion.div>
           </AnimatePresence>

@@ -7,8 +7,12 @@ import { PlacedItem, StudioState, StudioItem } from '@/lib/types';
 import { STUDIO_CATALOG } from '@/lib/studio-catalog';
 
 const GRID_SIZE = 40; 
-const WORLD_SIZE = 1200;
+const WORLD_SIZE = 1500;
 
+/**
+ * Hook de Gerenciamento do Estúdio (Sims Engine).
+ * Lida com posicionamento isométrico, inventário e persistência local.
+ */
 export function useStudio() {
   const [studioState, setStudioState] = useState<StudioState>({
     unlockedItemIds: [],
@@ -21,7 +25,7 @@ export function useStudio() {
       theme: 'minimalist-purple'
     },
     avatar: {
-      lastPosition: { x: 600, y: 800 }
+      lastPosition: { x: 750, y: 1000 }
     }
   });
   const [isLoading, setIsLoading] = useState(true);
@@ -56,7 +60,12 @@ export function useStudio() {
     setStudioState(prev => {
       const updatedPlacedItems = prev.placedItems.map(item => 
         item.instanceId === instanceId 
-          ? { ...item, position: { x: snappedX, y: snappedY }, zIndex: Math.floor(snappedY / 10) } 
+          ? { 
+              ...item, 
+              position: { x: snappedX, y: snappedY }, 
+              // Depth sorting: maior Y fica na frente (maior zIndex)
+              zIndex: Math.floor(snappedY) 
+            } 
           : item
       );
       
@@ -87,14 +96,12 @@ export function useStudio() {
         unlockedItemIds: [...prev.unlockedItemIds, itemId]
       };
       
-      if (!isSapient) {
-        LocalPersistence.saveProgress({ 
-          ludoCoins: currentCoins - price,
-          studioState: newState 
-        });
-      } else {
-        saveState(newState);
-      }
+      const updatedCoins = isSapient ? currentCoins : currentCoins - price;
+      LocalPersistence.saveProgress({ 
+        ludoCoins: updatedCoins,
+        studioState: newState 
+      });
+      
       return newState;
     });
     return true;
@@ -117,12 +124,14 @@ export function useStudio() {
       const index = prev.unlockedItemIds.indexOf(itemId);
       if (index === -1) return prev;
 
-      const yPos = snapToGrid(WORLD_SIZE * 0.7);
+      const yPos = snapToGrid(WORLD_SIZE * 0.6);
+      const xPos = snapToGrid(WORLD_SIZE / 2);
+      
       const newItem: PlacedItem = {
-        instanceId: `inst-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
+        instanceId: `sims-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
         itemId,
-        position: { x: snapToGrid(WORLD_SIZE / 2), y: yPos },
-        zIndex: Math.floor(yPos / 10),
+        position: { x: xPos, y: yPos },
+        zIndex: Math.floor(yPos),
         rotation: 0
       };
 
@@ -166,20 +175,17 @@ export function useStudio() {
     
     const profile = await LocalPersistence.getProgress();
     const currentCoins = profile?.ludoCoins || 0;
-    const refund = catalogItem ? Math.floor(catalogItem.price * 0.5) : 0;
+    const refund = catalogItem ? Math.floor(catalogItem.price * 0.7) : 0; // Reembolso maior
 
     setStudioState(prev => {
       const updatedPlacedItems = prev.placedItems.filter(item => item.instanceId !== instanceId);
       const newState = { ...prev, placedItems: updatedPlacedItems };
       
-      if (!isSapient) {
-        LocalPersistence.saveProgress({ 
-          ludoCoins: currentCoins + refund,
-          studioState: newState 
-        });
-      } else {
-        saveState(newState);
-      }
+      const updatedCoins = isSapient ? currentCoins : currentCoins + refund;
+      LocalPersistence.saveProgress({ 
+        ludoCoins: updatedCoins,
+        studioState: newState 
+      });
       
       return newState;
     });
