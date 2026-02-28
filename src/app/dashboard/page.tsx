@@ -4,24 +4,28 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { UrbeLudoLogo } from '@/components/UrbeLudoLogo';
-import { ArrowLeft, Brain, Crosshair, Move, Activity } from 'lucide-react';
-import { useLocalStorage } from '@/hooks/use-local-storage';
+import { ArrowLeft, Brain, Move, Activity, Crosshair } from 'lucide-react';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { collection, query, orderBy } from 'firebase/firestore';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { BarChart, Bar, XAxis, ResponsiveContainer, Cell } from 'recharts';
-
-type HistoryItem = {
-  timestamp: number;
-  challenge: {
-    challengeType: string;
-  };
-};
+import { BarChart, Bar, XAxis, Cell } from 'recharts';
 
 export default function DashboardPage() {
-  const [history] = useLocalStorage<HistoryItem[]>("urbe-history", []);
+  const { user } = useUser();
+  const db = useFirestore();
+
+  const activitiesQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return query(
+      collection(db, 'user_progress', user.uid, 'challenge_activities'),
+      orderBy('startTime', 'desc')
+    );
+  }, [db, user]);
+
+  const { data: history, isLoading } = useCollection(activitiesQuery);
   
-  // Calculate distribution
-  const typeDistribution = history.reduce((acc: Record<string, number>, item) => {
-    const type = item.challenge.challengeType;
+  const typeDistribution = (history || []).reduce((acc: Record<string, number>, item) => {
+    const type = item.challengeType || 'other';
     acc[type] = (acc[type] || 0) + 1;
     return acc;
   }, {});
@@ -85,7 +89,7 @@ export default function DashboardPage() {
               </div>
             ) : (
               <div className="h-[200px] flex items-center justify-center text-muted-foreground italic">
-                Complete challenges to see your progress data.
+                {isLoading ? "Loading your data..." : "Complete challenges to see your progress data."}
               </div>
             )}
           </CardContent>

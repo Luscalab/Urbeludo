@@ -4,28 +4,29 @@ import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Loader2, Camera, CheckCircle2, RotateCcw, ChevronRight, ScanLine, Trophy } from 'lucide-react';
+import { Loader2, Camera, CheckCircle2, RotateCcw, ScanLine, Trophy } from 'lucide-react';
 import { identifyUrbanElements, type IdentifyUrbanElementsOutput } from '@/ai/flows/identify-urban-elements-flow';
 import { proposeDynamicChallenges, type ProposeDynamicChallengesOutput } from '@/ai/flows/propose-dynamic-challenges';
-import { useLocalStorage } from '@/hooks/use-local-storage';
-
-type HistoryItem = {
-  timestamp: number;
-  challenge: ProposeDynamicChallengesOutput;
-};
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc, collection } from 'firebase/firestore';
+import { setDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 export function PlaygroundInterface() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  
+  const { user } = useUser();
+  const db = useFirestore();
   
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [detectedData, setDetectedData] = useState<IdentifyUrbanElementsOutput | null>(null);
   const [currentChallenge, setCurrentChallenge] = useState<ProposeDynamicChallengesOutput | null>(null);
-  const [history, setHistory] = useLocalStorage<HistoryItem[]>("urbe-history", []);
-  const [stats, setStats] = useLocalStorage<{ streak: number; totalCompleted: number }>("urbe-stats", { streak: 0, totalCompleted: 0 });
+
+  // Firestore Data
+  const userProgressRef = useMemoFirebase(() => user ? doc(db, 'user_progress', user.uid) : null, [db, user]);
+  const { data: userStats } = useDoc(userProgressRef);
 
   const startCamera = async () => {
     try {
@@ -78,7 +79,6 @@ export function PlaygroundInterface() {
         const challenge = await proposeDynamicChallenges({
           detectedElements: result.elements.map(e => e.description),
           userSkillLevel: 'intermediate',
-          previousChallenges: history.slice(0, 5).map(h => h.challenge.challengeDescription)
         });
         setCurrentChallenge(challenge);
         setIsGenerating(false);
@@ -91,18 +91,35 @@ export function PlaygroundInterface() {
   };
 
   const completeChallenge = () => {
-    if (!currentChallenge) return;
+    if (!currentChallenge || !user || !userProgressRef) return;
     
-    const newItem: HistoryItem = {
-      timestamp: Date.now(),
-      challenge: currentChallenge
+    const activitiesRef = collection(db, 'user_progress', user.uid, 'challenge_activities');
+    
+    // Save Activity
+    addDocumentNonBlocking(activitiesRef, {
+      userProgressId: user.uid,
+      challengeDefinitionId: 'dynamic_gen',
+      startTime: new Date().toISOString(),
+      endTime: new Date().toISOString(),
+      durationSeconds: currentChallenge.estimatedDurationSeconds || 60,
+      isCompleted: true,
+      challengeDescription: currentChallenge.challengeDescription,
+      challengeType: currentChallenge.challengeType,
+      targetElement: currentChallenge.targetElement,
+      difficulty: currentChallenge.difficulty
+    });
+
+    // Update Stats
+    const newStats = {
+      id: user.uid,
+      lastActiveDate: new Date().toISOString(),
+      totalChallengesCompleted: (userStats?.totalChallengesCompleted || 0) + 1,
+      currentStreak: (userStats?.currentStreak || 0) + 1,
+      longestStreak: Math.max(userStats?.longestStreak || 0, (userStats?.currentStreak || 0) + 1),
+      totalTimeSpentSeconds: (userStats?.totalTimeSpentSeconds || 0) + (currentChallenge.estimatedDurationSeconds || 60)
     };
-    
-    setHistory([newItem, ...history]);
-    setStats(prev => ({
-      streak: prev.streak + 1,
-      totalCompleted: prev.totalCompleted + 1
-    }));
+
+    setDocumentNonBlocking(userProgressRef, newStats, { merge: true });
     
     setCurrentChallenge(null);
     setDetectedData(null);
@@ -115,7 +132,6 @@ export function PlaygroundInterface() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-80px)] overflow-hidden relative bg-black">
-      {/* Video Container */}
       <div className="relative flex-1 bg-black flex items-center justify-center overflow-hidden">
         <video 
           ref={videoRef}
@@ -126,7 +142,6 @@ export function PlaygroundInterface() {
         />
         <canvas ref={canvasRef} className="hidden" />
 
-        {/* HUD Overlay */}
         <div className="absolute inset-0 pointer-events-none p-6 flex flex-col justify-between">
           <div className="flex justify-between items-start">
             <div className="space-y-2">
@@ -134,15 +149,14 @@ export function PlaygroundInterface() {
                 <ScanLine className="w-3 h-3 text-primary" /> 
                 {isScanning ? "Scanning Environment..." : "Active Observation"}
               </Badge>
-              {stats.streak > 0 && (
+              {userStats?.currentStreak && userStats.currentStreak > 0 && (
                 <div className="bg-accent/80 text-accent-foreground px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 backdrop-blur-sm animate-pulse">
-                  <Trophy className="w-3 h-3" /> STREAK: {stats.streak}
+                  <Trophy className="w-3 h-3" /> STREAK: {userStats.currentStreak}
                 </div>
               )}
             </div>
           </div>
 
-          {/* Target Element Highlights Simulation */}
           {detectedData && !currentChallenge && (
             <div className="flex flex-wrap gap-2 justify-center mb-10 pointer-events-auto">
               {detectedData.elements.map((el, i) => (
@@ -155,11 +169,8 @@ export function PlaygroundInterface() {
         </div>
       </div>
 
-      {/* Control Panel */}
       <div className="absolute bottom-0 inset-x-0 p-6 z-10">
         <div className="max-w-md mx-auto space-y-4">
-          
-          {/* Challenge Display */}
           {currentChallenge ? (
             <Card className="p-5 bg-background/95 backdrop-blur-xl border-primary/20 shadow-2xl animate-in slide-in-from-bottom-4 duration-500">
               <div className="flex justify-between items-start mb-4">
@@ -176,7 +187,7 @@ export function PlaygroundInterface() {
                 <div className="p-3 bg-muted rounded-xl">
                   <div className="text-[10px] text-muted-foreground uppercase font-bold mb-1">Focus</div>
                   <div className="text-sm font-semibold flex items-center gap-1.5">
-                    <Activity className="w-4 h-4 text-primary" />
+                    <ActivityIcon className="w-4 h-4 text-primary" />
                     {currentChallenge.challengeType.replace('_', ' ')}
                   </div>
                 </div>
@@ -222,8 +233,7 @@ export function PlaygroundInterface() {
   );
 }
 
-// Reuse icon imports or standard ones
-function Activity({ className }: { className?: string }) {
+function ActivityIcon({ className }: { className?: string }) {
   return (
     <svg 
       className={className} 
