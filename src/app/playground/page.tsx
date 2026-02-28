@@ -1,10 +1,25 @@
 'use client';
 
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/button';
 import { UrbeLudoLogo } from '@/components/UrbeLudoLogo';
-import { PlaygroundInterface } from '@/components/PlaygroundInterface';
-import { History, LayoutDashboard } from 'lucide-react';
+import { History, LayoutDashboard, Loader2 } from 'lucide-react';
+
+// Carregamento dinâmico do PlaygroundInterface com SSR desativado.
+// Isso resolve o erro "Export Pose doesn't exist" ao isolar o TensorFlow do servidor.
+const PlaygroundInterface = dynamic(
+  () => import('@/components/PlaygroundInterface').then(mod => mod.PlaygroundInterface),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="flex-1 flex flex-col items-center justify-center bg-background">
+        <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
+        <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Iniciando Motor de Visão...</p>
+      </div>
+    )
+  }
+);
 
 export default function PlaygroundPage() {
   return (
@@ -28,7 +43,7 @@ export default function PlaygroundPage() {
         </div>
       </header>
 
-      <main className="flex-1 relative">
+      <main className="flex-1 relative flex flex-col">
         <PlaygroundInterface />
       </main>
     </div>

@@ -1,4 +1,3 @@
-
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
@@ -8,12 +7,12 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  // Transpilação essencial para pacotes que usam módulos não-padrão ou UMD
   transpilePackages: [
     '@tensorflow-models/pose-detection',
     '@tensorflow/tfjs-core',
     '@tensorflow/tfjs-backend-webgl',
-    '@tensorflow/tfjs-converter',
-    '@mediapipe/pose'
+    '@tensorflow/tfjs-converter'
   ],
   images: {
     unoptimized: true,
