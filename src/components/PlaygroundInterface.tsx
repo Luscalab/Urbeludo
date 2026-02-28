@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -25,7 +26,9 @@ import {
   Sun,
   Sparkles,
   ChevronRight,
-  User as UserIcon
+  User as UserIcon,
+  Smile,
+  ZapOff
 } from 'lucide-react';
 import { proposeDynamicChallenges, type ProposeDynamicChallengesOutput } from '@/ai/flows/propose-dynamic-challenges';
 import { identifyUrbanElements } from '@/ai/flows/identify-urban-elements-flow';
@@ -37,67 +40,99 @@ import { cn } from '@/lib/utils';
 
 type CategoryType = 'artistic' | 'motor' | 'memory' | 'relaxation';
 
-// --- COMPONENTE DE AVATAR 2D MODERNO (REATIVO) ---
-const Modern2DAvatar = ({ motionData, color, isBreathing }: { motionData: { x: number, y: number }, color: string, isBreathing: boolean }) => {
+// --- ENGINE DE RENDERIZAÇÃO PROCEDURAL 2026 (CANVAS 2D) ---
+const ProceduralLudoAvatar = ({ motionData, color, isBreathing }: { motionData: { x: number, y: number }, color: string, isBreathing: boolean }) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    let frameId: number;
+
+    const draw = () => {
+      ctx.clearRect(0, 0, 400, 400);
+      ctx.save();
+      ctx.translate(200 + motionData.x * 20, 200 + motionData.y * 10);
+
+      // Efeito de Respiração (Squash and Stretch)
+      const breatheScale = isBreathing ? 1 + Math.sin(Date.now() / 500) * 0.05 : 1;
+      ctx.scale(breatheScale, 1 / breatheScale);
+
+      // Sombra Projetada (Procedural)
+      ctx.beginPath();
+      ctx.ellipse(0, 160, 60, 20, 0, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(0,0,0,0.1)';
+      ctx.fill();
+
+      // Aura de Dados (Partículas)
+      for (let i = 0; i < 5; i++) {
+        const time = Date.now() / 1000 + i;
+        const px = Math.cos(time) * 100;
+        const py = Math.sin(time) * 100;
+        ctx.beginPath();
+        ctx.arc(px, py, 2, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.fill();
+      }
+
+      // Corpo / Tronco (Curvas de Bézier)
+      ctx.beginPath();
+      ctx.moveTo(-40, 140);
+      ctx.bezierCurveTo(-60, 80, -30, 40, 0, 40);
+      ctx.bezierCurveTo(30, 40, 60, 80, 40, 140);
+      ctx.closePath();
+      ctx.fillStyle = '#111';
+      ctx.fill();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Cabeça / Rosto (Shaders via Gradientes)
+      const faceGrad = ctx.createRadialGradient(0, -20, 10, 0, -20, 60);
+      faceGrad.addColorStop(0, color);
+      faceGrad.addColorStop(1, '#000');
+      
+      ctx.beginPath();
+      ctx.moveTo(-35, -20);
+      ctx.bezierCurveTo(-35, -70, 35, -70, 35, -20);
+      ctx.bezierCurveTo(35, 30, -35, 30, -35, -20);
+      ctx.fillStyle = faceGrad;
+      ctx.fill();
+
+      // Visor Neon
+      ctx.beginPath();
+      ctx.roundRect(-25, -25, 50, 15, 8);
+      ctx.fillStyle = 'rgba(255,255,255,0.1)';
+      ctx.fill();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // Olhos Digitais (Reativos ao movimento)
+      ctx.fillStyle = 'white';
+      ctx.beginPath();
+      ctx.arc(-10 + motionData.x * 5, -18 + motionData.y * 2, 1.5, 0, Math.PI * 2);
+      ctx.arc(10 + motionData.x * 5, -18 + motionData.y * 2, 1.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+      frameId = requestAnimationFrame(draw);
+    };
+
+    draw();
+    return () => cancelAnimationFrame(frameId);
+  }, [motionData, color, isBreathing]);
+
   return (
-    <motion.div 
-      className="relative w-48 h-48 flex items-center justify-center"
-      animate={{ 
-        x: motionData.x * 50, 
-        y: motionData.y * 30,
-        rotate: motionData.x * 10
-      }}
-      transition={{ type: 'spring', stiffness: 100, damping: 20 }}
-    >
-      {/* Aura de Dados */}
-      <motion.div 
-        className="absolute inset-0 rounded-full border-2 border-dashed opacity-20"
-        style={{ borderColor: color }}
-        animate={{ rotate: 360 }}
-        transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-      />
-      
-      {/* Corpo do Avatar (SVG Procedural) */}
-      <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-2xl">
-        <defs>
-          <radialGradient id="grad1" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
-            <stop offset="0%" style={{ stopColor: color, stopOpacity: 1 }} />
-            <stop offset="100%" style={{ stopColor: 'black', stopOpacity: 1 }} />
-          </radialGradient>
-        </defs>
-        
-        {/* Tronco */}
-        <path d="M20,90 Q50,70 80,90 L80,100 L20,100 Z" fill="rgba(0,0,0,0.8)" />
-        
-        {/* Cabeça */}
-        <motion.g
-          animate={isBreathing ? { scale: [1, 1.05, 1] } : {}}
-          transition={{ duration: 2, repeat: Infinity }}
-        >
-          <circle cx="50" cy="45" r="30" fill="url(#grad1)" />
-          <path d="M25,40 Q50,20 75,40" fill="none" stroke="white" strokeWidth="0.5" opacity="0.3" />
-          
-          {/* Visor */}
-          <rect x="30" y="38" width="40" height="8" rx="4" fill="rgba(255,255,255,0.1)" stroke={color} strokeWidth="1" />
-          <motion.rect 
-            x="35" y="41" width="30" height="2" rx="1" 
-            fill={color}
-            animate={{ opacity: [0.3, 1, 0.3] }}
-            transition={{ duration: 1.5, repeat: Infinity }}
-          />
-          
-          {/* Olhos (Pupilas Reativas) */}
-          <circle cx={42 + motionData.x * 5} cy={42 + motionData.y * 3} r="1.5" fill="white" />
-          <circle cx={58 + motionData.x * 5} cy={42 + motionData.y * 3} r="1.5" fill="white" />
-        </motion.g>
-      </svg>
-      
-      {/* Efeito de Brilho */}
-      <div 
-        className="absolute inset-4 rounded-full blur-2xl opacity-20 pointer-events-none"
-        style={{ backgroundColor: color }}
-      />
-    </motion.div>
+    <canvas 
+      ref={canvasRef} 
+      width={400} 
+      height={400} 
+      className="w-full h-full drop-shadow-[0_20px_50px_rgba(0,0,0,0.3)]"
+    />
   );
 };
 
@@ -124,8 +159,7 @@ export function PlaygroundInterface() {
   const [isLowLight, setIsLowLight] = useState(false);
 
   const [ageGroup, setAgeGroup] = useState('adolescent_adult');
-  const [neurodivergence, setNeurodivergence] = useState('');
-  const [avatarColor, setAvatarColor] = useState('#33993D');
+  const [avatarColor, setAvatarColor] = useState('#9333ea'); // Purple Default
 
   const userProgressRef = useMemoFirebase(() => user ? doc(db, 'user_progress', user.uid) : null, [db, user]);
   const { data: profile } = useDoc(userProgressRef);
@@ -133,11 +167,11 @@ export function PlaygroundInterface() {
   useEffect(() => {
     if (profile) {
       setAgeGroup(profile.ageGroup || 'adolescent_adult');
-      setNeurodivergence(profile.neurodivergence || '');
-      setAvatarColor(profile.dominantColor || '#33993D');
+      setAvatarColor(profile.dominantColor || '#9333ea');
     }
   }, [profile]);
 
+  // Sensor de Movimento de Borda (Leve)
   useEffect(() => {
     let animationId: number;
     let lastX = 0;
@@ -165,7 +199,7 @@ export function PlaygroundInterface() {
             const b = pixels[i+2];
             const brightness = (r + g + b) / 3;
             
-            if (brightness > 120) { 
+            if (brightness > 140) { 
               const x = (i / 4) % 40;
               const y = Math.floor((i / 4) / 40);
               totalX += x;
@@ -174,11 +208,11 @@ export function PlaygroundInterface() {
             }
           }
 
-          if (weight > 5) {
+          if (weight > 3) {
             const avgX = (totalX / weight) / 40 - 0.5;
             const avgY = (totalY / weight) / 30 - 0.5;
-            lastX = lastX * 0.8 + avgX * 0.2;
-            lastY = lastY * 0.8 + avgY * 0.2;
+            lastX = lastX * 0.85 + avgX * 0.15;
+            lastY = lastY * 0.85 + avgY * 0.15;
             setMotionData({ x: -lastX, y: lastY });
             setIsLowLight(false);
           } else {
@@ -247,7 +281,7 @@ export function PlaygroundInterface() {
 
   const handleSaveProfile = async () => {
     if (userProgressRef) {
-      updateDocumentNonBlocking(userProgressRef, { ageGroup, neurodivergence, dominantColor: avatarColor });
+      updateDocumentNonBlocking(userProgressRef, { ageGroup, dominantColor: avatarColor });
     }
     setShowGuide(false);
   };
@@ -325,19 +359,19 @@ export function PlaygroundInterface() {
   return (
     <div className="flex flex-col h-full bg-background relative overflow-hidden">
       {/* Câmera e Avatar Layer */}
-      <div className="relative w-full aspect-[3/4] bg-slate-900 overflow-hidden shadow-inner z-0">
+      <div className="relative w-full aspect-[3/4] bg-zinc-950 overflow-hidden shadow-inner z-0 border-b border-primary/10">
         <video 
           ref={videoRef} 
-          className="w-full h-full object-cover opacity-50 grayscale-[0.2]" 
+          className="w-full h-full object-cover opacity-60 grayscale-[0.3]" 
           autoPlay 
           muted 
           playsInline 
         />
         
-        {/* Avatar 2D Moderno (Renderizado via Código) */}
+        {/* Renderizador de Avatar Procedural 2026 */}
         {!showGuide && cameraMode === 'user' && (
           <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none p-4">
-            <Modern2DAvatar 
+            <ProceduralLudoAvatar 
               motionData={motionData} 
               color={avatarColor}
               isBreathing={selectedCategory === 'relaxation' || activeChallenge?.challengeType === 'breathing'}
@@ -345,7 +379,7 @@ export function PlaygroundInterface() {
           </div>
         )}
 
-        {/* Low Light Alert */}
+        {/* HUD de Sensores */}
         <AnimatePresence>
           {isLowLight && !showGuide && (
             <motion.div 
@@ -354,47 +388,49 @@ export function PlaygroundInterface() {
               exit={{ opacity: 0 }}
               className="absolute top-8 left-1/2 -translate-x-1/2 z-[60] bg-destructive/90 text-white px-6 py-2 rounded-full flex items-center gap-2 shadow-lg border border-white/20"
             >
-              <Sun className="w-4 h-4" />
-              <span className="text-[10px] font-black uppercase tracking-widest">Sensor: Luz Baixa</span>
+              <ZapOff className="w-4 h-4" />
+              <span className="text-[10px] font-black uppercase tracking-widest">Sensor: Luz Crítica</span>
             </motion.div>
           )}
         </AnimatePresence>
 
         {isInitializingCamera && (
-          <div className="absolute inset-0 z-50 bg-slate-950 flex flex-col items-center justify-center gap-4">
+          <div className="absolute inset-0 z-50 bg-zinc-950 flex flex-col items-center justify-center gap-4">
              <div className="relative">
                 <Loader2 className="w-16 h-16 animate-spin text-primary" />
                 <Sparkles className="absolute top-0 right-0 w-6 h-6 text-accent animate-pulse" />
              </div>
-             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/70">Syncing...</span>
+             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/70">Syncing Ludo Studio...</span>
           </div>
         )}
       </div>
 
-      {/* Interface Inferior (Painel de Controle) */}
-      <div className="flex-1 -mt-16 bg-background rounded-t-[4rem] p-8 shadow-[0_-20px_50px_rgba(0,0,0,0.1)] z-20 border-t border-primary/10 overflow-y-auto">
+      {/* Interface Inferior (Painel de Controle 2026) */}
+      <div className="flex-1 -mt-20 bg-background rounded-t-[5rem] p-10 shadow-[0_-30px_60px_rgba(147,51,234,0.15)] z-20 border-t border-primary/20 overflow-y-auto">
         
         {showGuide ? (
-          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
-            <div className="flex flex-col items-center text-center space-y-4">
-               <div className="w-20 h-20 bg-primary/10 rounded-[2.5rem] flex items-center justify-center text-primary border border-primary/20 shadow-inner">
-                 <UserIcon className="w-10 h-10" />
+          <div className="space-y-10 animate-in fade-in slide-in-from-bottom-10 duration-700">
+            <div className="flex flex-col items-center text-center space-y-5">
+               <div className="w-24 h-24 bg-primary/10 rounded-[3rem] flex items-center justify-center text-primary border border-primary/20 shadow-inner">
+                 <UserIcon className="w-12 h-12" />
                </div>
-               <h2 className="text-3xl font-black uppercase italic tracking-tighter leading-none">Configuração de Borda</h2>
-               <p className="text-[11px] font-medium text-muted-foreground max-w-[280px] leading-relaxed">Personalize seu avatar e sensores de acessibilidade sem processamento pesado.</p>
+               <div className="space-y-2">
+                 <h2 className="text-4xl font-black uppercase italic tracking-tighter leading-none">Identity Config</h2>
+                 <p className="text-[11px] font-medium text-muted-foreground max-w-[280px] mx-auto leading-relaxed">Personalize seu avatar e sensores de borda sem processamento externo.</p>
+               </div>
             </div>
             
-            <div className="grid gap-4">
-              <div className="space-y-3 px-4">
-                 <Label className="text-[11px] font-black uppercase text-muted-foreground tracking-widest">Cor da Identidade</Label>
-                 <div className="flex gap-3">
-                   {['#33993D', '#3B82F6', '#EAB308', '#EF4444', '#A855F7'].map(color => (
+            <div className="grid gap-5">
+              <div className="space-y-4 px-4">
+                 <Label className="text-[11px] font-black uppercase text-muted-foreground tracking-widest">Digital Aura Color</Label>
+                 <div className="flex justify-between items-center bg-muted/20 p-4 rounded-[2.5rem]">
+                   {['#9333ea', '#3B82F6', '#f472b6', '#EF4444', '#10b981'].map(color => (
                      <button 
                        key={color} 
                        onClick={() => setAvatarColor(color)}
                        className={cn(
-                         "w-10 h-10 rounded-full border-4 transition-all",
-                         avatarColor === color ? "border-primary scale-110" : "border-transparent opacity-50"
+                         "w-12 h-12 rounded-full border-4 transition-all",
+                         avatarColor === color ? "border-primary scale-110 shadow-lg" : "border-transparent opacity-40 hover:opacity-100"
                        )}
                        style={{ backgroundColor: color }}
                      />
@@ -402,88 +438,88 @@ export function PlaygroundInterface() {
                  </div>
               </div>
 
-              <AcessibilityToggle active={isAudioEnabled} onClick={() => { setIsAudioEnabled(!isAudioEnabled); speak("Áudio guia ativado"); }} icon={<Volume2 />} label="Áudio Guia" sub="Instruções Narradas" />
-              <AcessibilityToggle active={isLibrasEnabled} onClick={() => setIsLibrasEnabled(!isLibrasEnabled)} icon={<Hand />} label="Puppet Libras" sub="Tradução Visual" />
-            </div>
-
-            <div className="space-y-6 pt-4">
-              <div className="space-y-3">
-                 <Label className="text-[11px] font-black uppercase text-muted-foreground px-4 tracking-widest">Nível de Exploração</Label>
-                 <Select value={ageGroup} onValueChange={setAgeGroup}>
-                   <SelectTrigger className="rounded-[2rem] h-16 bg-muted/30 border-transparent font-black px-6 shadow-sm">
-                     <SelectValue />
-                   </SelectTrigger>
-                   <SelectContent className="rounded-3xl border-none shadow-2xl">
-                     <SelectItem value="preschool" className="rounded-2xl font-black uppercase text-[10px] py-3">Iniciante (Infantil)</SelectItem>
-                     <SelectItem value="school_age" className="rounded-2xl font-black uppercase text-[10px] py-3">Explorador (Escolar)</SelectItem>
-                     <SelectItem value="adolescent_adult" className="rounded-2xl font-black uppercase text-[10px] py-3">Mestre (Adulto)</SelectItem>
-                   </SelectContent>
-                 </Select>
+              <div className="grid grid-cols-2 gap-4">
+                <AcessibilityToggle active={isAudioEnabled} onClick={() => { setIsAudioEnabled(!isAudioEnabled); speak("Áudio guia ativo"); }} icon={<Volume2 />} label="Audio Guide" />
+                <AcessibilityToggle active={isLibrasEnabled} onClick={() => setIsLibrasEnabled(!isLibrasEnabled)} icon={<Hand />} label="Puppet Libras" />
               </div>
             </div>
 
-            <Button onClick={handleSaveProfile} className="w-full h-18 rounded-[3rem] font-black uppercase tracking-widest bg-primary shadow-2xl flex justify-between px-10 border-b-4 border-primary/60 hover:translate-y-1 transition-all">
-              <span>Carregar Playground</span>
-              <ChevronRight className="w-6 h-6" />
+            <div className="space-y-3">
+               <Label className="text-[11px] font-black uppercase text-muted-foreground px-6 tracking-widest">Exploration Age</Label>
+               <Select value={ageGroup} onValueChange={setAgeGroup}>
+                 <SelectTrigger className="rounded-[2.5rem] h-20 bg-muted/30 border-2 border-primary/5 font-black px-8 shadow-sm text-lg">
+                   <SelectValue />
+                 </SelectTrigger>
+                 <SelectContent className="rounded-[2.5rem] border-primary/10 shadow-2xl">
+                   <SelectItem value="preschool" className="rounded-2xl font-black uppercase text-[10px] py-4">Junior (Infantil)</SelectItem>
+                   <SelectItem value="school_age" className="rounded-2xl font-black uppercase text-[10px] py-4">Explorer (Escolar)</SelectItem>
+                   <SelectItem value="adolescent_adult" className="rounded-2xl font-black uppercase text-[10px] py-4">Master (Adulto)</SelectItem>
+                 </SelectContent>
+               </Select>
+            </div>
+
+            <Button onClick={handleSaveProfile} className="w-full h-20 rounded-[3rem] font-black uppercase tracking-widest bg-primary shadow-2xl flex justify-between px-12 border-b-8 border-primary/50 hover:translate-y-1 transition-all text-lg">
+              <span>Sync Playground</span>
+              <ChevronRight className="w-8 h-8" />
             </Button>
           </div>
         ) : (
-          <div className="space-y-8">
-            <div className="flex overflow-x-auto gap-4 pb-4 no-scrollbar -mx-8 px-8">
-                <CategoryButton active={selectedCategory === 'artistic'} onClick={() => setSelectedCategory('artistic')} icon={<Palette className="w-4 h-4" />} label="Arte" />
-                <CategoryButton active={selectedCategory === 'motor'} onClick={() => setSelectedCategory('motor')} icon={<Zap className="w-4 h-4" />} label="Motor" />
-                <CategoryButton active={selectedCategory === 'memory'} onClick={() => setSelectedCategory('memory')} icon={<Brain className="w-4 h-4" />} label="Mente" />
-                <CategoryButton active={selectedCategory === 'relaxation'} onClick={() => setSelectedCategory('relaxation')} icon={<Wind className="w-4 h-4" />} label="Zen" />
+          <div className="space-y-10">
+            <div className="flex overflow-x-auto gap-5 pb-6 no-scrollbar -mx-10 px-10">
+                <CategoryButton active={selectedCategory === 'artistic'} onClick={() => setSelectedCategory('artistic')} icon={<Palette className="w-5 h-5" />} label="Art" />
+                <CategoryButton active={selectedCategory === 'motor'} onClick={() => setSelectedCategory('motor')} icon={<Zap className="w-5 h-5" />} label="Motor" />
+                <CategoryButton active={selectedCategory === 'memory'} onClick={() => setSelectedCategory('memory')} icon={<Brain className="w-5 h-5" />} label="Mind" />
+                <CategoryButton active={selectedCategory === 'relaxation'} onClick={() => setSelectedCategory('relaxation')} icon={<Wind className="w-5 h-5" />} label="Zen" />
             </div>
 
             {!activeChallenge ? (
-              <div className="space-y-4">
-                <ChallengeRow title="Missão Casa" subtitle="Exploração de Borda" icon={<HomeIcon />} isCompleted={profile?.dailyCycle?.homeMissionCompleted} onClick={() => handleStartMission('home')} disabled={isScanning} />
-                <ChallengeRow title="Missão Rua" subtitle="Desafio de Campo" icon={<MapPin />} isCompleted={profile?.dailyCycle?.streetMissionCompleted} onClick={() => handleStartMission('street')} disabled={isScanning} />
+              <div className="space-y-5">
+                <ChallengeRow title="Home Mission" subtitle="Edge Analysis" icon={<HomeIcon />} isCompleted={profile?.dailyCycle?.homeMissionCompleted} onClick={() => handleStartMission('home')} disabled={isScanning} />
+                <ChallengeRow title="Street Mission" subtitle="Field Challenge" icon={<MapPin />} isCompleted={profile?.dailyCycle?.streetMissionCompleted} onClick={() => handleStartMission('street')} disabled={isScanning} />
               </div>
             ) : (
-              <div className="bg-primary/5 rounded-[4rem] p-8 space-y-8 border border-primary/10 shadow-inner animate-in fade-in slide-in-from-right-8 duration-500">
-                <div className="flex justify-between items-center px-2">
-                  <Badge className="bg-accent text-accent-foreground font-black text-[10px] uppercase px-4 py-1.5 rounded-full">Nível: {activeChallenge.difficulty}</Badge>
-                  <div className="flex items-center gap-2 font-black text-primary text-2xl"><Coins className="w-6 h-6" /> {activeChallenge.ludoCoinsReward}</div>
+              <div className="bg-primary/5 rounded-[4.5rem] p-10 space-y-10 border border-primary/10 shadow-inner animate-in fade-in slide-in-from-right-10 duration-500">
+                <div className="flex justify-between items-center">
+                  <Badge className="bg-accent text-white font-black text-[10px] uppercase px-5 py-2 rounded-full shadow-lg">Level: {activeChallenge.difficulty}</Badge>
+                  <div className="flex items-center gap-3 font-black text-primary text-3xl"><Coins className="w-8 h-8 text-yellow-500" /> {activeChallenge.ludoCoinsReward}</div>
                 </div>
                 
-                <div className="space-y-2 px-2">
-                  <h3 className="text-3xl font-black uppercase italic tracking-tighter leading-none">{activeChallenge.challengeTitle}</h3>
-                  <p className="text-[11px] font-medium text-muted-foreground">{activeChallenge.challengeDescription}</p>
+                <div className="space-y-3">
+                  <h3 className="text-4xl font-black uppercase italic tracking-tighter leading-none">{activeChallenge.challengeTitle}</h3>
+                  <p className="text-[12px] font-medium text-muted-foreground leading-relaxed">{activeChallenge.challengeDescription}</p>
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-5">
                    {activeChallenge.steps.map((step, idx) => (
                      <motion.div 
                        key={idx} 
                        initial={{ opacity: 0, x: -20 }}
                        animate={{ 
-                         opacity: currentStep >= idx ? 1 : 0.3,
+                         opacity: currentStep >= idx ? 1 : 0.2,
                          x: 0,
-                         scale: currentStep === idx ? 1.02 : 1
+                         scale: currentStep === idx ? 1.05 : 1
                        }}
                        className={cn(
-                         "flex items-center gap-5 p-6 rounded-[2.5rem] border-2 transition-all",
-                         currentStep === idx ? "bg-white border-primary/30 shadow-xl" : "bg-muted/20 border-transparent"
+                         "flex items-center gap-6 p-8 rounded-[3rem] border-2 transition-all",
+                         currentStep === idx ? "bg-white border-primary/40 shadow-2xl" : "bg-muted/30 border-transparent"
                        )}
                      >
                        <div className={cn(
-                         "w-12 h-12 rounded-[1.25rem] flex items-center justify-center text-sm font-black transition-all", 
-                         currentStep >= idx ? "bg-primary text-white shadow-lg" : "bg-muted text-muted-foreground"
+                         "w-14 h-14 rounded-[1.5rem] flex items-center justify-center text-lg font-black transition-all", 
+                         currentStep >= idx ? "bg-primary text-white shadow-xl" : "bg-muted text-muted-foreground"
                        )}>
-                         {currentStep > idx ? <CheckCircle2 className="w-6 h-6" /> : idx + 1}
+                         {currentStep > idx ? <CheckCircle2 className="w-7 h-7" /> : idx + 1}
                        </div>
-                       <p className="text-[11px] font-bold leading-relaxed flex-1">{step}</p>
+                       <p className="text-[12px] font-bold leading-relaxed flex-1">{step}</p>
                      </motion.div>
                    ))}
                 </div>
 
-                <div className="pt-4">
+                <div className="pt-6">
                   {currentStep < activeChallenge.steps.length - 1 ? (
-                    <Button onClick={() => { setCurrentStep(prev => prev + 1); speak(activeChallenge.steps[currentStep + 1]); }} className="w-full h-18 rounded-[2.5rem] font-black uppercase bg-primary shadow-2xl text-lg">Próximo Passo</Button>
+                    <Button onClick={() => { setCurrentStep(prev => prev + 1); speak(activeChallenge.steps[currentStep + 1]); }} className="w-full h-20 rounded-[3rem] font-black uppercase bg-primary shadow-2xl text-xl">Next Step</Button>
                   ) : (
-                    <Button onClick={completeMission} className="w-full h-20 rounded-[3rem] font-black uppercase bg-primary shadow-2xl border-b-8 border-primary/60 text-xl active:border-b-0 active:translate-y-2 transition-all">Concluir Missão</Button>
+                    <Button onClick={completeMission} className="w-full h-24 rounded-[3.5rem] font-black uppercase bg-accent shadow-2xl border-b-8 border-accent/50 text-2xl active:border-b-0 active:translate-y-2 transition-all">Finish Mission</Button>
                   )}
                 </div>
               </div>
@@ -492,25 +528,25 @@ export function PlaygroundInterface() {
         )}
       </div>
 
-      {/* Tela de Celebração */}
+      {/* Celebração 2026 */}
       <AnimatePresence>
         {celebrating && (
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[250] bg-primary flex flex-col items-center justify-center p-12 text-center text-white"
+            className="fixed inset-0 z-[250] bg-primary/95 backdrop-blur-3xl flex flex-col items-center justify-center p-12 text-center text-white"
           >
             <motion.div
-              animate={{ rotate: [0, 10, -10, 0], scale: [1, 1.2, 1] }}
-              transition={{ duration: 0.5, repeat: Infinity }}
+              animate={{ rotate: [0, 15, -15, 0], scale: [1, 1.3, 1] }}
+              transition={{ duration: 0.6, repeat: Infinity }}
             >
-              <Trophy className="w-32 h-32 mb-8 text-yellow-300 drop-shadow-[0_0_30px_rgba(253,224,71,0.5)]" />
+              <Trophy className="w-40 h-40 mb-10 text-accent drop-shadow-[0_0_50px_rgba(244,114,182,0.6)]" />
             </motion.div>
-            <h2 className="text-6xl font-black uppercase italic mb-6 tracking-tighter">Level Up!</h2>
-            <div className="bg-white/10 backdrop-blur-3xl px-12 py-6 rounded-[4rem] border border-white/20 shadow-2xl">
-               <span className="text-5xl font-black flex items-center gap-4">
-                 <Coins className="w-10 h-10 text-yellow-300" />
+            <h2 className="text-7xl font-black uppercase italic mb-8 tracking-tighter">Level Up!</h2>
+            <div className="bg-white/10 px-16 py-8 rounded-[4rem] border border-white/20 shadow-2xl">
+               <span className="text-6xl font-black flex items-center gap-5">
+                 <Coins className="w-12 h-12 text-yellow-400" />
                  +{activeChallenge?.ludoCoinsReward} LC
                </span>
             </div>
@@ -521,25 +557,22 @@ export function PlaygroundInterface() {
   );
 }
 
-function AcessibilityToggle({ active, onClick, icon, label, sub }: any) {
+function AcessibilityToggle({ active, onClick, icon, label }: any) {
   return (
     <button 
       className={cn(
-        "h-20 rounded-[2.5rem] gap-5 transition-all px-8 border-2 flex items-center text-left w-full", 
-        active ? "border-primary bg-primary/5 shadow-inner" : "bg-muted/30 border-transparent shadow-sm"
+        "h-24 rounded-[3rem] transition-all px-6 border-2 flex flex-col items-center justify-center gap-2 text-center w-full", 
+        active ? "border-primary bg-primary/5 shadow-inner" : "bg-muted/40 border-transparent shadow-sm"
       )} 
       onClick={onClick}
     >
       <div className={cn(
-        "w-12 h-12 rounded-2xl flex items-center justify-center transition-all", 
+        "w-10 h-10 rounded-2xl flex items-center justify-center transition-all", 
         active ? "text-primary bg-primary/10" : "text-muted-foreground bg-muted"
       )}>
-        {React.cloneElement(icon, { className: "w-6 h-6" })}
+        {React.cloneElement(icon, { className: "w-5 h-5" })}
       </div>
-      <div className="flex-1">
-        <span className="text-[11px] font-black uppercase block leading-none tracking-widest">{label}</span>
-        <span className="text-[9px] font-bold text-muted-foreground uppercase opacity-70">{sub}</span>
-      </div>
+      <span className="text-[10px] font-black uppercase leading-none tracking-widest">{label}</span>
     </button>
   );
 }
@@ -547,8 +580,8 @@ function AcessibilityToggle({ active, onClick, icon, label, sub }: any) {
 function CategoryButton({ active, onClick, icon, label }: any) {
   return (
     <button onClick={onClick} className={cn(
-      "px-8 py-5 rounded-[2rem] text-[11px] font-black uppercase flex items-center gap-3 transition-all border-2",
-      active ? "bg-primary text-white border-primary shadow-2xl scale-105" : "bg-white text-muted-foreground border-transparent hover:bg-muted/10"
+      "px-10 py-6 rounded-[2.5rem] text-[11px] font-black uppercase flex items-center gap-4 transition-all border-2",
+      active ? "bg-primary text-white border-primary shadow-2xl scale-105" : "bg-white text-muted-foreground border-transparent hover:bg-muted/20"
     )}>
       {icon} {label}
     </button>
@@ -560,22 +593,22 @@ function ChallengeRow({ title, subtitle, icon, isCompleted, onClick, disabled }:
     <button 
       onClick={!disabled && !isCompleted ? onClick : undefined} 
       className={cn(
-        "p-8 rounded-[3.5rem] flex items-center gap-6 transition-all w-full text-left group", 
-        isCompleted ? "bg-muted/20 opacity-40 grayscale" : 
-        disabled ? "bg-muted/10 opacity-30 cursor-not-allowed" : "bg-white border-2 border-primary/5 shadow-xl active:scale-95 cursor-pointer hover:border-primary/20"
+        "p-10 rounded-[4rem] flex items-center gap-8 transition-all w-full text-left group", 
+        isCompleted ? "bg-muted/30 opacity-40 grayscale" : 
+        disabled ? "bg-muted/10 opacity-30 cursor-not-allowed" : "bg-white border-2 border-primary/5 shadow-2xl active:scale-95 cursor-pointer hover:border-primary/20"
       )}
     >
       <div className={cn(
-        "w-20 h-20 rounded-[2.5rem] flex items-center justify-center transition-transform group-hover:rotate-12", 
+        "w-24 h-24 rounded-[3rem] flex items-center justify-center transition-transform group-hover:rotate-12", 
         isCompleted ? "bg-primary text-white" : "bg-primary/10 text-primary"
       )}>
-        {isCompleted ? <CheckCircle2 className="w-10 h-10" /> : React.cloneElement(icon as React.ReactElement, { className: "w-10 h-10" })}
+        {isCompleted ? <CheckCircle2 className="w-12 h-12" /> : React.cloneElement(icon as React.ReactElement, { className: "w-12 h-12" })}
       </div>
       <div className="flex-1">
-        <span className="text-[10px] font-black uppercase text-muted-foreground opacity-60 tracking-[0.15em]">{subtitle}</span>
-        <h4 className="text-2xl font-black uppercase italic tracking-tighter leading-none mt-1">{title}</h4>
+        <span className="text-[11px] font-black uppercase text-muted-foreground opacity-60 tracking-[0.2em]">{subtitle}</span>
+        <h4 className="text-3xl font-black uppercase italic tracking-tighter leading-none mt-2">{title}</h4>
       </div>
-      <ChevronRight className="w-6 h-6 text-primary/40 group-hover:translate-x-2 transition-transform" />
+      <ChevronRight className="w-8 h-8 text-primary/40 group-hover:translate-x-3 transition-transform" />
     </button>
   );
 }
