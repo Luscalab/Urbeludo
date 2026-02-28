@@ -19,6 +19,7 @@ export const translations = {
     home: {
       heroTitle: 'Mova sua alma na cidade',
       heroSubtitle: 'Transforme calçadas em pistas e muros em desafios. A tecnologia de 2026 no seu bolso.',
+      tagline: 'Psicomotricidade em Movimento',
       startJourney: 'Iniciar Jornada',
       exploreTech: 'Explorar Tech',
       activePlayers: 'Exploradores Ativos',
@@ -39,6 +40,7 @@ export const translations = {
     auth: {
       title: 'UrbeLudo',
       subtitle: 'Seu Estúdio de Movimento Urbano',
+      tagline: 'Psicomotricidade em Movimento',
       emailLabel: 'E-mail de Explorador',
       passwordLabel: 'Senha de Acesso',
       termsAccept: 'Eu aceito os Termos de Uso e a política de privacidade.',
@@ -116,6 +118,7 @@ export const translations = {
     home: {
       heroTitle: 'Move your soul in the city',
       heroSubtitle: 'Turn sidewalks into tracks and walls into challenges. 2026 tech in your pocket.',
+      tagline: 'Psychomotor Skills in Motion',
       startJourney: 'Start Journey',
       exploreTech: 'Explore Tech',
       activePlayers: 'Active Explorers',
@@ -136,6 +139,7 @@ export const translations = {
     auth: {
       title: 'UrbeLudo',
       subtitle: 'Your Urban Motion Studio',
+      tagline: 'Psychomotor Skills in Motion',
       emailLabel: 'Explorer Email',
       passwordLabel: 'Access Password',
       termsAccept: 'I accept the Terms of Use and Privacy Policy.',
@@ -165,16 +169,17 @@ export const translations = {
     home: {
       heroTitle: 'Mueve tu alma en la ciudad',
       heroSubtitle: 'Convierte las aceras en pistas y los muros en desafíos. Tecnología de 2026 en tu bolsillo.',
+      tagline: 'Psicomotricidad en Movimiento',
       startJourney: 'Iniciar Viaje',
       exploreTech: 'Explorar Tech',
-      activePlayers: 'Exploradores Activos',
+      activePlayers: 'Exploradores Ativos',
       coreEngine: 'Motor de Movimiento',
       whyUrbeLudo: '¿Por qué UrbeLudo?',
       privacyTitle: 'Privacidad Pura',
       privacyDesc: 'IA de borde que descarta datos localmente.',
       psychomotorTitle: 'Psicomotricidad',
       psychomotorDesc: 'Desafíos reales para tu cuerpo.',
-      aiTitle: 'IA en Tiempo Real',
+      aiTitle: 'IA en Tempo Real',
       aiDesc: 'Identificación instantánea de elementos urbanos.',
       mobileTitle: 'Nativo Móvil',
       mobileDesc: 'Alto rendimiento y baja latencia.',

@@ -93,12 +93,12 @@ export default function AuthPage() {
 
       <div className="w-full max-w-md mx-auto space-y-8 flex-1 flex flex-col justify-center">
         <div className="flex flex-col items-center text-center space-y-4">
-          <div className="p-4 bg-primary/10 rounded-[2.5rem] shadow-inner">
-            <UrbeLudoLogo className="w-12 h-12 text-primary" />
+          <div className="p-1 bg-white rounded-[2rem] shadow-inner">
+            <UrbeLudoLogo className="w-16 h-16 text-primary" />
           </div>
           <div className="space-y-1">
             <h1 className="text-3xl font-black uppercase italic tracking-tighter leading-none">{t('auth.title')}</h1>
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{t('auth.subtitle')}</p>
+            <p className="text-[8px] font-black text-primary uppercase tracking-widest">{t('auth.tagline')}</p>
           </div>
         </div>
 

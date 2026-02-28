@@ -20,13 +20,13 @@ export default function Home() {
         <div className="flex items-center gap-3">
           <motion.div 
             whileHover={{ rotate: 15 }}
-            className="p-2 bg-primary/10 rounded-2xl border border-primary/20 shadow-inner"
+            className="p-1 bg-white rounded-2xl border border-primary/20 shadow-inner"
           >
-            <UrbeLudoLogo className="w-8 h-8 text-primary" />
+            <UrbeLudoLogo className="w-10 h-10 text-primary" />
           </motion.div>
           <div className="flex flex-col">
             <span className="text-xl font-black uppercase italic tracking-tighter leading-none">UrbeLudo</span>
-            <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-[0.3em]">Motion Studio v.26</span>
+            <span className="text-[7px] font-bold text-primary uppercase tracking-[0.1em]">{t('home.tagline')}</span>
           </div>
         </div>
         
@@ -158,9 +158,9 @@ export default function Home() {
 
       <footer className="py-12 border-t border-primary/10 px-6 bg-white/20 text-center space-y-6">
         <div className="flex flex-col items-center gap-3">
-          <UrbeLudoLogo className="w-8 h-8 text-primary" />
+          <UrbeLudoLogo className="w-12 h-12 text-primary" />
           <span className="text-lg font-black uppercase italic tracking-tighter">UrbeLudo</span>
-          <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">Built for the active urban soul.</p>
+          <p className="text-[8px] font-bold text-primary uppercase tracking-widest">{t('home.tagline')}</p>
         </div>
         <div className="flex justify-center gap-8 text-[9px] font-black uppercase tracking-widest">
           <Link href="/terms">Privacy</Link>

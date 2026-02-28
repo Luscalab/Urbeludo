@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -22,7 +23,7 @@ import {
   User as UserIcon,
   ZapOff,
   Sparkles,
-  Palette,
+  Palette as PaletteIcon,
   ChevronLeft
 } from 'lucide-react';
 import { proposeDynamicChallenges, type ProposeDynamicChallengesOutput } from '@/ai/flows/propose-dynamic-challenges';
@@ -70,7 +71,6 @@ export function PlaygroundInterface() {
     }
   }, [profile]);
 
-  // Monitoramento de iluminação básico
   useEffect(() => {
     let animationId: number;
 
@@ -275,7 +275,6 @@ export function PlaygroundInterface() {
         )}
       </div>
 
-      {/* Interface Inferior Otimizada para Mobile */}
       <div className="flex-1 -mt-20 bg-background rounded-t-[4rem] p-8 shadow-[0_-20px_40px_rgba(147,51,234,0.12)] z-20 border-t border-primary/10 overflow-y-auto">
         {showGuide ? (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-5 duration-500 pb-12">
@@ -327,7 +326,7 @@ export function PlaygroundInterface() {
         ) : (
           <div className="space-y-8 pb-12">
             <div className="flex overflow-x-auto gap-3 pb-4 no-scrollbar -mx-8 px-8">
-                <CategoryButton active={selectedCategory === 'artistic'} onClick={() => setSelectedCategory('artistic')} icon={<Palette className="w-4 h-4" />} label={t('playground.art')} />
+                <CategoryButton active={selectedCategory === 'artistic'} onClick={() => setSelectedCategory('artistic')} icon={<PaletteIcon className="w-4 h-4" />} label={t('playground.art')} />
                 <CategoryButton active={selectedCategory === 'motor'} onClick={() => setSelectedCategory('motor')} icon={<Zap className="w-4 h-4" />} label={t('playground.motor')} />
                 <CategoryButton active={selectedCategory === 'memory'} onClick={() => setSelectedCategory('memory')} icon={<Brain className="w-4 h-4" />} label={t('playground.mind')} />
                 <CategoryButton active={selectedCategory === 'relaxation'} onClick={() => setSelectedCategory('relaxation')} icon={<Wind className="w-4 h-4" />} label={t('playground.zen')} />
