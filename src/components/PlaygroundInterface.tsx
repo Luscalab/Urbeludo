@@ -1,7 +1,6 @@
-
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -25,7 +24,9 @@ import {
   Sparkles,
   Palette as PaletteIcon,
   ChevronLeft,
-  Music
+  Music,
+  Camera,
+  CameraOff
 } from 'lucide-react';
 import { proposeDynamicChallenges, type ProposeDynamicChallengesOutput } from '@/ai/flows/propose-dynamic-challenges';
 import { identifyUrbanElements } from '@/ai/flows/identify-urban-elements-flow';
@@ -66,13 +67,23 @@ export function PlaygroundInterface() {
   const userProgressRef = useMemoFirebase(() => user ? doc(db, 'user_progress', user.uid) : null, [db, user]);
   const { data: profile } = useDoc(userProgressRef);
 
+  // Determina se a câmera é necessária no momento
+  const isCameraRequired = useMemo(() => {
+    if (showGuide) return false;
+    if (isScanning) return true;
+    if (!activeChallenge) return false;
+    
+    // Câmera ligada para modo artístico (Rastros de Tinta) ou missões de rua (Contexto Urbano)
+    return selectedCategory === 'artistic' || activeChallenge.missionType === 'street';
+  }, [showGuide, isScanning, activeChallenge, selectedCategory]);
+
   // Motor de "Rastros de Tinta" e Diferenciação de Quadros
   useEffect(() => {
     let animationId: number;
     let lastFrame: ImageData | null = null;
 
     const processFrames = () => {
-      if (!videoRef.current || !canvasRef.current || !trailCanvasRef.current || showGuide) {
+      if (!videoRef.current || !canvasRef.current || !trailCanvasRef.current || !isCameraRequired) {
         animationId = requestAnimationFrame(processFrames);
         return;
       }
@@ -138,7 +149,7 @@ export function PlaygroundInterface() {
 
     processFrames();
     return () => cancelAnimationFrame(animationId);
-  }, [showGuide, activeChallenge, avatarColor, isAudioEnabled]);
+  }, [isCameraRequired, activeChallenge, avatarColor, isAudioEnabled]);
 
   const playBeep = (freq: number) => {
     try {
@@ -181,16 +192,21 @@ export function PlaygroundInterface() {
     }
   };
 
-  useEffect(() => {
-    if (!showGuide) {
-      startCamera(cameraMode);
+  const stopCamera = () => {
+    if (videoRef.current?.srcObject) {
+      (videoRef.current.srcObject as MediaStream).getTracks().forEach(track => track.stop());
+      videoRef.current.srcObject = null;
     }
-    return () => {
-      if (videoRef.current?.srcObject) {
-        (videoRef.current.srcObject as MediaStream).getTracks().forEach(track => track.stop());
-      }
-    };
-  }, [cameraMode, showGuide]);
+  };
+
+  useEffect(() => {
+    if (isCameraRequired) {
+      startCamera(cameraMode);
+    } else {
+      stopCamera();
+    }
+    return () => stopCamera();
+  }, [cameraMode, isCameraRequired]);
 
   const speak = (text: string) => {
     if (isAudioEnabled && 'speechSynthesis' in window) {
@@ -226,13 +242,20 @@ export function PlaygroundInterface() {
 
     try {
       let detected: string[] = [];
-      if (type === 'street' && videoRef.current) {
-        const canvas = document.createElement('canvas');
-        canvas.width = videoRef.current.videoWidth;
-        canvas.height = videoRef.current.videoHeight;
-        canvas.getContext('2d')?.drawImage(videoRef.current, 0, 0);
-        const result = await identifyUrbanElements({ webcamFeedDataUri: canvas.toDataURL('image/jpeg') });
-        detected = result.elements.map(e => `${e.type}: ${e.description}`);
+      
+      // Se for rua, precisamos da câmera para identificar elementos
+      if (type === 'street') {
+        // Aguarda a câmera estabilizar se estiver ligando agora
+        await new Promise(r => setTimeout(r, 1000));
+        
+        if (videoRef.current) {
+          const canvas = document.createElement('canvas');
+          canvas.width = videoRef.current.videoWidth;
+          canvas.height = videoRef.current.videoHeight;
+          canvas.getContext('2d')?.drawImage(videoRef.current, 0, 0);
+          const result = await identifyUrbanElements({ webcamFeedDataUri: canvas.toDataURL('image/jpeg') });
+          detected = result.elements.map(e => `${e.type}: ${e.description}`);
+        }
       }
 
       const challenge = await proposeDynamicChallenges({
@@ -290,9 +313,28 @@ export function PlaygroundInterface() {
     <div className="flex flex-col h-full bg-background relative overflow-hidden">
       {/* Viewport Mobile 2026 */}
       <div className="relative w-full aspect-[3/4] bg-zinc-950 overflow-hidden shadow-inner z-0 border-b border-primary/10">
-        <video ref={videoRef} className="w-full h-full object-cover opacity-80" autoPlay muted playsInline />
-        <canvas ref={canvasRef} className="hidden" />
-        <canvas ref={trailCanvasRef} className="absolute inset-0 z-10 w-full h-full pointer-events-none" />
+        
+        {isCameraRequired ? (
+          <>
+            <video ref={videoRef} className="w-full h-full object-cover opacity-80" autoPlay muted playsInline />
+            <canvas ref={canvasRef} className="hidden" />
+            <canvas ref={trailCanvasRef} className="absolute inset-0 z-10 w-full h-full pointer-events-none" />
+          </>
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-b from-zinc-900 to-zinc-950 p-12 text-center space-y-6">
+            <motion.div 
+              animate={{ y: [0, -10, 0] }}
+              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+              className="w-24 h-24 rounded-[2.5rem] bg-primary/10 border border-primary/20 flex items-center justify-center text-primary/40"
+            >
+              <CameraOff className="w-10 h-10" />
+            </motion.div>
+            <div className="space-y-2">
+              <h3 className="text-sm font-black uppercase tracking-[0.2em] text-primary/60">Lente em Repouso</h3>
+              <p className="text-[10px] font-medium text-zinc-500 uppercase tracking-widest max-w-[200px]">A câmera será ativada apenas para missões de visualização.</p>
+            </div>
+          </div>
+        )}
         
         {/* HUD de Scan Ativo */}
         <AnimatePresence>
@@ -324,7 +366,7 @@ export function PlaygroundInterface() {
         )}
 
         <AnimatePresence>
-          {isLowLight && !showGuide && (
+          {isLowLight && isCameraRequired && (
             <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="absolute top-8 left-1/2 -translate-x-1/2 z-[60] bg-destructive/90 text-white px-6 py-2 rounded-full flex items-center gap-2 shadow-lg border border-white/10">
               <ZapOff className="w-4 h-4" />
               <span className="text-[10px] font-black uppercase tracking-widest">{t('playground.lowLight')}</span>
