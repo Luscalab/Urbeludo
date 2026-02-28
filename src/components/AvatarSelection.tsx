@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from "react";
@@ -50,8 +51,8 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
                   isSelected ? "scale-110" : "scale-100"
                 )} 
                 onError={(e) => {
-                  // Fallback se a imagem falhar
-                  (e.target as HTMLImageElement).src = 'https://placehold.co/100x100?text=Avatar';
+                  const target = e.target as HTMLImageElement;
+                  target.src = 'https://placehold.co/100x100?text=Avatar';
                 }}
               />
               
@@ -64,10 +65,6 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
                   <Check className="w-4 h-4 stroke-[4]" />
                 </motion.div>
               )}
-
-              <div className="absolute -bottom-2 inset-x-0 flex justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <span className="text-[7px] font-black uppercase bg-black text-white px-2 py-0.5 rounded-full whitespace-nowrap">{avatar.name}</span>
-              </div>
             </motion.div>
           );
         })}
