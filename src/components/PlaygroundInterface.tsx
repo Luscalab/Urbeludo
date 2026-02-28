@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
@@ -39,10 +40,15 @@ import {
   Info,
   ChevronDown
 } from 'lucide-react';
+
+// TensorFlow.js & Pose Detection
+import * as tf from '@tensorflow/tfjs-core';
+import '@tensorflow/tfjs-backend-webgl';
+import * as poseDetection from '@tensorflow-models/pose-detection';
+
 import { proposeDynamicChallenges, type ProposeDynamicChallengesOutput } from '@/ai/flows/propose-dynamic-challenges';
-import { identifyUrbanElements } from '@/ai/flows/identify-urban-elements-flow';
 import { useUser, useDoc, useMemoFirebase } from '@/firebase';
-import { setDocumentNonBlocking, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/components/I18nProvider';
@@ -83,7 +89,11 @@ export function PlaygroundInterface() {
   const [avatarColor, setAvatarColor] = useState('#9333ea');
   const [termsAccepted, setTermsAccepted] = useState(false);
 
-  // Standalone: Usamos referências fake já que a persistência é local
+  // AI Pose Detector State
+  const [detector, setDetector] = useState<poseDetection.PoseDetector | null>(null);
+  const [isModelLoading, setIsModelLoading] = useState(true);
+
+  // Standalone references
   const userProgressRef = useMemoFirebase(() => user ? { id: user.uid, path: `user_progress/${user.uid}` } : null, [user]);
   const { data: profile } = useDoc(userProgressRef);
 
@@ -95,84 +105,105 @@ export function PlaygroundInterface() {
     }
   }, [profile]);
 
+  // Load TensorFlow Model
+  useEffect(() => {
+    async function loadModel() {
+      setIsModelLoading(true);
+      try {
+        await tf.ready();
+        const model = poseDetection.SupportedModels.MoveNet;
+        const detectorConfig = {
+          modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING,
+          // Em um APK real, o modelo seria carregado localmente de /public
+        };
+        const newDetector = await poseDetection.createDetector(model, detectorConfig);
+        setDetector(newDetector);
+      } catch (e) {
+        console.error("Erro ao carregar modelo de IA local:", e);
+      } finally {
+        setIsModelLoading(false);
+      }
+    }
+    loadModel();
+  }, []);
+
   const isCameraRequired = useMemo(() => {
     if (showGuide) return false;
     if (isScanning) return true;
     if (!activeChallenge) return false;
-    // Câmera apenas para Arte (Rastros) ou Rua (Identificação)
     return selectedCategory === 'Arte' || activeChallenge.missionType === 'street';
   }, [showGuide, isScanning, activeChallenge, selectedCategory]);
 
   useEffect(() => {
     let animationId: number;
-    let lastFrame: ImageData | null = null;
 
-    const processFrames = () => {
-      if (!videoRef.current || !canvasRef.current || !trailCanvasRef.current || !isCameraRequired) {
-        animationId = requestAnimationFrame(processFrames);
+    const processPose = async () => {
+      if (!videoRef.current || !trailCanvasRef.current || !detector || !isCameraRequired) {
+        animationId = requestAnimationFrame(processPose);
         return;
       }
 
       const video = videoRef.current;
-      const canvas = canvasRef.current;
       const trailCanvas = trailCanvasRef.current;
-      const ctx = canvas.getContext('2d', { willReadFrequently: true });
       const trailCtx = trailCanvas.getContext('2d');
 
-      if (video.readyState === 4 && ctx && trailCtx) {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        trailCanvas.width = video.videoWidth;
-        trailCanvas.height = video.videoHeight;
+      if (video.readyState === 4 && trailCtx) {
+        if (trailCanvas.width !== video.videoWidth || trailCanvas.height !== video.videoHeight) {
+          trailCanvas.width = video.videoWidth;
+          trailCanvas.height = video.videoHeight;
+        }
 
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const currentFrame = ctx.getImageData(0, 0, canvas.width, canvas.height);
-
-        if (lastFrame && selectedCategory === 'Arte') {
-          let movementX = 0;
-          let movementY = 0;
-          let pixelCount = 0;
-
-          for (let i = 0; i < currentFrame.data.length; i += 40) {
-            const diff = Math.abs(currentFrame.data[i] - lastFrame.data[i]);
-            if (diff > 40) {
-              const x = (i / 4) % canvas.width;
-              const y = Math.floor((i / 4) / canvas.width);
-              movementX += x;
-              movementY += y;
-              pixelCount++;
-            }
-          }
-
-          if (pixelCount > 50) {
-            const centerX = movementX / pixelCount;
-            const centerY = movementY / pixelCount;
-
-            trailCtx.beginPath();
-            trailCtx.arc(centerX, centerY, 15, 0, Math.PI * 2);
-            trailCtx.fillStyle = avatarColor;
-            trailCtx.globalAlpha = 0.4;
-            trailCtx.fill();
+        try {
+          const poses = await detector.estimatePoses(video);
+          
+          if (poses.length > 0) {
+            const pose = poses[0];
             
-            if (isAudioEnabled && pixelCount % 100 === 0) {
-               playBeep(200 + (centerX / canvas.width) * 400);
+            // Mecânica de Arte: Rastro de Tinta baseada nos pulsos
+            if (selectedCategory === 'Arte') {
+              const wrists = pose.keypoints.filter(kp => kp.name === 'left_wrist' || kp.name === 'right_wrist');
+              
+              wrists.forEach(wrist => {
+                if (wrist.score && wrist.score > 0.4) {
+                  trailCtx.beginPath();
+                  trailCtx.arc(wrist.x, wrist.y, 12, 0, Math.PI * 2);
+                  trailCtx.fillStyle = avatarColor;
+                  trailCtx.globalAlpha = 0.6;
+                  trailCtx.fill();
+
+                  // Eco Urbano: Som baseado na altura da mão
+                  if (isAudioEnabled && Math.random() > 0.9) {
+                    playBeep(200 + (1 - wrist.y / trailCanvas.height) * 800);
+                  }
+                }
+              });
+            }
+
+            // Validação de Missão Motorizada
+            if (selectedCategory === 'Motor' && activeChallenge) {
+               // Exemplo: Validação de equilíbrio (um pé levantado)
+               const leftAnkle = pose.keypoints.find(kp => kp.name === 'left_ankle');
+               const rightAnkle = pose.keypoints.find(kp => kp.name === 'right_ankle');
+               
+               if (leftAnkle && rightAnkle && leftAnkle.score! > 0.5 && rightAnkle.score! > 0.5) {
+                 const diff = Math.abs(leftAnkle.y - rightAnkle.y);
+                 if (diff > 50 && activeChallenge.challengeType === 'balance') {
+                   // Feedback visual de sucesso no passo
+                   // Aqui poderíamos avançar o step automaticamente
+                 }
+               }
             }
           }
+        } catch (e) {
+          console.error("Erro na estimativa de pose:", e);
         }
-        lastFrame = currentFrame;
-
-        let brightnessSum = 0;
-        for (let i = 0; i < currentFrame.data.length; i += 400) {
-          brightnessSum += (currentFrame.data[i] + currentFrame.data[i+1] + currentFrame.data[i+2]) / 3;
-        }
-        setIsLowLight((brightnessSum / (currentFrame.data.length / 400)) < 40);
       }
-      animationId = requestAnimationFrame(processFrames);
+      animationId = requestAnimationFrame(processPose);
     };
 
-    processFrames();
+    processPose();
     return () => cancelAnimationFrame(animationId);
-  }, [isCameraRequired, selectedCategory, avatarColor, isAudioEnabled]);
+  }, [isCameraRequired, selectedCategory, avatarColor, isAudioEnabled, detector, activeChallenge]);
 
   const playBeep = (freq: number) => {
     try {
@@ -182,10 +213,10 @@ export function PlaygroundInterface() {
       osc.connect(gain);
       gain.connect(audioCtx.destination);
       osc.frequency.value = freq;
-      gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.1);
+      gain.gain.setValueAtTime(0.04, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.15);
       osc.start();
-      osc.stop(audioCtx.currentTime + 0.1);
+      osc.stop(audioCtx.currentTime + 0.15);
     } catch (e) {}
   };
 
@@ -285,17 +316,13 @@ export function PlaygroundInterface() {
         psychomotorLevel: profile?.psychomotorLevel || 1,
       });
       
-      // Se for rua, tentamos identificar elementos antes
-      if (type === 'street') {
-         // Simulação de delay para escaneamento
-         await new Promise(r => setTimeout(r, 1500));
-      }
+      await new Promise(r => setTimeout(r, 1200));
 
       setActiveChallenge({ ...challenge, missionType: type });
       setCurrentStep(0);
       speak(challenge.challengeTitle);
     } catch (e) {
-      toast({ variant: 'destructive', title: 'Falha de Sincronia', description: 'O Estúdio Ludo está temporariamente offline.' });
+      toast({ variant: 'destructive', title: 'Falha no Motor', description: 'O sistema de desafios falhou ao carregar.' });
     } finally {
       setIsScanning(false);
     }
@@ -337,7 +364,6 @@ export function PlaygroundInterface() {
 
   return (
     <div className="flex flex-col h-full bg-background relative overflow-hidden">
-      {/* Viewport da Câmera: Só aparece se necessário ou se uma missão estiver ativa e precisar dela */}
       <AnimatePresence>
         {isCameraRequired && (
           <motion.div 
@@ -348,7 +374,6 @@ export function PlaygroundInterface() {
             className="relative w-full bg-zinc-950 overflow-hidden shadow-inner z-10 border-b border-primary/20"
           >
             <video ref={videoRef} className="w-full h-full object-cover opacity-80" autoPlay muted playsInline />
-            <canvas ref={canvasRef} className="hidden" />
             <canvas ref={trailCanvasRef} className="absolute inset-0 z-20 w-full h-full pointer-events-none" />
             
             {isScanning && (
@@ -356,22 +381,22 @@ export function PlaygroundInterface() {
                 <div className="w-64 h-64 border-2 border-white/50 rounded-[3rem] relative overflow-hidden">
                   <motion.div animate={{ y: [0, 256, 0] }} transition={{ duration: 2, repeat: Infinity, ease: "linear" }} className="w-full h-1 bg-primary shadow-[0_0_15px_rgba(147,51,234,0.8)]" />
                 </div>
-                <span className="mt-6 text-[10px] font-black uppercase tracking-[0.3em] text-white drop-shadow-md">Analisando Ambiente...</span>
+                <span className="mt-6 text-[10px] font-black uppercase tracking-[0.3em] text-white drop-shadow-md">Escaneando Pose...</span>
               </div>
             )}
 
-            {selectedCategory === 'Arte' && !isScanning && (
+            {isModelLoading && (
+              <div className="absolute inset-0 z-[60] bg-black/80 flex flex-col items-center justify-center gap-4">
+                 <Loader2 className="w-12 h-12 animate-spin text-primary" />
+                 <span className="text-[10px] font-black uppercase text-white tracking-widest">Iniciando IA de Borda...</span>
+              </div>
+            )}
+
+            {selectedCategory === 'Arte' && !isScanning && !isModelLoading && (
               <div className="absolute top-4 left-4 z-30 flex items-center gap-2 bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 animate-pulse">
                 <PaletteIcon className="w-4 h-4 text-accent" />
                 <span className="text-[9px] font-black uppercase text-white tracking-widest">{t('playground.drawingActive')}</span>
               </div>
-            )}
-
-            {isLowLight && (
-              <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="absolute top-8 left-1/2 -translate-x-1/2 z-[60] bg-destructive/90 text-white px-6 py-2 rounded-full flex items-center gap-2 shadow-lg border border-white/10">
-                <ZapOff className="w-4 h-4" />
-                <span className="text-[10px] font-black uppercase tracking-widest">{t('playground.lowLight')}</span>
-              </motion.div>
             )}
 
             {isInitializingCamera && (
@@ -380,7 +405,7 @@ export function PlaygroundInterface() {
                     <Loader2 className="w-16 h-16 animate-spin text-primary" />
                     <Sparkles className="absolute top-0 right-0 w-6 h-6 text-accent animate-pulse" />
                  </div>
-                 <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/70">Iniciando Lente Urbe...</span>
+                 <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/70">Lente de Visão Urbe...</span>
               </div>
             )}
           </motion.div>
@@ -471,10 +496,9 @@ export function PlaygroundInterface() {
                       <DialogTitle className="text-2xl font-black uppercase italic">{t('auth.termsTitle')}</DialogTitle>
                     </DialogHeader>
                     <div className="text-[11px] font-medium leading-relaxed space-y-4 py-4 text-muted-foreground">
-                      <p><strong>1. Natureza do Aplicativo:</strong> O UrbeLudo é uma ferramenta de apoio à psicomotricidade que propõe atividades físicas e lúdicas.</p>
-                      <p><strong>2. Segurança e Supervisão:</strong> As atividades devem ser obrigatoriamente supervisionadas por um adulto responsável. O app não se responsabiliza por acidentes em locais inadequados.</p>
-                      <p><strong>3. Privacidade e Dados Locais:</strong> Operamos de forma "Local-First". A câmera é processada em tempo real apenas quando necessário e nenhuma imagem é gravada ou enviada para fora deste dispositivo.</p>
-                      <p><strong>4. Propriedade Intelectual:</strong> Todo o conteúdo e lógica pedagógica são de propriedade exclusiva do UrbeLudo.</p>
+                      <p><strong>1. Natureza do Aplicativo:</strong> O UrbeLudo utiliza IA local para apoio à psicomotricidade.</p>
+                      <p><strong>2. Segurança:</strong> Atividades devem ser supervisionadas por adultos.</p>
+                      <p><strong>3. Privacidade:</strong> A visão computacional ocorre localmente em tempo real. Nenhuma imagem é enviada para servidores.</p>
                     </div>
                   </DialogContent>
                 </Dialog>
@@ -504,10 +528,10 @@ export function PlaygroundInterface() {
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-5 duration-700">
                 <div className="text-center space-y-2 mb-8">
                    <h3 className="text-4xl font-black uppercase italic tracking-tighter">{t('playground.chooseMission')}</h3>
-                   <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">Selecione seu campo de treinamento</p>
+                   <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">Estúdio de Movimento em Borda</p>
                 </div>
-                <ChallengeRow title={t('playground.homeMission')} subtitle={t('playground.edgeAnalysis')} icon={<HomeIcon />} isCompleted={profile?.dailyCycle?.homeMissionCompleted} onClick={() => handleStartMission('home')} disabled={isScanning} />
-                <ChallengeRow title={t('playground.streetMission')} subtitle={t('playground.fieldChallenge')} icon={<MapPin />} isCompleted={profile?.dailyCycle?.streetMissionCompleted} onClick={() => handleStartMission('street')} disabled={isScanning} />
+                <ChallengeRow title={t('playground.homeMission')} subtitle="Treino Doméstico" icon={<HomeIcon />} isCompleted={profile?.dailyCycle?.homeMissionCompleted} onClick={() => handleStartMission('home')} disabled={isScanning} />
+                <ChallengeRow title={t('playground.streetMission')} subtitle="Exploração de Pose" icon={<MapPin />} isCompleted={profile?.dailyCycle?.streetMissionCompleted} onClick={() => handleStartMission('street')} disabled={isScanning} />
               </div>
             ) : (
               <div className="bg-primary/5 rounded-[4rem] p-8 space-y-8 border border-primary/10 shadow-inner animate-in fade-in slide-in-from-right-5 duration-500">
