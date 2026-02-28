@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -10,7 +11,6 @@ import { TutorialOverlay } from '@/components/studio/TutorialOverlay';
 import { useStudio } from '@/hooks/use-studio';
 import { useUser, useDoc, useMemoFirebase } from '@/firebase';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import { getAvatarById } from '@/lib/avatar-catalog';
 import { 
   ArrowLeft, 
   Edit3, 
@@ -66,7 +66,7 @@ export default function StudioPage() {
     }
   };
 
-  const avatarInfo = getAvatarById(profile?.avatar?.avatarId || 'av-01');
+  const avatarSrc = profile?.avatar?.avatarId ? `/assets/avatars/${profile.avatar.avatarId}` : '/assets/avatars/1.png';
   const auraColor = profile?.dominantColor || '#9333ea';
   const avatarPos = studioState.avatar.lastPosition;
   const isSapient = profile?.displayName?.toLowerCase() === 'sapient';
@@ -77,7 +77,7 @@ export default function StudioPage() {
         {showTutorial && profile && (
           <TutorialOverlay 
             userName={profile.displayName}
-            avatarUrl={avatarInfo.src}
+            avatarUrl={avatarSrc}
             onComplete={() => {
               setShowTutorial(false);
               if (userProgressRef) updateDocumentNonBlocking(userProgressRef, { hasSeenTutorial: true });
@@ -172,7 +172,7 @@ export default function StudioPage() {
             <div className="relative">
               <div className="w-32 h-48 flex items-center justify-center">
                 <img 
-                  src={avatarInfo.src} 
+                  src={avatarSrc} 
                   alt="Avatar" 
                   className="w-full h-full object-contain drop-shadow-[0_25px_25px_rgba(0,0,0,0.4)]"
                   onError={(e) => {

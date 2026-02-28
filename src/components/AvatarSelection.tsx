@@ -1,9 +1,9 @@
+
 'use client';
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { AVATAR_CATALOG } from "@/lib/avatar-catalog";
-import { Check, AlertCircle } from "lucide-react";
+import { Check, AlertCircle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface AvatarSelectionProps {
@@ -13,81 +13,106 @@ interface AvatarSelectionProps {
 }
 
 export function AvatarSelection({ initialAvatarId, onSelect, debugMode = false }: AvatarSelectionProps) {
+  const [avatars, setAvatars] = useState<string[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(initialAvatarId || null);
-  const [loadErrors, setLoadErrors] = useState<Record<string, boolean>>({});
+  const [isLoading, setIsLoading] = useState(true);
 
-  const handleSelect = (id: string) => {
-    setSelectedId(id);
-    onSelect(id);
+  useEffect(() => {
+    async function fetchAvatars() {
+      try {
+        const response = await fetch('/api/avatars');
+        const files = await response.json();
+        setAvatars(files);
+        if (files.length > 0 && !selectedId) {
+          setSelectedId(files[0]);
+          onSelect(files[0]);
+        }
+      } catch (error) {
+        console.error("Erro ao carregar lista de avatares:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchAvatars();
+  }, [onSelect, selectedId]);
+
+  const handleSelect = (filename: string) => {
+    setSelectedId(filename);
+    onSelect(filename);
   };
+
+  if (isLoading) {
+    return (
+      <div className="w-full h-32 flex items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="w-full space-y-6">
       <div className="flex items-center justify-between px-2">
         <h3 className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em]">
-          Seletor de Herói
+          Seletor de Herói ({avatars.length})
         </h3>
         {debugMode && (
           <span className="text-[8px] font-bold bg-accent/20 text-accent px-2 py-0.5 rounded-full uppercase animate-pulse">
-            Inspetor Ativo
+            Scanner de Arquivos Ativo
           </span>
         )}
       </div>
       
       <div className="flex gap-4 overflow-x-auto pb-8 px-2 snap-x no-scrollbar -mx-6 px-6">
-        {AVATAR_CATALOG.map((avatar) => {
-          const isSelected = selectedId === avatar.id;
-          const hasError = loadErrors[avatar.id];
+        {avatars.length === 0 ? (
+          <div className="w-full py-10 text-center border-2 border-dashed rounded-[2rem] border-muted-foreground/20">
+            <p className="text-[10px] font-black uppercase text-muted-foreground">Nenhuma foto em /assets/avatars/</p>
+          </div>
+        ) : (
+          avatars.map((filename) => {
+            const isSelected = selectedId === filename;
+            const src = `/assets/avatars/${filename}`;
 
-          return (
-            <motion.div
-              key={avatar.id}
-              onClick={() => handleSelect(avatar.id)}
-              className={cn(
-                "relative flex-shrink-0 w-32 h-32 rounded-[2.5rem] border-4 cursor-pointer snap-center flex flex-col items-center justify-center transition-all bg-white shadow-sm overflow-hidden",
-                isSelected 
-                  ? "border-primary bg-primary/5 shadow-xl scale-110 z-10" 
-                  : "border-muted/20 opacity-70 hover:opacity-100 hover:border-primary/40"
-              )}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              {hasError ? (
-                <div className="flex flex-col items-center justify-center text-destructive p-4 text-center">
-                  <AlertCircle className="w-6 h-6 mb-1" />
-                  <span className="text-[8px] font-black uppercase leading-none">Erro 404</span>
-                  {debugMode && <span className="text-[6px] mt-1 font-mono break-all">{avatar.src}</span>}
-                </div>
-              ) : (
+            return (
+              <motion.div
+                key={filename}
+                onClick={() => handleSelect(filename)}
+                className={cn(
+                  "relative flex-shrink-0 w-32 h-32 rounded-[2.5rem] border-4 cursor-pointer snap-center flex flex-col items-center justify-center transition-all bg-white shadow-sm overflow-hidden",
+                  isSelected 
+                    ? "border-primary bg-primary/5 shadow-xl scale-110 z-10" 
+                    : "border-muted/20 opacity-70 hover:opacity-100 hover:border-primary/40"
+                )}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
                 <img 
-                  src={avatar.src} 
-                  alt={avatar.name} 
+                  src={src} 
+                  alt={filename} 
                   className={cn(
                     "w-24 h-24 object-contain drop-shadow-md transition-all",
                     isSelected ? "scale-110" : "scale-100"
                   )} 
-                  onError={() => setLoadErrors(prev => ({ ...prev, [avatar.id]: true }))}
                 />
-              )}
-              
-              {debugMode && (
-                <div className="absolute bottom-1 bg-black/80 text-white text-[6px] px-1.5 py-0.5 rounded-sm font-mono max-w-[90%] truncate">
-                  {avatar.src.split('/').pop()}
-                </div>
-              )}
+                
+                {debugMode && (
+                  <div className="absolute bottom-1 bg-black/80 text-white text-[6px] px-1.5 py-0.5 rounded-sm font-mono max-w-[90%] truncate">
+                    {filename}
+                  </div>
+                )}
 
-              {isSelected && (
-                <motion.div 
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="absolute -top-1 -right-1 bg-primary text-white rounded-full w-8 h-8 flex items-center justify-center border-4 border-white shadow-lg z-20"
-                >
-                  <Check className="w-4 h-4 stroke-[4]" />
-                </motion.div>
-              )}
-            </motion.div>
-          );
-        })}
+                {isSelected && (
+                  <motion.div 
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className="absolute -top-1 -right-1 bg-primary text-white rounded-full w-8 h-8 flex items-center justify-center border-4 border-white shadow-lg z-20"
+                  >
+                    <Check className="w-4 h-4 stroke-[4]" />
+                  </motion.div>
+                )}
+              </motion.div>
+            );
+          })
+        )}
       </div>
     </div>
   );

@@ -1,8 +1,9 @@
+
 import { StudioItem } from './types';
 
 /**
  * Catálogo de Itens do Estúdio.
- * Sincronizado com os nomes de arquivos PNG da pasta public/assets/studio/
+ * Atualizado para buscar os arquivos da pasta public/assets/studio/
  */
 export const STUDIO_CATALOG: StudioItem[] = [
   {
