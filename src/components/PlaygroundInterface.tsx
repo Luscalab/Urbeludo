@@ -1,10 +1,11 @@
 
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { 
   Loader2, 
   CheckCircle2, 
@@ -15,9 +16,12 @@ import {
   Lock, 
   Coins, 
   Sparkles,
-  Trophy
+  Trophy,
+  Camera,
+  RefreshCw
 } from 'lucide-react';
 import { proposeDynamicChallenges, type ProposeDynamicChallengesOutput } from '@/ai/flows/propose-dynamic-challenges';
+import { identifyUrbanElements } from '@/ai/flows/identify-urban-elements-flow';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, collection } from 'firebase/firestore';
 import { setDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
@@ -31,14 +35,35 @@ export function PlaygroundInterface() {
   const { user } = useUser();
   const db = useFirestore();
   const { toast } = useToast();
+  const videoRef = useRef<HTMLVideoElement>(null);
   
   const [phase, setPhase] = useState<Phase>('DAY');
   const [isScanning, setIsScanning] = useState(false);
+  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [activeChallenge, setActiveChallenge] = useState<ProposeDynamicChallengesOutput | null>(null);
   const [celebrating, setCelebrating] = useState(false);
 
   const userProgressRef = useMemoFirebase(() => user ? doc(db, 'user_progress', user.uid) : null, [db, user]);
   const { data: profile, isLoading: isProfileLoading } = useDoc(userProgressRef);
+
+  useEffect(() => {
+    const getCameraPermission = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { facingMode: 'environment' } 
+        });
+        setHasCameraPermission(true);
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+      } catch (error) {
+        console.error('Error accessing camera:', error);
+        setHasCameraPermission(false);
+      }
+    };
+
+    getCameraPermission();
+  }, []);
 
   useEffect(() => {
     const updateCycle = () => {
@@ -47,12 +72,10 @@ export function PlaygroundInterface() {
       else if (hour >= 10 && hour < 18) setPhase('DAY');
       else setPhase('NIGHT');
 
-      // Lógica de Reset Diário
       if (profile && profile.dailyCycle) {
         const today = new Date().toLocaleDateString();
         if (profile.dailyCycle.lastResetDate !== today) {
           setDocumentNonBlocking(userProgressRef!, {
-            ...profile,
             dailyCycle: {
               homeMissionCompleted: false,
               streetMissionCompleted: false,
@@ -70,17 +93,32 @@ export function PlaygroundInterface() {
 
   const handleStartMission = async (type: 'home' | 'street') => {
     setIsScanning(true);
+    let detectedElements: string[] = [];
+
     try {
+      if (type === 'street' && videoRef.current) {
+        const canvas = document.createElement('canvas');
+        canvas.width = videoRef.current.videoWidth;
+        canvas.height = videoRef.current.videoHeight;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(videoRef.current, 0, 0);
+          const dataUri = canvas.toDataURL('image/jpeg');
+          const result = await identifyUrbanElements({ webcamFeedDataUri: dataUri });
+          detectedElements = result.elements.map(e => `${e.type}: ${e.description}`);
+        }
+      }
+
       const challenge = await proposeDynamicChallenges({
         missionType: type,
         psychomotorLevel: profile?.psychomotorLevel || 1,
         userAgeGroup: profile?.ageGroup || 'adolescent_adult',
         userSkillLevel: profile?.skillLevel || 'intermediate',
-        detectedElements: []
+        detectedElements: detectedElements
       });
       setActiveChallenge(challenge);
     } catch (e) {
-      toast({ variant: 'destructive', title: 'Erro ao conectar com a IA', description: 'Tente novamente em alguns instantes.' });
+      toast({ variant: 'destructive', title: 'Falha na IA', description: 'O sinal urbano está instável.' });
     } finally {
       setIsScanning(false);
     }
@@ -90,8 +128,8 @@ export function PlaygroundInterface() {
     if (!activeChallenge || !user || !userProgressRef) return;
 
     const missionType = !profile?.dailyCycle?.homeMissionCompleted ? 'home' : 'street';
-    
     const activitiesRef = collection(db, 'user_progress', user.uid, 'challenge_activities');
+    
     addDocumentNonBlocking(activitiesRef, {
       userProgressId: user.uid,
       startTime: new Date().toISOString(),
@@ -100,6 +138,7 @@ export function PlaygroundInterface() {
       missionType: missionType,
       psychomotorLevelAtTime: profile?.psychomotorLevel || 1,
       challengeDescription: activeChallenge.challengeDescription,
+      challengeTitle: activeChallenge.challengeTitle,
       difficulty: activeChallenge.difficulty,
       challengeType: activeChallenge.challengeType
     });
@@ -108,12 +147,10 @@ export function PlaygroundInterface() {
     const shouldLevelUp = totalCompleted % 5 === 0 && (profile?.psychomotorLevel || 1) < 4;
 
     setDocumentNonBlocking(userProgressRef, {
-      ...profile,
       ludoCoins: (profile?.ludoCoins || 0) + activeChallenge.ludoCoinsReward,
       totalChallengesCompleted: totalCompleted,
       psychomotorLevel: shouldLevelUp ? (profile?.psychomotorLevel || 1) + 1 : (profile?.psychomotorLevel || 1),
       dailyCycle: {
-        ...profile?.dailyCycle,
         homeMissionCompleted: missionType === 'home' ? true : profile?.dailyCycle?.homeMissionCompleted,
         streetMissionCompleted: missionType === 'street' ? true : profile?.dailyCycle?.streetMissionCompleted,
         lastResetDate: new Date().toLocaleDateString()
@@ -128,9 +165,9 @@ export function PlaygroundInterface() {
   };
 
   if (isProfileLoading) return (
-    <div className="flex flex-col h-full items-center justify-center gap-4">
-      <Loader2 className="animate-spin text-primary w-10 h-10" />
-      <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">Sincronizando com a Nuvem...</span>
+    <div className="flex flex-col h-full items-center justify-center p-6 text-center space-y-4">
+      <Loader2 className="animate-spin text-primary w-12 h-12" />
+      <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">Sincronizando DNA Digital...</p>
     </div>
   );
 
@@ -141,147 +178,140 @@ export function PlaygroundInterface() {
 
   if (celebrating) {
     return (
-      <div className="fixed inset-0 z-[100] bg-primary/95 flex flex-col items-center justify-center p-6 text-center text-white overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none opacity-20 bg-[url('https://picsum.photos/seed/dance/1200/800')] bg-cover" />
-        <div className="space-y-6 animate-in zoom-in-50 duration-500 relative z-10">
-          <div className="w-32 h-32 rounded-full bg-white flex items-center justify-center mx-auto shadow-2xl animate-bounce">
-             <Trophy className="w-16 h-16 text-primary" />
-          </div>
-          <div className="space-y-2">
-            <h2 className="text-5xl font-black uppercase tracking-tighter italic">Missão Cumprida!</h2>
-            <p className="text-xl font-bold opacity-80 uppercase tracking-widest">Sincronizando energia vital...</p>
-          </div>
-          <div className="bg-white/20 px-8 py-4 rounded-3xl flex items-center gap-3 border border-white/30 backdrop-blur-md shadow-2xl">
-              <Coins className="w-8 h-8 text-yellow-300" />
-              <span className="text-4xl font-black">+{activeChallenge?.ludoCoinsReward}</span>
-          </div>
-          <p className="text-[10px] font-black uppercase tracking-[0.5em] animate-pulse">Evolução do Avatar Confirmada</p>
+      <div className="fixed inset-0 z-[100] bg-primary flex flex-col items-center justify-center p-8 text-center text-white">
+        <div className="animate-bounce mb-8">
+           <Trophy className="w-24 h-24" />
         </div>
+        <h2 className="text-4xl font-black uppercase italic mb-4">Evolução!</h2>
+        <div className="bg-white/20 px-8 py-4 rounded-3xl border border-white/30 backdrop-blur-xl mb-6">
+           <span className="text-4xl font-black flex items-center gap-2">
+             <Coins className="w-8 h-8 text-yellow-300" /> +{activeChallenge?.ludoCoinsReward}
+           </span>
+        </div>
+        <p className="text-xs font-bold uppercase tracking-[0.3em] opacity-80">Sincronia concluída com sucesso</p>
       </div>
     );
   }
 
   return (
     <div className={cn(
-      "flex flex-col h-[calc(100vh-80px)] transition-colors duration-1000",
-      phase === 'MORNING' ? "bg-orange-50" : phase === 'DAY' ? "bg-sky-50" : "bg-slate-950"
+      "flex flex-col h-full transition-colors duration-1000",
+      phase === 'MORNING' ? "bg-orange-50/50" : phase === 'DAY' ? "bg-sky-50/50" : "bg-slate-950"
     )}>
-      <div className="p-6 flex justify-between items-center bg-background/20 backdrop-blur-sm border-b border-black/5">
-        <div className="space-y-1">
-          <Badge variant="outline" className="flex gap-1.5 items-center bg-white/80 backdrop-blur-md">
-            {phase === 'MORNING' ? <Sun className="w-3 h-3 text-orange-500" /> : phase === 'DAY' ? <Sun className="w-3 h-3 text-yellow-500" /> : <Moon className="w-3 h-3 text-blue-400" />}
-            {phase === 'MORNING' ? 'O Despertar' : phase === 'DAY' ? 'A Jornada' : 'O Descanso'}
-          </Badge>
-          <div className="text-xl font-black tracking-tighter text-primary">Nível {pLevel}: {levelNames[pLevel-1]}</div>
+      {/* Viewfinder Cam */}
+      <div className="relative w-full aspect-[4/3] bg-black overflow-hidden shadow-inner">
+        <video 
+          ref={videoRef} 
+          className="w-full h-full object-cover" 
+          autoPlay 
+          muted 
+          playsInline 
+        />
+        <div className="absolute inset-0 border-[2px] border-primary/30 m-4 rounded-3xl pointer-events-none" />
+        <div className="absolute top-6 left-6 flex items-center gap-2">
+           <Badge className="bg-black/50 backdrop-blur-md border-none px-3 py-1 text-[10px] font-black uppercase tracking-widest text-white">
+             {hasCameraPermission === false ? "Câmera Bloqueada" : "Scan Ativo"}
+           </Badge>
         </div>
-        <div className="bg-white/80 backdrop-blur-md px-4 py-2 rounded-2xl flex items-center gap-2 border shadow-sm">
-          <Coins className="w-5 h-5 text-yellow-600" />
-          <span className="font-black text-lg">{profile?.ludoCoins || 0}</span>
-        </div>
+        {hasCameraPermission === false && (
+          <div className="absolute inset-0 bg-slate-900/90 flex items-center justify-center p-6 text-center">
+             <div className="space-y-4">
+               <Camera className="w-12 h-12 text-destructive mx-auto" />
+               <h4 className="text-white font-black uppercase italic">Permissão Necessária</h4>
+               <p className="text-white/60 text-xs">Ative a câmera para identificar elementos urbanos.</p>
+               <Button onClick={() => window.location.reload()} variant="outline" size="sm" className="text-white border-white/20">
+                 <RefreshCw className="w-4 h-4 mr-2" /> Recarregar
+               </Button>
+             </div>
+          </div>
+        )}
       </div>
 
-      <main className="flex-1 container max-w-md mx-auto p-6 overflow-y-auto space-y-6">
+      <div className="flex-1 -mt-8 bg-background rounded-t-[3rem] p-6 shadow-2xl overflow-y-auto space-y-6">
+        <div className="flex justify-between items-center mb-2">
+          <div className="space-y-0.5">
+            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{levelNames[pLevel-1]}</span>
+            <h3 className="text-xl font-black italic uppercase tracking-tighter text-primary">Nível {pLevel}</h3>
+          </div>
+          <div className="bg-primary/10 px-4 py-2 rounded-2xl flex items-center gap-2 border border-primary/20">
+            <Coins className="w-5 h-5 text-yellow-600" />
+            <span className="font-black text-lg">{profile?.ludoCoins || 0}</span>
+          </div>
+        </div>
+
         {activeChallenge ? (
-          <Card className="animate-in slide-in-from-bottom-10 duration-500 shadow-2xl border-primary/20 overflow-hidden rounded-3xl">
-            <div className="h-2 bg-primary" />
-            <CardHeader className="pb-4">
-              <div className="flex justify-between items-center mb-2">
-                <Badge className="bg-accent text-accent-foreground px-3 py-0.5 text-[10px] uppercase font-black tracking-widest">Desafio Ativo</Badge>
-                <div className="flex items-center gap-1 text-yellow-600 font-black">
-                  <Coins className="w-4 h-4" /> +{activeChallenge.ludoCoinsReward}
-                </div>
+          <Card className="border-2 border-primary/20 bg-primary/5 rounded-[2rem] shadow-xl animate-in slide-in-from-bottom-6">
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <Badge className="bg-accent text-accent-foreground text-[8px] uppercase font-black tracking-widest">Missão Ativa</Badge>
+                <span className="text-xs font-black text-primary flex items-center gap-1"><Coins className="w-3 h-3" /> {activeChallenge.ludoCoinsReward}</span>
               </div>
-              <CardTitle className="text-2xl font-black uppercase tracking-tighter italic leading-none">{activeChallenge.challengeTitle}</CardTitle>
+              <CardTitle className="text-2xl font-black uppercase italic mt-2">{activeChallenge.challengeTitle}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              <p className="text-sm text-muted-foreground leading-relaxed font-medium">{activeChallenge.challengeDescription}</p>
-              
-              <div className="p-4 bg-primary/5 rounded-2xl flex items-center gap-4 border border-primary/10">
-                 <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center shadow-md">
-                    <Sparkles className="text-primary w-6 h-6 animate-pulse" />
-                 </div>
-                 <div className="text-[11px] font-bold text-primary/80 italic leading-tight">"Seu avatar está aprendendo cada movimento seu agora."</div>
-              </div>
-
-              <Button onClick={completeMission} className="w-full h-16 text-lg font-black uppercase tracking-widest rounded-2xl shadow-xl hover:scale-[1.02] transition-transform">
-                <CheckCircle2 className="mr-3 w-6 h-6" /> Concluir Missão
+              <p className="text-sm font-medium text-muted-foreground leading-relaxed italic">{activeChallenge.challengeDescription}</p>
+              <Button onClick={completeMission} className="w-full h-16 rounded-2xl text-lg font-black uppercase tracking-[0.2em] shadow-lg">
+                <CheckCircle2 className="w-6 h-6 mr-3" /> Finalizar
               </Button>
             </CardContent>
           </Card>
         ) : (
           <div className="space-y-4">
-            <div className="flex items-center justify-between px-2">
-              <h3 className="font-black uppercase tracking-widest text-[10px] text-muted-foreground">Ciclo do Sol: {new Date().toLocaleDateString()}</h3>
-              {isScanning && <Loader2 className="w-4 h-4 animate-spin text-primary" />}
-            </div>
-            
-            <ChallengeCard 
-              title="Missão de Casa"
-              description="Prepare o corpo com foco em tônus e equilíbrio estático."
-              icon={<HomeIcon className="w-6 h-6" />}
+            <ChallengeRow 
+              title="O Despertar"
+              subtitle="Missão de Casa"
               isCompleted={homeCompleted}
               disabled={isScanning}
+              icon={<HomeIcon />}
               onClick={() => handleStartMission('home')}
             />
-
-            <ChallengeCard 
-              title="Missão de Rua"
-              description="Desafie a gravidade no cenário urbano real."
-              icon={<MapPin className="w-6 h-6" />}
+            <ChallengeRow 
+              title="A Jornada"
+              subtitle="Missão de Rua"
               isCompleted={streetCompleted}
               disabled={!homeCompleted || phase === 'NIGHT' || isScanning}
+              icon={<MapPin />}
               onClick={() => handleStartMission('street')}
-              lockedText={!homeCompleted ? "Complete o Despertar em casa primeiro" : phase === 'NIGHT' ? "A cidade descansa. Volte amanhã!" : ""}
+              lockedText={!homeCompleted ? "Complete a Casa primeiro" : phase === 'NIGHT' ? "Aguarde o amanhecer" : ""}
             />
-
+            
             {phase === 'NIGHT' && (
-              <Card className="bg-slate-900 text-white border-none p-6 text-center space-y-4 rounded-3xl shadow-2xl mt-8">
-                <Moon className="w-12 h-12 mx-auto text-blue-400 animate-pulse" />
-                <div className="space-y-2">
-                  <h4 className="font-black uppercase tracking-tighter text-xl italic">Hora da Calma</h4>
-                  <p className="text-xs text-white/60 font-medium">As missões de movimento acabaram por hoje. Que tal visitar seu estúdio e gerenciar suas conquistas?</p>
-                </div>
-                <Button variant="outline" asChild className="w-full h-12 rounded-2xl border-white/20 hover:bg-white/10 text-white">
-                  <Link href="/dashboard">Abrir Estúdio</Link>
+              <div className="bg-slate-900 rounded-[2.5rem] p-8 text-center text-white space-y-4 shadow-2xl">
+                <Moon className="w-10 h-10 mx-auto text-blue-400 animate-pulse" />
+                <h4 className="text-xl font-black italic uppercase">Modo Descanso</h4>
+                <p className="text-xs text-white/50">A cidade descansa. Aproveite para equipar seu avatar no Estúdio.</p>
+                <Button asChild variant="outline" className="w-full rounded-2xl border-white/20 hover:bg-white/10 text-white font-black uppercase text-xs">
+                  <Link href="/dashboard">Ir para o Estúdio</Link>
                 </Button>
-              </Card>
+              </div>
             )}
           </div>
         )}
-      </main>
+      </div>
     </div>
   );
 }
 
-function ChallengeCard({ title, description, icon, isCompleted, disabled, onClick, lockedText }: any) {
+function ChallengeRow({ title, subtitle, isCompleted, disabled, icon, onClick, lockedText }: any) {
   return (
-    <Card 
-      className={cn(
-        "relative transition-all duration-500 overflow-hidden cursor-pointer active:scale-95 border-none shadow-sm",
-        isCompleted ? "bg-muted/30 grayscale-[0.8]" : "bg-white",
-        disabled ? "opacity-60 cursor-not-allowed" : "hover:shadow-2xl hover:scale-[1.01]"
-      )}
+    <div 
       onClick={!disabled && !isCompleted ? onClick : undefined}
+      className={cn(
+        "p-5 rounded-[2.5rem] flex items-center gap-5 transition-all active:scale-95",
+        isCompleted ? "bg-muted/40 grayscale" : disabled ? "bg-muted/20 opacity-40" : "bg-white border-2 border-primary/5 shadow-md hover:shadow-xl"
+      )}
     >
-      <div className="p-6 flex gap-5 items-start">
-        <div className={cn(
-          "w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-inner transition-colors",
-          isCompleted ? "bg-primary text-white" : disabled ? "bg-muted text-muted-foreground" : "bg-primary/10 text-primary"
-        )}>
-          {isCompleted ? <CheckCircle2 className="w-7 h-7" /> : disabled ? <Lock className="w-6 h-6 opacity-30" /> : icon}
-        </div>
-        <div className="flex-1 space-y-1">
-          <div className="flex justify-between items-center">
-            <h4 className="font-black uppercase tracking-tighter italic text-lg">{title}</h4>
-            {isCompleted && <Badge className="bg-primary text-[8px] font-black uppercase">Vencido</Badge>}
-          </div>
-          <p className="text-xs text-muted-foreground leading-snug font-medium">{description}</p>
-          {disabled && lockedText && <p className="text-[9px] font-black text-destructive uppercase mt-2 tracking-widest">{lockedText}</p>}
-        </div>
+      <div className={cn(
+        "w-14 h-14 rounded-[1.5rem] flex items-center justify-center transition-colors",
+        isCompleted ? "bg-primary text-white" : "bg-primary/10 text-primary"
+      )}>
+        {isCompleted ? <CheckCircle2 className="w-7 h-7" /> : disabled ? <Lock className="w-5 h-5 opacity-40" /> : icon}
       </div>
-      {!disabled && !isCompleted && <div className="h-1 bg-primary/20 absolute bottom-0 inset-x-0 overflow-hidden">
-        <div className="h-full bg-primary w-1/4 animate-progress-indefinite" />
-      </div>}
-    </Card>
+      <div className="flex-1 min-w-0">
+        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{subtitle}</span>
+        <h4 className="text-lg font-black uppercase italic leading-none">{title}</h4>
+        {disabled && lockedText && <p className="text-[8px] font-bold text-destructive uppercase mt-1">{lockedText}</p>}
+      </div>
+    </div>
   );
 }

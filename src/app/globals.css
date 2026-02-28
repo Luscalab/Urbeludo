@@ -24,14 +24,22 @@
     --border: 120 20% 90%;
     --input: 120 20% 90%;
     --ring: 126 50% 40%;
-    --radius: 1rem;
-    --chart-1: 126 50% 40%;
-    --chart-2: 85 80% 55%;
+    --radius: 1.5rem;
   }
 
   .dark {
     --background: 120 20% 5%;
     --foreground: 120 10% 95%;
+  }
+
+  /* Mobile-first resets */
+  * {
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+
+  input, textarea {
+    user-select: text;
   }
 }
 
@@ -50,6 +58,10 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground font-body;
+    @apply bg-background text-foreground font-body touch-none;
+  }
+  /* Permite scroll apenas em elementos específicos */
+  .overflow-y-auto {
+    @apply touch-pan-y;
   }
 }
