@@ -1,8 +1,8 @@
-
 'use client';
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -60,6 +60,7 @@ export function PlaygroundInterface() {
   const { user } = useUser();
   const { toast } = useToast();
   const { t } = useI18n();
+  const router = useRouter();
   const videoRef = useRef<HTMLVideoElement>(null);
   const trailCanvasRef = useRef<HTMLCanvasElement>(null);
   
@@ -92,13 +93,20 @@ export function PlaygroundInterface() {
 
   useEffect(() => {
     if (profile) {
+      if (profile.displayName && !showTutorialCheck()) {
+        setShowGuide(false);
+      }
       setExplorerName(profile.displayName || '');
       setAgeGroup(profile.ageGroup || 'adolescent_adult');
       setAvatarColor(profile.dominantColor || '#9333ea');
     }
   }, [profile]);
 
-  // Load TensorFlow Model Dynamically to avoid build errors
+  const showTutorialCheck = () => {
+    return profile && !profile.hasSeenTutorial;
+  };
+
+  // Load TensorFlow Model Dynamically
   useEffect(() => {
     async function loadModel() {
       setIsModelLoading(true);
@@ -173,18 +181,6 @@ export function PlaygroundInterface() {
                   }
                 }
               });
-            }
-
-            if (selectedCategory === 'Motor' && activeChallenge) {
-               const leftAnkle = pose.keypoints.find((kp: any) => kp.name === 'left_ankle');
-               const rightAnkle = pose.keypoints.find((kp: any) => kp.name === 'right_ankle');
-               
-               if (leftAnkle && rightAnkle && leftAnkle.score! > 0.5 && rightAnkle.score! > 0.5) {
-                 const diff = Math.abs(leftAnkle.y - rightAnkle.y);
-                 if (diff > 50 && activeChallenge.challengeType === 'balance') {
-                   // Feedback visual de sucesso no passo
-                 }
-               }
             }
           }
         } catch (e) {
@@ -279,13 +275,14 @@ export function PlaygroundInterface() {
         displayName: explorerName,
         ageGroup, 
         dominantColor: avatarColor,
+        hasSeenTutorial: false, // Forçar tutorial ao redirecionar
         avatar: {
           ...profile?.avatar,
           equippedItems: [AVATAR_OPTIONS[selectedAvatarIdx]]
         }
       });
     }
-    setShowGuide(false);
+    router.push('/studio');
   };
 
   const handleStartMission = async (type: 'home' | 'street') => {

@@ -14,6 +14,7 @@ export const translations = {
       error: 'Erro',
       success: 'Sucesso',
       settings: 'Configurações',
+      skip: 'Pular',
     },
     home: {
       heroTitle: 'Mova sua alma na cidade',
@@ -104,6 +105,13 @@ export const translations = {
       vestiario: 'Vestiário',
       decoracao: 'Decoração',
       auras: 'Auras',
+    },
+    tutorial: {
+      step1: 'Olá, {name}! Este é o seu Estúdio UrbeLudo. Ele está um pouco vazio agora, mas é aqui que sua jornada de movimento começa!',
+      step2: 'Aqui, o seu suor vale ouro. Complete desafios de psicomotricidade para ganhar LudoCoins e decorar seu espaço.',
+      step3: 'Clique no Playground para começar! Lá, usaremos sua câmera e IA local para transformar seus movimentos em arte e prêmios.',
+      step4: 'Sempre que tiver moedas, venha aqui. Você pode comprar móveis, mudar sua Aura e tornar este lugar a sua cara!',
+      gotIt: 'Entendi!',
     }
   },
   en: {
@@ -119,6 +127,7 @@ export const translations = {
       error: 'Error',
       success: 'Success',
       settings: 'Settings',
+      skip: 'Skip',
     },
     home: {
       heroTitle: 'Move your soul in the city',
@@ -171,6 +180,13 @@ export const translations = {
       accessibility: 'Accessibility & Sounds',
       syncPlayground: 'Create Identity & Play',
       chooseMission: 'Mission of the Day',
+    },
+    tutorial: {
+      step1: 'Hello, {name}! This is your UrbeLudo Studio. It is a bit empty now, but this is where your movement journey begins!',
+      step2: 'Here, your sweat is worth gold. Complete psychomotor challenges to earn LudoCoins and decorate your space.',
+      step3: 'Click on Playground to start! There, we will use your camera and local AI to turn your movements into art and prizes.',
+      step4: 'Whenever you have coins, come here. You can buy furniture, change your Aura, and make this place your own!',
+      gotIt: 'Got it!',
     }
   },
   es: {
@@ -186,6 +202,7 @@ export const translations = {
       error: 'Error',
       success: 'Éxito',
       settings: 'Ajustes',
+      skip: 'Omitir',
     },
     home: {
       heroTitle: 'Mueve tu alma en la ciudad',
@@ -210,7 +227,7 @@ export const translations = {
     },
     auth: {
       nameLabel: 'Nombre del Explorador',
-      termsAccept: 'Acepto los Térmos de Uso y la Política de Privacidad Local.',
+      termsAccept: 'Acepto los Térmos de Uso e la Política de Privacidad Local.',
       termsTitle: 'Compromiso de Seguridad',
     },
     playground: {
@@ -218,6 +235,13 @@ export const translations = {
       accessibility: 'Accesibilidad y Sonidos',
       syncPlayground: 'Crear Identidad y Jugar',
       chooseMission: 'Misión del Día',
+    },
+    tutorial: {
+      step1: '¡Hola, {name}! Este es tu Estudio UrbeLudo. Está un poco vacío ahora, ¡pero aquí es donde comienza tu viaje de movimiento!',
+      step2: 'Aquí, tu sudor vale oro. Completa desafíos de psicomotricidad para ganar LudoCoins y decorar tu espacio.',
+      step3: '¡Haz clic en Playground para comenzar! Allí, usaremos tu cámara e IA local para transformar tus movimientos en arte y premios.',
+      step4: 'Cuando tengas monedas, ven aquí. ¡Puedes comprar muebles, cambiar tu Aura y hacer que este lugar sea tuyo!',
+      gotIt: '¡Entendido!',
     }
   }
 };

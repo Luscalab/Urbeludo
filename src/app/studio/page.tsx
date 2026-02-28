@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { FurniturePiece } from '@/components/studio/FurniturePiece';
 import { ShopDrawer } from '@/components/studio/ShopDrawer';
+import { TutorialOverlay } from '@/components/studio/TutorialOverlay';
 import { useStudio } from '@/hooks/use-studio';
 import { useUser, useDoc, useMemoFirebase } from '@/firebase';
 import { 
@@ -13,7 +14,8 @@ import {
   Check, 
   Smartphone,
   Sparkles,
-  Zap
+  Zap,
+  Coins
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UrbeLudoLogo } from '@/components/UrbeLudoLogo';
@@ -23,9 +25,16 @@ export default function StudioPage() {
   const { user } = useUser();
   const { studioState, updateItemPosition, addItem, removeItem } = useStudio();
   const [isEditing, setIsEditing] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
   
   const userProgressRef = useMemoFirebase(() => user ? { id: user.uid, path: `user_progress/${user.uid}` } : null, [user]);
-  const { data: profile } = useDoc(userProgressRef);
+  const { data: profile, isLoading } = useDoc(userProgressRef);
+
+  useEffect(() => {
+    if (profile && !profile.hasSeenTutorial) {
+      setShowTutorial(true);
+    }
+  }, [profile]);
 
   // Observador de Itens Ativos (Gatilho Pedagógico)
   const activeItemsCount = useMemo(() => {
@@ -35,10 +44,22 @@ export default function StudioPage() {
     }).length;
   }, [studioState.placedItems]);
 
+  const avatarUrl = profile?.avatar?.equippedItems?.[0] || 'https://picsum.photos/seed/ludo/400';
+
   return (
     <div className="min-h-screen bg-background overflow-hidden flex flex-col relative">
       <div className="absolute inset-0 bg-mesh-purple opacity-30 pointer-events-none" />
       
+      <AnimatePresence>
+        {showTutorial && profile && (
+          <TutorialOverlay 
+            userName={profile.displayName}
+            avatarUrl={avatarUrl}
+            onComplete={() => setShowTutorial(false)}
+          />
+        )}
+      </AnimatePresence>
+
       <header className="px-6 h-20 flex items-center justify-between border-b bg-background/60 backdrop-blur-xl z-[100]">
         <Link href="/dashboard" className="p-2 bg-white rounded-full shadow-sm">
           <ArrowLeft className="w-5 h-5 text-primary" />
@@ -47,13 +68,19 @@ export default function StudioPage() {
           <UrbeLudoLogo className="w-8 h-8 text-primary" />
           <span className="text-sm font-black uppercase italic tracking-tighter">Meu Estúdio</span>
         </div>
-        <Button 
-          variant={isEditing ? "default" : "outline"} 
-          onClick={() => setIsEditing(!isEditing)}
-          className="rounded-2xl font-black uppercase text-[10px] gap-2 shadow-sm"
-        >
-          {isEditing ? <><Check className="w-4 h-4" /> Pronto</> : <><Edit3 className="w-4 h-4" /> Editar</>}
-        </Button>
+        <div className="flex items-center gap-3">
+          <div id="coin-counter" className="bg-primary/10 px-3 py-1.5 rounded-xl flex items-center gap-2 border border-primary/20">
+            <Coins className="w-3 h-3 text-yellow-600" />
+            <span className="text-xs font-black">{profile?.ludoCoins || 0}</span>
+          </div>
+          <Button 
+            variant={isEditing ? "default" : "outline"} 
+            onClick={() => setIsEditing(!isEditing)}
+            className="rounded-2xl font-black uppercase text-[10px] gap-2 shadow-sm"
+          >
+            {isEditing ? <><Check className="w-4 h-4" /> Pronto</> : <><Edit3 className="w-4 h-4" /> Editar</>}
+          </Button>
+        </div>
       </header>
 
       <main className="flex-1 relative p-4 flex items-center justify-center">
@@ -89,7 +116,7 @@ export default function StudioPage() {
             <div className="relative">
               <div className="w-32 h-32 rounded-[3.5rem] overflow-hidden border-4 border-primary shadow-2xl bg-muted">
                 <img 
-                  src={profile?.avatar?.equippedItems?.[0] || 'https://picsum.photos/seed/ludo/400'} 
+                  src={avatarUrl} 
                   alt="Avatar" 
                   className="w-full h-full object-cover"
                 />
@@ -144,10 +171,17 @@ export default function StudioPage() {
       </main>
 
       <div className="fixed bottom-10 right-8 flex flex-col gap-4 z-[120]">
-        <ShopDrawer onBuy={addItem} unlockedItemIds={studioState.unlockedItemIds} />
+        <Button id="btn-play" asChild className="rounded-full h-16 w-16 shadow-2xl bg-accent hover:scale-110 transition-transform border-b-4 border-accent/80">
+          <Link href="/playground">
+            <Zap className="w-7 h-7 text-white" />
+          </Link>
+        </Button>
+        <div id="btn-shop">
+          <ShopDrawer onBuy={addItem} unlockedItemIds={studioState.unlockedItemIds} />
+        </div>
       </div>
 
-      {!studioState.placedItems.length && !isEditing && (
+      {!studioState.placedItems.length && !isEditing && !showTutorial && !isLoading && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-md z-[200] flex items-center justify-center p-8">
           <motion.div 
             initial={{ scale: 0.9, opacity: 0 }}
