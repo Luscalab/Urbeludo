@@ -99,7 +99,7 @@ export function PlaygroundInterface() {
       }
       const stream = await navigator.mediaDevices.getUserMedia({ 
         video: { 
-          facingMode: mode,
+          facingMode: { ideal: mode },
           width: { ideal: 1280 },
           height: { ideal: 720 }
         } 
@@ -109,7 +109,7 @@ export function PlaygroundInterface() {
         videoRef.current.srcObject = stream;
         videoRef.current.onloadedmetadata = () => {
           videoRef.current?.play().catch(e => console.error("Erro ao reproduzir vídeo:", e));
-          setTimeout(() => setIsInitializingCamera(false), 800);
+          setTimeout(() => setIsInitializingCamera(false), 1000);
         };
       }
     } catch (error) {
@@ -174,8 +174,12 @@ export function PlaygroundInterface() {
     if (!videoRef.current || isInitializingCamera) return;
     
     const video = videoRef.current;
+    if (video.videoWidth === 0) {
+      toast({ title: "Câmera Iniciando", description: "Aguarde um momento para capturar." });
+      return;
+    }
+
     const brightness = checkBrightness(video);
-    
     if (brightness < 60) {
       setIsLowLight(true);
       const lowLightMsg = "Ambiente muito escuro. Vá para um local mais iluminado para o scan facial.";
@@ -210,10 +214,11 @@ export function PlaygroundInterface() {
         description: "Seu rosto foi transformado em traços artísticos. Dados originais descartados." 
       });
       
-      setTimeout(() => setCameraMode('environment'), 2000);
+      // Permanecemos na câmera frontal para eles verem o avatar.
+      // O switch para traseira só ocorre ao iniciar missão de rua.
     } catch (e) {
       console.error("Erro no scan:", e);
-      setCameraMode('environment');
+      toast({ variant: 'destructive', title: "Erro no Scan", description: "Não foi possível analisar o rosto. Tente novamente." });
     } finally {
       setIsAvatarizing(false);
     }
@@ -230,6 +235,8 @@ export function PlaygroundInterface() {
     }
     setSetupStep(0);
     setShowGuide(false);
+    // Garantimos que ao fechar o guia a câmera frontal esteja ativa para o scan
+    setCameraMode('user');
   };
 
   const handleStartMission = async (type: 'home' | 'street') => {
@@ -238,9 +245,20 @@ export function PlaygroundInterface() {
       toast({ variant: 'destructive', title: 'Energia Baixa', description: 'Descanse seu avatar para continuar.' });
       return;
     }
+
+    // Se for missão de rua, mudamos a câmera para a traseira
+    if (type === 'street') {
+      setCameraMode('environment');
+    } else {
+      setCameraMode('user');
+    }
+
     setIsScanning(true);
     try {
       let detected: string[] = [];
+      // Pequeno delay para a câmera trocar se necessário
+      await new Promise(r => setTimeout(r, 1500));
+
       if (type === 'street' && videoRef.current && videoRef.current.videoWidth > 0) {
         const canvas = document.createElement('canvas');
         canvas.width = videoRef.current.videoWidth;
@@ -249,6 +267,7 @@ export function PlaygroundInterface() {
         const result = await identifyUrbanElements({ webcamFeedDataUri: canvas.toDataURL('image/jpeg') });
         detected = result.elements.map(e => `${e.type}: ${e.description}`);
       }
+
       const challenge = await proposeDynamicChallenges({
         missionType: type,
         category: selectedCategory,
@@ -290,19 +309,24 @@ export function PlaygroundInterface() {
         ctx.clip();
         ctx.fillStyle = safeAvatar?.dominantColor || '#33993D';
         ctx.fillRect(centerX - radius, centerY - radius, radius * 2, radius * 2);
-        ctx.strokeStyle = 'white';
-        ctx.lineWidth = 4;
+        
+        // Desenha uma borda neon
+        ctx.strokeStyle = 'rgba(153, 230, 48, 0.8)';
+        ctx.lineWidth = 6;
         ctx.stroke();
         ctx.restore();
 
-        ctx.fillStyle = 'rgba(0,0,0,0.8)';
-        ctx.fillRect(0, canvas.height - 60, canvas.width, 60);
+        ctx.fillStyle = 'rgba(0,0,0,0.85)';
+        ctx.fillRect(0, canvas.height - 80, canvas.width, 80);
+        ctx.fillStyle = '#99E630';
+        ctx.font = 'black 12px Inter';
+        ctx.textAlign = 'center';
+        ctx.fillText('IDENTIDADE PROTEGIDA • IA DE BORDA URBELUDO', canvas.width / 2, canvas.height - 45);
         ctx.fillStyle = 'white';
         ctx.font = 'bold 10px Inter';
-        ctx.textAlign = 'center';
-        ctx.fillText('IDENTIDADE PROTEGIDA • PROCESSAMENTO LOCAL • URBELUDO', canvas.width / 2, canvas.height - 35);
+        ctx.fillText('OS DADOS BIOMÉTRICOS FORAM DESCARTADOS APÓS O PROCESSAMENTO', canvas.width / 2, canvas.height - 25);
 
-        setPhotoProof(canvas.toDataURL('image/jpeg'));
+        setPhotoProof(canvas.toDataURL('image/jpeg', 0.85));
       }
       setIsCapturing(false);
     }
@@ -348,6 +372,8 @@ export function PlaygroundInterface() {
       setCelebrating(false); 
       setActiveChallenge(null);
       setPhotoProof(null);
+      // Ao terminar, voltamos para a câmera de selfie
+      setCameraMode('user');
     }, 4000);
   };
 
@@ -362,9 +388,9 @@ export function PlaygroundInterface() {
               <Info className="w-10 h-10" />
             </div>
             <div className="space-y-4">
-              <h2 className="text-3xl font-black uppercase italic tracking-tighter leading-none">Bem-vindo</h2>
+              <h2 className="text-3xl font-black uppercase italic tracking-tighter leading-none">Configuração Ludo</h2>
               <p className="text-xs font-medium text-muted-foreground max-w-xs mx-auto leading-relaxed">
-                Vamos configurar sua acessibilidade e perfil para uma experiência segura.
+                Ajuste sua experiência para um playground inclusivo e seguro.
               </p>
             </div>
             <div className="grid gap-3 w-full max-w-xs">
@@ -387,10 +413,10 @@ export function PlaygroundInterface() {
           </>
         ) : (
           <div className="w-full max-w-xs space-y-6 text-left animate-in slide-in-from-right-4">
-            <h2 className="text-xl font-black uppercase italic leading-none mb-6">Seu Perfil</h2>
+            <h2 className="text-xl font-black uppercase italic leading-none mb-6">Perfil Inclusivo</h2>
             <div className="space-y-4">
               <div className="space-y-1">
-                <Label className="text-[10px] font-black uppercase text-muted-foreground">Idade</Label>
+                <Label className="text-[10px] font-black uppercase text-muted-foreground">Faixa Etária</Label>
                 <Select value={ageGroup} onValueChange={setAgeGroup}>
                   <SelectTrigger className="rounded-xl h-12"><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -402,15 +428,15 @@ export function PlaygroundInterface() {
               </div>
               <div className="space-y-1">
                 <Label className="text-[10px] font-black uppercase text-muted-foreground">Neurodivergência</Label>
-                <Input placeholder="Ex: TDAH, Autismo..." value={neurodivergence} onChange={(e) => setNeurodivergence(e.target.value)} className="rounded-xl h-12" />
+                <Input placeholder="Ex: TDAH, TEA, nada..." value={neurodivergence} onChange={(e) => setNeurodivergence(e.target.value)} className="rounded-xl h-12" />
               </div>
               <div className="space-y-1">
-                <Label className="text-[10px] font-black uppercase text-muted-foreground">Limitações Físicas</Label>
-                <Input placeholder="Ex: Joelho, Coluna..." value={physicalLimitations} onChange={(e) => setPhysicalLimitations(e.target.value)} className="rounded-xl h-12" />
+                <Label className="text-[10px] font-black uppercase text-muted-foreground">Restrições Motoras</Label>
+                <Input placeholder="Ex: Joelho, cadeira de rodas..." value={physicalLimitations} onChange={(e) => setPhysicalLimitations(e.target.value)} className="rounded-xl h-12" />
               </div>
             </div>
             <div className="pt-4 flex gap-3">
-               <Button onClick={handleSaveProfile} className="flex-1 h-14 rounded-2xl font-black uppercase bg-primary">Prosseguir</Button>
+               <Button onClick={handleSaveProfile} className="flex-1 h-14 rounded-2xl font-black uppercase bg-primary">Entrar no Studio</Button>
             </div>
           </div>
         )}
@@ -424,34 +450,44 @@ export function PlaygroundInterface() {
         {isInitializingCamera && (
           <div className="absolute inset-0 z-50 bg-black flex flex-col items-center justify-center gap-4 text-white">
              <Loader2 className="w-8 h-8 animate-spin text-primary" />
-             <span className="text-[10px] font-black uppercase tracking-widest">Iniciando Sensor...</span>
+             <span className="text-[10px] font-black uppercase tracking-widest">Ajustando Sensores...</span>
           </div>
         )}
         
         <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
         <canvas ref={canvasRef} className="hidden" />
 
-        {isLowLight && (
-          <div className="absolute inset-0 z-40 bg-black/60 flex flex-col items-center justify-center text-center p-6 animate-pulse">
-            <Sun className="w-12 h-12 text-destructive mb-3" />
-            <h3 className="text-white font-black uppercase italic text-sm">Luz Insuficiente</h3>
-            <p className="text-white/70 text-[8px] font-bold uppercase mt-1">Vá para um local mais iluminado</p>
+        {/* Overlay de Scan do Rosto (quando no modo user e sem avatar) */}
+        {cameraMode === 'user' && !safeAvatar && !isInitializingCamera && (
+          <div className="absolute inset-0 z-10 pointer-events-none flex items-center justify-center">
+            <div className="w-64 h-80 border-4 border-dashed border-primary/40 rounded-[4rem] relative">
+              <div className="absolute inset-0 bg-primary/5 rounded-[4rem]" />
+              <div className="absolute -top-10 inset-x-0 text-center text-primary font-black text-[10px] uppercase">Posicione seu rosto aqui</div>
+            </div>
           </div>
         )}
 
-        {safeAvatar && (
+        {isLowLight && (
+          <div className="absolute inset-0 z-40 bg-black/70 flex flex-col items-center justify-center text-center p-6 animate-pulse">
+            <Sun className="w-12 h-12 text-destructive mb-3" />
+            <h3 className="text-white font-black uppercase italic text-sm">Luz Insuficiente</h3>
+            <p className="text-white/70 text-[8px] font-bold uppercase mt-1">O Scan Facial requer mais claridade</p>
+          </div>
+        )}
+
+        {safeAvatar && cameraMode === 'user' && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
              <div 
                className={cn(
                  "w-48 h-48 rounded-full border-4 border-white/50 shadow-2xl flex items-center justify-center overflow-hidden transition-all duration-700",
                  isBreathingActivity ? "animate-breathing-avatar" : "animate-pulse"
                )}
-               style={{ backgroundColor: safeAvatar.dominantColor }}
+               style={{ backgroundColor: safeAvatar.dominantColor || '#33993D' }}
              >
                 <div className="text-white text-center p-4">
-                   <div className="text-[8px] font-black uppercase tracking-tighter mb-1">{safeAvatar.accessoryType}</div>
-                   <div className="text-[6px] font-bold uppercase opacity-60">ID Seguro Ativo</div>
-                   {safeAvatar.hair && <div className="text-[5px] uppercase mt-1 opacity-40">{safeAvatar.hair.style} • {safeAvatar.hair.color}</div>}
+                   <div className="text-[10px] font-black uppercase tracking-tighter mb-1">{safeAvatar.accessoryType}</div>
+                   <div className="text-[7px] font-bold uppercase opacity-60">Avatar Ativo</div>
+                   {safeAvatar.hair && <div className="text-[6px] uppercase mt-1 opacity-50">{safeAvatar.hair.style} • {safeAvatar.hair.color}</div>}
                 </div>
              </div>
           </div>
@@ -460,12 +496,12 @@ export function PlaygroundInterface() {
         {isLibrasEnabled && (activeChallenge || isLowLight) && (
           <div className="absolute bottom-4 right-4 w-20 h-20 bg-black/60 backdrop-blur-md rounded-2xl border border-primary/40 flex flex-col items-center justify-center z-30 animate-pulse">
              <Hand className="w-8 h-8 text-primary" />
-             <span className="text-[7px] font-black text-white uppercase mt-1 tracking-widest">Acessibilidade</span>
+             <span className="text-[7px] font-black text-white uppercase mt-1 tracking-widest">Libras Ativa</span>
           </div>
         )}
 
         {photoProof && (
-          <div className="absolute inset-0 bg-black/90 flex flex-col items-center justify-center p-6 z-40 animate-in fade-in zoom-in-95">
+          <div className="absolute inset-0 bg-black/95 flex flex-col items-center justify-center p-6 z-40 animate-in fade-in zoom-in-95">
              <div className="relative max-w-full">
                <img src={photoProof} className="max-h-[70vh] rounded-2xl border-2 border-primary/50 shadow-2xl" alt="Prova" />
                <Button variant="destructive" size="icon" className="absolute -top-4 -right-4 rounded-full" onClick={() => setPhotoProof(null)}><RefreshCw className="w-5 h-5" /></Button>
@@ -477,16 +513,16 @@ export function PlaygroundInterface() {
       <div className="flex-1 -mt-8 bg-background rounded-t-[3rem] p-6 shadow-[0_-10px_30px_rgba(0,0,0,0.1)] overflow-y-auto space-y-6 z-20">
         
         {!safeAvatar && (
-          <div className="p-6 bg-primary/5 rounded-[2.5rem] border-2 border-dashed border-primary/10 text-center space-y-4">
+          <div className="p-6 bg-primary/5 rounded-[2.5rem] border-2 border-dashed border-primary/20 text-center space-y-4">
              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto text-primary"><Scan className="w-8 h-8" /></div>
              <div className="space-y-1">
                 <h3 className="text-xl font-black uppercase italic">Scan de Privacidade</h3>
-                <p className="text-[9px] font-medium text-muted-foreground leading-relaxed max-w-[220px] mx-auto">
-                  Sua foto será convertida em uma base de dados de traços artísticos. O original será deletado instantaneamente.
+                <p className="text-[9px] font-medium text-muted-foreground leading-relaxed max-w-[240px] mx-auto">
+                  Sua face será "bordada" em traços artísticos. O dado biométrico original é deletado na hora.
                 </p>
              </div>
-             <Button onClick={handleFaceScan} disabled={isAvatarizing} className="w-full h-14 rounded-2xl font-black uppercase tracking-widest bg-primary shadow-lg">
-               {isAvatarizing ? <Loader2 className="animate-spin" /> : "Gerar Avatar Seguro"}
+             <Button onClick={handleFaceScan} disabled={isAvatarizing || isInitializingCamera} className="w-full h-14 rounded-2xl font-black uppercase tracking-widest bg-primary shadow-lg">
+               {isAvatarizing ? <Loader2 className="animate-spin" /> : "Gerar Identidade Segura"}
              </Button>
           </div>
         )}
@@ -509,7 +545,7 @@ export function PlaygroundInterface() {
         {activeChallenge && (
           <div className="bg-primary/5 rounded-[2.5rem] p-6 space-y-6 animate-in slide-in-from-bottom-6">
             <div className="flex justify-between items-center">
-              <Badge className="bg-accent text-accent-foreground font-black text-[8px] uppercase">Dificuldade: {activeChallenge.difficulty}</Badge>
+              <Badge className="bg-accent text-accent-foreground font-black text-[8px] uppercase">Dif: {activeChallenge.difficulty}</Badge>
               <div className="flex items-center gap-1 font-black text-primary text-sm"><Coins className="w-4 h-4 text-yellow-500" /> {activeChallenge.ludoCoinsReward}</div>
             </div>
             <h3 className="text-xl font-black uppercase italic leading-none">{activeChallenge.challengeTitle}</h3>
@@ -526,13 +562,13 @@ export function PlaygroundInterface() {
             </div>
             <div className="pt-2">
               {currentStep < activeChallenge.steps.length - 1 ? (
-                <Button onClick={() => setCurrentStep(prev => prev + 1)} className="w-full h-14 rounded-2xl font-black uppercase bg-primary">Próximo Passo</Button>
+                <Button onClick={() => setCurrentStep(prev => prev + 1)} className="w-full h-14 rounded-2xl font-black uppercase bg-primary">Avançar</Button>
               ) : !photoProof ? (
                 <Button onClick={takePhotoWithAvatarOverlay} disabled={isCapturing} className="w-full h-16 rounded-[2rem] font-black uppercase bg-accent text-accent-foreground flex items-center justify-center gap-2">
-                  <Camera className="w-6 h-6" /> Comprovar Missão
+                  <Camera className="w-6 h-6" /> Registrar Prova
                 </Button>
               ) : (
-                <Button onClick={completeMission} className="w-full h-16 rounded-[2rem] font-black uppercase bg-primary text-white animate-bounce">Concluir Agora</Button>
+                <Button onClick={completeMission} className="w-full h-16 rounded-[2rem] font-black uppercase bg-primary text-white animate-bounce">Concluir Missão</Button>
               )}
             </div>
           </div>
