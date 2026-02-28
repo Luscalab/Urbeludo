@@ -1,7 +1,6 @@
-
 /**
  * Catálogo Central de Avatares do UrbeLudo.
- * Sincronizado com os nomes de arquivos identificados no seu sistema (1.png, 2.png...).
+ * Sincronizado com os nomes de arquivos simplificados (1.png, 2.png...).
  */
 export interface AvatarAsset {
   id: string;
