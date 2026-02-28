@@ -25,10 +25,13 @@ import {
   Zap,
   Brain,
   Wind,
-  Info
+  Info,
+  UserCheck,
+  Scan
 } from 'lucide-react';
 import { proposeDynamicChallenges, type ProposeDynamicChallengesOutput } from '@/ai/flows/propose-dynamic-challenges';
 import { identifyUrbanElements } from '@/ai/flows/identify-urban-elements-flow';
+import { avatarizeUser, type AvatarizeUserOutput } from '@/ai/flows/avatarize-user-flow';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, collection } from 'firebase/firestore';
 import { setDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
@@ -53,24 +56,72 @@ export function PlaygroundInterface() {
   const [celebrating, setCelebrating] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<CategoryType>('motor');
+  
+  const [isAvatarizing, setIsAvatarizing] = useState(false);
+  const [safeAvatar, setSafeAvatar] = useState<AvatarizeUserOutput | null>(null);
+  const [cameraMode, setCameraMode] = useState<'user' | 'environment'>('environment');
 
   const userProgressRef = useMemoFirebase(() => user ? doc(db, 'user_progress', user.uid) : null, [db, user]);
   const { data: profile, isLoading: isProfileLoading } = useDoc(userProgressRef);
 
+  const startCamera = async (mode: 'user' | 'environment') => {
+    try {
+      if (videoRef.current?.srcObject) {
+        (videoRef.current.srcObject as MediaStream).getTracks().forEach(track => track.stop());
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          facingMode: mode,
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        } 
+      });
+      setHasCameraPermission(true);
+      if (videoRef.current) videoRef.current.srcObject = stream;
+    } catch (error) {
+      console.error("Erro ao acessar câmera:", error);
+      setHasCameraPermission(false);
+    }
+  };
+
   useEffect(() => {
-    const getCameraPermission = async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-          video: { facingMode: 'environment' } 
-        });
-        setHasCameraPermission(true);
-        if (videoRef.current) videoRef.current.srcObject = stream;
-      } catch (error) {
-        setHasCameraPermission(false);
+    startCamera(cameraMode);
+    return () => {
+      if (videoRef.current?.srcObject) {
+        (videoRef.current.srcObject as MediaStream).getTracks().forEach(track => track.stop());
       }
     };
-    getCameraPermission();
-  }, []);
+  }, [cameraMode]);
+
+  const handleFaceScan = async () => {
+    if (!videoRef.current) return;
+    setIsAvatarizing(true);
+    setCameraMode('user');
+    
+    // Pequeno delay para garantir que a câmera frontal ligou
+    setTimeout(async () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = videoRef.current!.videoWidth;
+        canvas.height = videoRef.current!.videoHeight;
+        canvas.getContext('2d')?.drawImage(videoRef.current!, 0, 0);
+        const photo = canvas.toDataURL('image/jpeg');
+        
+        const result = await avatarizeUser({ photoDataUri: photo });
+        setSafeAvatar(result);
+        setCameraMode('environment');
+        toast({ 
+          title: "Avatar Seguro Gerado", 
+          description: "Sua foto original foi descartada por segurança." 
+        });
+      } catch (e) {
+        toast({ variant: 'destructive', title: "Erro no Scan", description: "Tente novamente." });
+        setCameraMode('environment');
+      } finally {
+        setIsAvatarizing(false);
+      }
+    }, 1000);
+  };
 
   const handleStartMission = async (type: 'home' | 'street') => {
     if ((profile?.avatar?.energy ?? 100) < 15) {
@@ -106,7 +157,7 @@ export function PlaygroundInterface() {
     }
   };
 
-  const takePhotoWithBlur = () => {
+  const takePhotoWithAvatarOverlay = () => {
     if (videoRef.current && canvasRef.current) {
       setIsCapturing(true);
       const video = videoRef.current;
@@ -117,26 +168,41 @@ export function PlaygroundInterface() {
       
       if (ctx) {
         ctx.drawImage(video, 0, 0);
-        ctx.save();
-        ctx.beginPath();
+        
+        // Simulação de Filtro de Avatar na região do rosto
         const centerX = canvas.width / 2;
         const centerY = canvas.height * 0.4;
-        const radius = Math.min(canvas.width, canvas.height) * 0.25;
+        const radius = Math.min(canvas.width, canvas.height) * 0.22;
+
+        // Desenha a máscara do avatar (lúdico)
+        ctx.save();
+        ctx.beginPath();
         ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
         ctx.clip();
-        ctx.filter = 'blur(40px)';
-        ctx.drawImage(video, 0, 0);
+        
+        // Cor base do avatar gerado pela IA
+        ctx.fillStyle = safeAvatar?.dominantColor || '#33993D';
+        ctx.fillRect(centerX - radius, centerY - radius, radius * 2, radius * 2);
+        
+        // Detalhes lúdicos
+        ctx.strokeStyle = 'white';
+        ctx.lineWidth = 4;
+        ctx.strokeRect(centerX - radius/2, centerY - radius/4, radius, radius/8); // Visor simulado
+        
         ctx.restore();
 
-        ctx.fillStyle = 'rgba(0,0,0,0.5)';
-        ctx.fillRect(0, canvas.height - 40, canvas.width, 40);
+        // Overlay de Privacidade
+        ctx.fillStyle = 'rgba(0,0,0,0.7)';
+        ctx.fillRect(0, canvas.height - 50, canvas.width, 50);
         ctx.fillStyle = 'white';
-        ctx.font = '12px Inter, sans-serif';
+        ctx.font = 'bold 10px Inter';
         ctx.textAlign = 'center';
-        ctx.fillText('IDENTIDADE PROTEGIDA POR IA DE BORDA - URBELUDO', canvas.width / 2, canvas.height - 15);
+        ctx.fillText('IDENTIDADE PROTEGIDA: AVATAR SEGURO ATIVO', canvas.width / 2, canvas.height - 28);
+        ctx.font = '8px Inter';
+        ctx.fillText('Dados biométricos descartados após processamento local.', canvas.width / 2, canvas.height - 12);
 
         setPhotoProof(canvas.toDataURL('image/jpeg'));
-        toast({ title: "Privacidade Garantida", description: "Seu rosto foi desfocado automaticamente." });
+        toast({ title: "Privacidade Garantida", description: "Seu rosto foi transformado em um avatar seguro." });
       }
       setIsCapturing(false);
     }
@@ -240,18 +306,23 @@ export function PlaygroundInterface() {
         <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
         <canvas ref={canvasRef} className="hidden" />
         
-        {activeChallenge && currentStep === activeChallenge.steps.length - 1 && !photoProof && (
+        {/* Filtro de Avatar Dinâmico Simulado */}
+        {safeAvatar && !photoProof && (
           <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-             <div className="w-48 h-48 rounded-full border-2 border-dashed border-accent/50 backdrop-blur-3xl bg-white/5 animate-pulse flex flex-col items-center justify-center text-white/50 text-[8px] font-black text-center px-4">
-                <EyeOff className="w-4 h-4 mb-1" />
-                PRIVACIDADE ATIVA:<br/>ROSTO BORRADO
+             <div 
+               className="w-44 h-44 rounded-full border-4 border-white/50 shadow-2xl animate-pulse flex flex-col items-center justify-center text-white text-center p-4"
+               style={{ backgroundColor: `${safeAvatar.dominantColor}99`, backdropFilter: 'blur(10px)' }}
+             >
+                <div className="bg-white/20 w-32 h-6 rounded-full border border-white/40 mb-2" />
+                <span className="text-[10px] font-black uppercase tracking-widest leading-none">Avatar Ativo</span>
+                <span className="text-[8px] font-bold opacity-80 uppercase">{safeAvatar.accessoryType}</span>
              </div>
           </div>
         )}
 
         {photoProof && (
           <div className="absolute inset-0 bg-black/60 flex items-center justify-center p-4 z-10">
-             <img src={photoProof} className="max-h-full rounded-2xl border-4 border-white/20" alt="Proof" />
+             <img src={photoProof} className="max-h-full rounded-2xl border-4 border-white/20 shadow-2xl" alt="Proof" />
              <Button variant="destructive" size="icon" className="absolute top-4 right-4 rounded-full" onClick={() => setPhotoProof(null)}><RefreshCw className="w-4 h-4" /></Button>
           </div>
         )}
@@ -261,6 +332,12 @@ export function PlaygroundInterface() {
               <ShieldCheck className="w-3 h-3 text-green-400" />
               <span className="text-[8px] font-black uppercase tracking-tighter">Privacidade de Borda</span>
            </Badge>
+           {safeAvatar && (
+             <Badge className="bg-primary/80 text-white border-none gap-2">
+               <UserCheck className="w-3 h-3" />
+               <span className="text-[8px] font-black uppercase">Seguro</span>
+             </Badge>
+           )}
         </div>
       </div>
 
@@ -276,7 +353,24 @@ export function PlaygroundInterface() {
           </Alert>
         )}
 
-        {!activeChallenge && (
+        {!safeAvatar && hasCameraPermission && (
+          <div className="p-6 bg-accent/5 rounded-[2.5rem] border-2 border-dashed border-accent/20 text-center space-y-4 animate-in zoom-in-95">
+             <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mx-auto text-accent">
+                <Scan className="w-8 h-8" />
+             </div>
+             <div className="space-y-1">
+                <h3 className="text-xl font-black uppercase italic tracking-tighter">Scan de Identidade</h3>
+                <p className="text-[10px] font-medium text-muted-foreground leading-relaxed">
+                  Crie seu Avatar Seguro. Sua foto real é usada apenas para gerar o estilo e é <span className="text-primary font-bold">descartada imediatamente</span>.
+                </p>
+             </div>
+             <Button onClick={handleFaceScan} disabled={isAvatarizing} className="w-full h-14 rounded-2xl font-black uppercase bg-accent text-accent-foreground">
+               {isAvatarizing ? <Loader2 className="animate-spin" /> : "Iniciar Scan Seguro"}
+             </Button>
+          </div>
+        )}
+
+        {safeAvatar && !activeChallenge && (
           <div className="space-y-4">
              <div className="flex flex-wrap gap-2 mb-2">
                 <CategoryButton active={selectedCategory === 'artistic'} onClick={() => setSelectedCategory('artistic')} icon={<Palette className="w-3 h-3" />} label="Artístico" />
@@ -327,13 +421,13 @@ export function PlaygroundInterface() {
                 <div className="space-y-4">
                   <div className="bg-accent/10 border border-accent/20 p-4 rounded-3xl space-y-2">
                      <p className="text-[9px] font-black uppercase text-accent-foreground flex items-center gap-2">
-                        <ShieldCheck className="w-4 h-4" /> Segurança UrbeLudo
+                        <ShieldCheck className="w-4 h-4" /> Segurança de Borda
                      </p>
                      <p className="text-[9px] font-medium leading-tight text-muted-foreground italic">
-                        "Seu rosto é borrado automaticamente por segurança. O processamento é local."
+                        "Seu rosto foi mapeado e agora é protegido por um avatar dinâmico. Dados descartados localmente."
                      </p>
                   </div>
-                  <Button onClick={takePhotoWithBlur} disabled={isCapturing} className="w-full h-16 rounded-2xl font-black uppercase bg-accent text-accent-foreground shadow-lg border-b-4 border-accent-foreground/10 active:border-b-0 active:translate-y-1 transition-all">
+                  <Button onClick={takePhotoWithAvatarOverlay} disabled={isCapturing} className="w-full h-16 rounded-2xl font-black uppercase bg-accent text-accent-foreground shadow-lg border-b-4 border-accent-foreground/10 active:border-b-0 active:translate-y-1 transition-all">
                     {isCapturing ? <Loader2 className="w-6 h-6 animate-spin" /> : <Camera className="w-6 h-6 mr-3" />} 
                     Capturar Prova Segura
                   </Button>
