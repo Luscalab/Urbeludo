@@ -37,6 +37,7 @@ export function StudioItem({ data, onUpdate, onStore, onSell, isEditing, auraCol
           const x = info.point.x - rect.left;
           const y = info.point.y - rect.top;
           
+          // Snap-to-Grid Magnético (Habbo Style)
           const snappedX = Math.round(x / GRID_SIZE) * GRID_SIZE;
           const snappedY = Math.round(y / GRID_SIZE) * GRID_SIZE;
           
@@ -75,7 +76,7 @@ export function StudioItem({ data, onUpdate, onStore, onSell, isEditing, auraCol
       }}
     >
       <div className="relative group">
-        {/* Visual do Móvel PNG com Transparência */}
+        {/* Renderização do PNG Isométrico */}
         <div 
           className="relative flex items-center justify-center"
           style={{ 
@@ -90,7 +91,7 @@ export function StudioItem({ data, onUpdate, onStore, onSell, isEditing, auraCol
           />
         </div>
 
-        {/* Menu de Ações Flutuante */}
+        {/* Menu de Ação com Efeito Poof */}
         <AnimatePresence>
           {isEditing && isSelected && (
             <motion.div 

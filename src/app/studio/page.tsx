@@ -19,7 +19,8 @@ import {
   Zap,
   Coins,
   Sparkles,
-  ShoppingBag
+  ShoppingBag,
+  Navigation as LucideNavigationIcon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -58,8 +59,8 @@ export default function StudioPage() {
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
       
-      // Limite para caminhar apenas no chão
-      if (y > 480) {
+      // Limite para caminhar apenas no chão (área abaixo da parede em V)
+      if (y > 450) {
         updateAvatarPosition(x, y);
       }
     }
@@ -147,7 +148,7 @@ export default function StudioPage() {
             </div>
             <div className="flex-1 relative overflow-hidden" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 85%, 0 100%)' }}>
                <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:20px_20px]" />
-               {/* Janela Isométrica */}
+               {/* Janela Isométrica Inclinada */}
                <div className="absolute top-20 left-20 w-32 h-44 bg-blue-50/20 rounded-t-[2rem] border-8 border-white/40 shadow-2xl backdrop-blur-md rotate-[-5deg] skew-y-[10deg] overflow-hidden">
                   <div className="absolute inset-0 bg-gradient-to-tr from-blue-400/20 to-transparent" />
                   <div className="w-full h-2 bg-white/30 absolute top-1/2" />
@@ -157,7 +158,7 @@ export default function StudioPage() {
           </div>
 
           {/* RODAPÉ EM V (RODAPÉ ARQUITETÔNICO) */}
-          <div className="relative z-10 w-full h-8 flex">
+          <div className="relative z-10 w-full h-8 flex -mt-4">
              <div className="flex-1 bg-white shadow-sm border-b-2 border-zinc-200" style={{ clipPath: 'polygon(0 0, 100% 100%, 100% 100%, 0 100%)' }} />
              <div className="flex-1 bg-white shadow-sm border-b-2 border-zinc-200" style={{ clipPath: 'polygon(0 100%, 0 100%, 100% 0, 100% 100%)' }} />
           </div>
@@ -188,7 +189,7 @@ export default function StudioPage() {
             </AnimatePresence>
           </div>
 
-          {/* Avatar de Corpo Inteiro */}
+          {/* Avatar de Corpo Inteiro Isométrico */}
           <motion.div 
             id="studio-avatar"
             animate={{ 
@@ -233,7 +234,7 @@ export default function StudioPage() {
               className="bg-black/80 text-white text-[10px] font-black uppercase px-6 py-3 rounded-full flex items-center gap-3 backdrop-blur-md border border-white/10 shadow-2xl"
             >
               {mode === 'explore' ? (
-                <><LucideNavigation className="w-4 h-4 text-accent rotate-45" /> Toque no chão para caminhar</>
+                <><LucideNavigationIcon className="w-4 h-4 text-accent rotate-45" /> Toque no chão para caminhar</>
               ) : (
                 <><Smartphone className="w-4 h-4 text-primary animate-bounce" /> Clique no item para gerenciar</>
               )}
@@ -269,8 +270,4 @@ export default function StudioPage() {
       />
     </div>
   );
-}
-
-function LucideNavigation(props: any) {
-  return <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-navigation"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>;
 }
