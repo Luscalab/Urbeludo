@@ -72,6 +72,8 @@ export const translations = {
       motor: 'Motor',
       mind: 'Mente',
       zen: 'Zen',
+      drawingActive: 'Grafite Motor Ativo',
+      rhythmActive: 'Sinfonia Ativa',
     },
     dashboard: {
       studioTitle: 'Estúdio Ludo',
@@ -150,6 +152,16 @@ export const translations = {
       toggleLogin: 'Already have an account? Log in',
       toggleSignUp: 'Don\'t have an account? Sign up',
       edgeAi: 'Edge AI: Biometrics discarded locally',
+    },
+    playground: {
+      art: 'Art',
+      motor: 'Motor',
+      mind: 'Mind',
+      zen: 'Zen',
+      homeMission: 'Home Mission',
+      streetMission: 'Street Mission',
+      drawingActive: 'Motor Graffiti Active',
+      rhythmActive: 'Symphony Active',
     }
   },
   es: {

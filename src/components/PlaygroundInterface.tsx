@@ -24,7 +24,8 @@ import {
   ZapOff,
   Sparkles,
   Palette as PaletteIcon,
-  ChevronLeft
+  ChevronLeft,
+  Music
 } from 'lucide-react';
 import { proposeDynamicChallenges, type ProposeDynamicChallengesOutput } from '@/ai/flows/propose-dynamic-challenges';
 import { identifyUrbanElements } from '@/ai/flows/identify-urban-elements-flow';
@@ -43,18 +44,19 @@ export function PlaygroundInterface() {
   const { toast } = useToast();
   const { t } = useI18n();
   const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const trailCanvasRef = useRef<HTMLCanvasElement>(null);
   
   const [showGuide, setShowGuide] = useState(true);
   const [isInitializingCamera, setIsInitializingCamera] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [activeChallenge, setActiveChallenge] = useState<ProposeDynamicChallengesOutput & { missionType?: 'home' | 'street' } | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
-  const [photoProof, setPhotoProof] = useState<string | null>(null);
   const [celebrating, setCelebrating] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<CategoryType>('motor');
   
   const [cameraMode, setCameraMode] = useState<'user' | 'environment'>('user');
-  const [isAudioEnabled, setIsAudioEnabled] = useState(false);
+  const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [isLibrasEnabled, setIsLibrasEnabled] = useState(false);
   const [isLowLight, setIsLowLight] = useState(false);
 
@@ -64,46 +66,94 @@ export function PlaygroundInterface() {
   const userProgressRef = useMemoFirebase(() => user ? doc(db, 'user_progress', user.uid) : null, [db, user]);
   const { data: profile } = useDoc(userProgressRef);
 
-  useEffect(() => {
-    if (profile) {
-      setAgeGroup(profile.ageGroup || 'adolescent_adult');
-      setAvatarColor(profile.dominantColor || '#9333ea');
-    }
-  }, [profile]);
-
+  // Motor de "Rastros de Tinta" e Diferenciação de Quadros
   useEffect(() => {
     let animationId: number;
+    let lastFrame: ImageData | null = null;
 
-    const checkLighting = () => {
-      if (videoRef.current && videoRef.current.readyState === 4) {
-        const video = videoRef.current;
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = 40; 
-        tempCanvas.height = 30;
-        const ctx = tempCanvas.getContext('2d', { willReadFrequently: true });
-        
-        if (ctx) {
-          ctx.drawImage(video, 0, 0, 40, 30);
-          const pixels = ctx.getImageData(0, 0, 40, 30).data;
-          let brightnessSum = 0;
+    const processFrames = () => {
+      if (!videoRef.current || !canvasRef.current || !trailCanvasRef.current || showGuide) {
+        animationId = requestAnimationFrame(processFrames);
+        return;
+      }
 
-          for (let i = 0; i < pixels.length; i += 4) {
-            brightnessSum += (pixels[i] + pixels[i+1] + pixels[i+2]) / 3;
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      const trailCanvas = trailCanvasRef.current;
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      const trailCtx = trailCanvas.getContext('2d');
+
+      if (video.readyState === 4 && ctx && trailCtx) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        trailCanvas.width = video.videoWidth;
+        trailCanvas.height = video.videoHeight;
+
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const currentFrame = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+        if (lastFrame && activeChallenge?.category === 'artistic') {
+          let movementX = 0;
+          let movementY = 0;
+          let pixelCount = 0;
+
+          for (let i = 0; i < currentFrame.data.length; i += 40) { // Amostragem para performance
+            const diff = Math.abs(currentFrame.data[i] - lastFrame.data[i]);
+            if (diff > 40) {
+              const x = (i / 4) % canvas.width;
+              const y = Math.floor((i / 4) / canvas.width);
+              movementX += x;
+              movementY += y;
+              pixelCount++;
+            }
           }
 
-          const avgBrightness = brightnessSum / (pixels.length / 4);
-          setIsLowLight(avgBrightness < 40);
+          if (pixelCount > 50) {
+            const centerX = movementX / pixelCount;
+            const centerY = movementY / pixelCount;
+
+            trailCtx.beginPath();
+            trailCtx.arc(centerX, centerY, 15, 0, Math.PI * 2);
+            trailCtx.fillStyle = avatarColor;
+            trailCtx.globalAlpha = 0.4;
+            trailCtx.fill();
+            
+            // "Eco Urbano": Som sutil baseado no movimento
+            if (isAudioEnabled && pixelCount % 100 === 0) {
+               playBeep(200 + (centerX / canvas.width) * 400);
+            }
+          }
         }
+        lastFrame = currentFrame;
+
+        // Detecção de baixa luminosidade
+        let brightnessSum = 0;
+        for (let i = 0; i < currentFrame.data.length; i += 400) {
+          brightnessSum += (currentFrame.data[i] + currentFrame.data[i+1] + currentFrame.data[i+2]) / 3;
+        }
+        setIsLowLight((brightnessSum / (currentFrame.data.length / 400)) < 40);
       }
-      animationId = requestAnimationFrame(checkLighting);
+      animationId = requestAnimationFrame(processFrames);
     };
 
-    if (!showGuide) {
-      checkLighting();
-    }
-
+    processFrames();
     return () => cancelAnimationFrame(animationId);
-  }, [showGuide]);
+  }, [showGuide, activeChallenge, avatarColor, isAudioEnabled]);
+
+  const playBeep = (freq: number) => {
+    try {
+      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.1);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.1);
+    } catch (e) {}
+  };
 
   const startCamera = async (mode: 'user' | 'environment') => {
     setIsInitializingCamera(true);
@@ -167,6 +217,13 @@ export function PlaygroundInterface() {
 
     setCameraMode(type === 'street' ? 'environment' : 'user');
     setIsScanning(true);
+    
+    // Limpar rastro anterior
+    if (trailCanvasRef.current) {
+      const trailCtx = trailCanvasRef.current.getContext('2d');
+      trailCtx?.clearRect(0, 0, trailCanvasRef.current.width, trailCanvasRef.current.height);
+    }
+
     try {
       let detected: string[] = [];
       if (type === 'street' && videoRef.current) {
@@ -199,6 +256,7 @@ export function PlaygroundInterface() {
   const completeMission = () => {
     if (!activeChallenge || !user || !userProgressRef) return;
     const missionType = activeChallenge.missionType || 'home';
+    
     const activityData = {
       userProgressId: user.uid,
       userName: profile?.displayName || "Explorador",
@@ -208,7 +266,7 @@ export function PlaygroundInterface() {
       missionType,
       challengeTitle: activeChallenge.challengeTitle,
       challengeDescription: activeChallenge.challengeDescription,
-      photoUrl: photoProof,
+      photoUrl: '', // Prova visual não armazenada por privacidade
       likes: 0,
       isPublic: false
     };
@@ -233,6 +291,8 @@ export function PlaygroundInterface() {
       {/* Viewport Mobile 2026 */}
       <div className="relative w-full aspect-[3/4] bg-zinc-950 overflow-hidden shadow-inner z-0 border-b border-primary/10">
         <video ref={videoRef} className="w-full h-full object-cover opacity-80" autoPlay muted playsInline />
+        <canvas ref={canvasRef} className="hidden" />
+        <canvas ref={trailCanvasRef} className="absolute inset-0 z-10 w-full h-full pointer-events-none" />
         
         {/* HUD de Scan Ativo */}
         <AnimatePresence>
@@ -254,6 +314,14 @@ export function PlaygroundInterface() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* HUD de Modo Ativo */}
+        {activeChallenge?.category === 'artistic' && (
+          <div className="absolute top-4 left-4 z-30 flex items-center gap-2 bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 animate-pulse">
+            <PaletteIcon className="w-4 h-4 text-accent" />
+            <span className="text-[9px] font-black uppercase text-white tracking-widest">{t('playground.drawingActive')}</span>
+          </div>
+        )}
 
         <AnimatePresence>
           {isLowLight && !showGuide && (
@@ -299,7 +367,7 @@ export function PlaygroundInterface() {
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <AcessibilityToggle active={isAudioEnabled} onClick={() => setIsAudioEnabled(!isAudioEnabled)} icon={<Volume2 />} label="Áudio" />
+                <AcessibilityToggle active={isAudioEnabled} onClick={() => setIsAudioEnabled(!isAudioEnabled)} icon={<Music />} label="Sinfonia" />
                 <AcessibilityToggle active={isLibrasEnabled} onClick={() => setIsLibrasEnabled(!isLibrasEnabled)} icon={<Hand />} label="Libras" />
               </div>
 
