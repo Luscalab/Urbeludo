@@ -22,9 +22,11 @@ import {
   Sparkles,
   ShoppingBag,
   Navigation as NavIconIcon,
-  Wand2
+  Wand2,
+  Maximize2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { cn } from '@/lib/utils';
 
 export default function StudioPage() {
   const { user } = useUser();
@@ -63,8 +65,8 @@ export default function StudioPage() {
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
       
-      // Limita movimento apenas na área do chão (parte inferior do cenário)
-      if (y > 450) {
+      // Limita movimento apenas na área do chão
+      if (y > 480) {
         updateAvatarPosition(x, y);
       }
     }
@@ -91,75 +93,81 @@ export default function StudioPage() {
         )}
       </AnimatePresence>
 
-      <header className="px-6 h-20 flex items-center justify-between bg-background/80 backdrop-blur-xl z-[150] border-b border-white/5">
-        <Link href="/dashboard" className="p-2 bg-white rounded-full shadow-sm shrink-0">
-          <ArrowLeft className="w-5 h-5 text-primary" />
+      <header className="px-6 h-24 flex items-center justify-between bg-white/95 backdrop-blur-2xl z-[150] border-b-4 border-primary/5">
+        <Link href="/dashboard" className="p-3 bg-zinc-100 rounded-full shadow-sm shrink-0 hover:bg-white transition-colors">
+          <ArrowLeft className="w-6 h-6 text-primary" />
         </Link>
         
-        <div className="flex items-center gap-3">
-          <div id="coin-counter" className="bg-primary/10 px-4 py-2 rounded-2xl flex items-center gap-2 border border-primary/20 shadow-inner">
-            <Coins className="w-4 h-4 text-yellow-600" />
-            <span className="text-sm font-black">{isSapient ? '∞' : (profile?.ludoCoins || 0)}</span>
+        <div className="flex items-center gap-4">
+          <div id="coin-counter" className="bg-primary/5 px-6 py-3 rounded-3xl flex items-center gap-3 border-2 border-primary/10 shadow-inner">
+            <Coins className="w-5 h-5 text-yellow-600" />
+            <span className="text-lg font-black tracking-tight">{isSapient ? '∞' : (profile?.ludoCoins || 0)}</span>
           </div>
 
           <Button 
             variant="outline"
             onClick={() => setIsGeneratorOpen(true)}
-            className="rounded-2xl font-black uppercase text-[10px] gap-2 shadow-sm h-11 border-primary/20 text-primary"
+            className="rounded-3xl font-black uppercase text-[10px] gap-2 shadow-md h-14 px-6 border-primary/20 text-primary hover:bg-primary/5"
           >
-            <Wand2 className="w-4 h-4" /> IA
+            <Wand2 className="w-5 h-5" /> ARQUITETO IA
           </Button>
           
           <Button 
             variant={mode === 'edit' ? "default" : "outline"} 
             onClick={() => setMode(mode === 'explore' ? 'edit' : 'explore')}
-            className="rounded-2xl font-black uppercase text-[10px] gap-2 shadow-sm h-11"
+            className={cn(
+              "rounded-3xl font-black uppercase text-[10px] gap-2 shadow-md h-14 px-8 transition-all",
+              mode === 'edit' ? "bg-primary text-white scale-105" : "bg-white text-primary border-primary/20"
+            )}
           >
-            {mode === 'edit' ? <><Check className="w-4 h-4" /> Pronto</> : <><Edit3 className="w-4 h-4" /> Decorar</>}
+            {mode === 'edit' ? <><Check className="w-5 h-5" /> PRONTO</> : <><Edit3 className="w-5 h-5" /> DECORAR</>}
           </Button>
         </div>
       </header>
 
       <main 
         ref={viewportRef}
-        className="flex-1 relative overflow-hidden bg-zinc-900 cursor-crosshair"
+        className="flex-1 relative overflow-hidden bg-[#111] cursor-crosshair"
       >
         <motion.div
           id="studio-world"
           drag={mode === 'explore'}
           dragConstraints={viewportRef}
           onTap={handleFloorClick}
-          className="w-[1200px] h-[1200px] relative bg-white flex flex-col shadow-[0_0_100px_rgba(0,0,0,0.5)]"
-          initial={{ x: -400, y: -200 }} 
+          className="w-[1500px] h-[1500px] relative bg-white flex flex-col shadow-[0_0_200px_rgba(0,0,0,0.8)]"
+          initial={{ x: -500, y: -300 }} 
         >
-          {/* Paredes 2.5D */}
+          {/* Paredes Isométricas 2026 */}
           <div className="relative w-full h-[40%] flex" style={{ 
-            background: `linear-gradient(to bottom, ${auraColor}20, ${auraColor}40)` 
+            background: `linear-gradient(135deg, ${auraColor}15, ${auraColor}30)` 
           }}>
-            <div className="flex-1 border-r border-white/20 relative overflow-hidden bg-muted/20" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 100%, 0 88%)' }}>
-               <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:24px_24px]" />
+            <div className="flex-1 border-r-8 border-white/20 relative overflow-hidden bg-muted/20" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 100%, 0 92%)' }}>
+               <div className="absolute inset-0 opacity-5 bg-[radial-gradient(#000_2px,transparent_2px)] [background-size:40px_40px]" />
+               <div className="absolute bottom-10 left-10 w-40 h-80 bg-white/5 blur-3xl rounded-full" />
             </div>
-            <div className="flex-1 relative overflow-hidden bg-muted/20" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 88%, 0 100%)' }}>
-               <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:24px_24px]" />
+            <div className="flex-1 relative overflow-hidden bg-muted/20" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 92%, 0 100%)' }}>
+               <div className="absolute inset-0 opacity-5 bg-[radial-gradient(#000_2px,transparent_2px)] [background-size:40px_40px]" />
+               <div className="absolute bottom-10 right-10 w-40 h-80 bg-white/5 blur-3xl rounded-full" />
             </div>
           </div>
 
-          {/* Rodapé da Parede */}
-          <div className="relative z-10 w-full h-8 flex -mt-4">
-             <div className="flex-1 bg-white shadow-lg border-b-4 border-zinc-200" style={{ clipPath: 'polygon(0 0, 100% 100%, 100% 100%, 0 100%)' }} />
-             <div className="flex-1 bg-white shadow-lg border-b-4 border-zinc-200" style={{ clipPath: 'polygon(0 100%, 0 100%, 100% 0, 100% 100%)' }} />
+          {/* Rodapé e Transição */}
+          <div className="relative z-10 w-full h-12 flex -mt-6">
+             <div className="flex-1 bg-white shadow-xl border-b-8 border-zinc-200" style={{ clipPath: 'polygon(0 0, 100% 100%, 100% 100%, 0 100%)' }} />
+             <div className="flex-1 bg-white shadow-xl border-b-8 border-zinc-200" style={{ clipPath: 'polygon(0 100%, 0 100%, 100% 0, 100% 100%)' }} />
           </div>
 
-          {/* Chão Isométrico */}
-          <div className="relative w-full h-[60%] bg-[#F5F2EC] overflow-hidden">
-            <div className="absolute inset-0 opacity-15" style={{ 
-               backgroundImage: `linear-gradient(45deg, #000 1px, transparent 1px), linear-gradient(-45deg, #000 1px, transparent 1px)`,
-               backgroundSize: '80px 80px',
+          {/* Chão com Grid de Neon Suave */}
+          <div className="relative w-full h-[60%] bg-[#FAF9F6] overflow-hidden">
+            <div className="absolute inset-0 opacity-10" style={{ 
+               backgroundImage: `linear-gradient(45deg, ${auraColor} 1px, transparent 1px), linear-gradient(-45deg, ${auraColor} 1px, transparent 1px)`,
+               backgroundSize: '100px 100px',
                backgroundPosition: 'center'
             }} />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent,rgba(0,0,0,0.05))]" />
           </div>
 
-          {/* Itens e Mobília */}
+          {/* Itens e Mobília com Depth Sorting */}
           <div className="absolute inset-0 z-20 pointer-events-none">
             <AnimatePresence>
               {studioState.placedItems.map(item => (
@@ -176,71 +184,75 @@ export default function StudioPage() {
             </AnimatePresence>
           </div>
 
-          {/* Avatar do Usuário */}
+          {/* Avatar com Shadow Projection */}
           <motion.div 
             id="studio-avatar"
             animate={{ 
               x: avatarPos.x - 64, 
-              y: avatarPos.y - 140
+              y: avatarPos.y - 160
             }}
-            transition={{ type: "spring", stiffness: 60, damping: 22 }}
-            className="absolute z-[100] pointer-events-none"
+            transition={{ type: "spring", stiffness: 80, damping: 25 }}
+            className="absolute z-[200] pointer-events-none"
           >
             <div className="relative">
-              <div className="w-32 h-48 flex items-center justify-center">
+              {/* Sombra de pé */}
+              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-24 h-8 bg-black/20 blur-xl rounded-full -z-10" />
+              
+              <div className="w-32 h-56 flex items-center justify-center">
                 <img 
                   src={avatarSrc} 
-                  alt="Avatar" 
-                  className="w-full h-full object-contain drop-shadow-[0_25px_25px_rgba(0,0,0,0.4)]"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.src = '/assets/avatars/1.png'; // Fallback total
-                  }}
+                  alt="Hero" 
+                  className="w-full h-full object-contain drop-shadow-[0_40px_40px_rgba(0,0,0,0.5)]"
+                  onError={(e) => { (e.target as HTMLImageElement).src = '/assets/avatars/1.png'; }}
                 />
               </div>
             </div>
-            <div className="absolute -bottom-4 inset-x-0 flex justify-center">
-              <span className="bg-primary/95 backdrop-blur-xl text-white text-[9px] font-black uppercase px-5 py-2 rounded-full shadow-2xl border border-white/20 tracking-widest">
+            <div className="absolute -bottom-8 inset-x-0 flex justify-center">
+              <span className="bg-white/95 backdrop-blur-xl text-primary text-[10px] font-black uppercase px-6 py-2.5 rounded-full shadow-2xl border-2 border-primary/5 tracking-[0.2em] whitespace-nowrap">
                 {profile?.displayName || 'Explorador'}
               </span>
             </div>
           </motion.div>
         </motion.div>
 
-        {/* HUD de Controle Inferior */}
-        <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-[110] pointer-events-none">
+        {/* HUD de Controle sims-style Inferior */}
+        <div className="absolute bottom-28 left-1/2 -translate-x-1/2 z-[110] pointer-events-none">
           <AnimatePresence mode="wait">
             <motion.div 
               key={mode}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="bg-black/90 text-white text-[11px] font-black uppercase px-8 py-4 rounded-full flex items-center gap-4 backdrop-blur-xl border border-white/10 shadow-2xl"
+              exit={{ opacity: 0, y: -30 }}
+              className="bg-zinc-900/90 text-white text-[12px] font-black uppercase px-10 py-5 rounded-[2.5rem] flex items-center gap-5 backdrop-blur-2xl border border-white/10 shadow-[0_30px_60px_rgba(0,0,0,0.4)]"
             >
               {mode === 'explore' ? (
-                <><NavIconIcon className="w-5 h-5 text-accent rotate-45" /> Toque no chão para caminhar</>
+                <><NavIconIcon className="w-6 h-6 text-accent rotate-45" /> Toque no chão para caminhar</>
               ) : (
-                <><Smartphone className="w-5 h-5 text-primary animate-bounce" /> Arraste para decorar</>
+                <><Smartphone className="w-6 h-6 text-primary animate-bounce" /> Arraste itens para decorar</>
               )}
             </motion.div>
           </AnimatePresence>
         </div>
       </main>
 
-      {/* Botões de Ação Flutuantes */}
-      <div className="fixed bottom-10 right-10 flex flex-col gap-6 z-[120]">
-        <Button id="btn-play" asChild className="rounded-full h-18 w-18 shadow-2xl bg-accent hover:scale-110 active:scale-90 transition-transform border-b-6 border-accent/80">
-          <Link href="/playground">
-            <Zap className="w-8 h-8 text-white" />
-          </Link>
-        </Button>
-        <button 
+      {/* Botões de Ação Dinâmicos */}
+      <div className="fixed bottom-12 right-12 flex flex-col gap-8 z-[120]">
+        <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+          <Button id="btn-play" asChild className="rounded-full h-20 w-20 shadow-[0_25px_50px_rgba(255,0,255,0.2)] bg-accent hover:bg-accent/90 border-b-8 border-accent/70 transition-all">
+            <Link href="/playground">
+              <Zap className="w-10 h-10 text-white" />
+            </Link>
+          </Button>
+        </motion.div>
+        
+        <motion.button 
+          whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
           id="btn-shop" 
           onClick={() => setIsShopOpen(true)}
-          className="rounded-full h-18 w-18 shadow-2xl bg-primary text-white flex items-center justify-center hover:scale-110 active:scale-90 transition-transform border-b-6 border-primary/80"
+          className="rounded-full h-20 w-20 shadow-[0_25px_50px_rgba(147,51,234,0.2)] bg-primary text-white flex items-center justify-center border-b-8 border-primary/70 transition-all"
         >
-          <ShoppingBag className="w-8 h-8" />
-        </button>
+          <ShoppingBag className="w-10 h-10" />
+        </motion.button>
       </div>
 
       <ShopDrawer 

@@ -35,17 +35,15 @@ export function ShopDrawer({
   const [activeTab, setActiveTab] = useState<string>("Todos");
 
   const categories = [
-    { id: "Todos", icon: <Package className="w-4 h-4" /> },
-    { id: "Essencial", icon: <Home className="w-4 h-4" /> },
-    { id: "Ativo", icon: <Zap className="w-4 h-4" /> },
-    { id: "Estético", icon: <ShoppingBag className="w-4 h-4" /> },
-    { id: "Especial", icon: <Star className="w-4 h-4" /> }
+    { id: "Todos", icon: <Package className="w-5 h-5" /> },
+    { id: "Essencial", icon: <Home className="w-5 h-5" /> },
+    { id: "Ativo", icon: <Zap className="w-5 h-5" /> },
+    { id: "Estético", icon: <ShoppingBag className="w-5 h-5" /> },
+    { id: "Especial", icon: <Star className="w-5 h-5" /> }
   ];
 
   const isSapient = userName?.toLowerCase() === 'sapient';
-
   const allAvailableItems = [...STUDIO_CATALOG, ...customItems];
-
   const filteredCatalog = activeTab === "Todos" 
     ? allAvailableItems 
     : allAvailableItems.filter(item => item.category === activeTab);
@@ -57,45 +55,47 @@ export function ShopDrawer({
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/70 z-[200] backdrop-blur-sm"
+            className="fixed inset-0 bg-black/80 z-[200] backdrop-blur-md"
           />
 
           <motion.div
             initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 h-[85vh] bg-background rounded-t-[4rem] z-[210] flex flex-col shadow-2xl border-t-8 border-primary"
+            transition={{ type: "spring", damping: 30, stiffness: 200 }}
+            className="fixed bottom-0 left-0 right-0 h-[90vh] bg-white rounded-t-[5rem] z-[210] flex flex-col shadow-[0_-50px_100px_rgba(0,0,0,0.5)] overflow-hidden"
           >
-            <div className="p-8 border-b flex justify-between items-start bg-primary/5 rounded-t-[4rem]">
-              <div className="space-y-1">
-                <h2 className="text-4xl font-black text-primary uppercase italic tracking-tighter">Ludo Studio Shop</h2>
-                <div className="bg-white px-6 py-2 rounded-2xl flex items-center gap-3 shadow-inner border border-primary/10">
-                  <Coins className="w-6 h-6 text-yellow-500" />
-                  <span className="text-xl font-black">{isSapient ? '∞' : userCoins} <span className="text-[10px] uppercase opacity-40">LudoCoins</span></span>
+            {/* Header Sims-Style */}
+            <div className="p-10 border-b-8 border-primary/5 flex justify-between items-center bg-zinc-50 rounded-t-[5rem]">
+              <div className="space-y-3">
+                <h2 className="text-5xl font-black text-primary uppercase italic tracking-tighter leading-none">LudoShop</h2>
+                <div className="bg-white px-8 py-3 rounded-[2rem] inline-flex items-center gap-4 shadow-xl border-4 border-primary/5">
+                  <Coins className="w-8 h-8 text-yellow-500" />
+                  <span className="text-3xl font-black tracking-tighter">{isSapient ? '∞' : userCoins} <span className="text-xs uppercase opacity-30">Moedas</span></span>
                 </div>
               </div>
-              <div className="flex gap-4">
-                <Button 
+              <div className="flex gap-6">
+                <button 
                   onClick={onOpenGenerator}
-                  className="h-14 px-8 rounded-2xl bg-primary text-white font-black uppercase tracking-widest gap-3 shadow-xl hover:scale-105 active:scale-95 transition-all"
+                  className="h-20 px-10 rounded-[2.5rem] bg-primary text-white font-black uppercase tracking-widest gap-4 shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center border-b-8 border-primary/70"
                 >
-                  <Wand2 className="w-5 h-5" /> Criar com IA
-                </Button>
-                <button onClick={onClose} className="p-4 bg-white text-primary rounded-3xl shadow-xl hover:scale-110 active:scale-95 transition-all">
-                  <X className="w-7 h-7" />
+                  <Wand2 className="w-7 h-7" /> ARQUITETO IA
+                </button>
+                <button onClick={onClose} className="p-6 bg-white text-primary rounded-[2.5rem] shadow-2xl hover:scale-110 active:scale-95 transition-all border-4 border-primary/5">
+                  <X className="w-8 h-8 stroke-[4]" />
                 </button>
               </div>
             </div>
 
-            <div className="flex gap-2 p-6 overflow-x-auto no-scrollbar border-b">
+            {/* Categorias Estilo Sims 2026 */}
+            <div className="flex gap-4 p-8 overflow-x-auto no-scrollbar bg-white border-b-4 border-primary/5 sticky top-0 z-30">
               {categories.map((cat) => (
                 <button
                   key={cat.id}
                   onClick={() => setActiveTab(cat.id)}
                   className={cn(
-                    "px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2",
+                    "px-10 py-5 rounded-full text-[11px] font-black uppercase tracking-widest transition-all flex items-center gap-3 shrink-0",
                     activeTab === cat.id 
-                      ? "bg-primary text-white shadow-xl scale-105" 
-                      : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                      ? "bg-primary text-white shadow-2xl scale-105" 
+                      : "bg-muted/30 text-muted-foreground hover:bg-muted/50"
                   )}
                 >
                   {cat.icon} {cat.id}
@@ -103,7 +103,8 @@ export function ShopDrawer({
               ))}
             </div>
 
-            <div className="flex-1 overflow-y-auto p-8 grid grid-cols-2 gap-6 pb-32 no-scrollbar">
+            {/* Grid de Itens */}
+            <div className="flex-1 overflow-y-auto p-10 grid grid-cols-2 md:grid-cols-3 gap-8 pb-40 no-scrollbar bg-zinc-50/50">
               {filteredCatalog.map((item) => {
                 const countInInventory = unlockedItemIds.filter(id => id === item.id).length;
                 const canAfford = isSapient || userCoins >= item.price;
@@ -112,40 +113,40 @@ export function ShopDrawer({
                 return (
                   <motion.div 
                     key={item.id}
-                    whileTap={{ scale: 0.98 }}
+                    whileTap={{ scale: 0.96 }}
                     className={cn(
-                      "bg-white rounded-[3rem] p-6 flex flex-col items-center border-4 transition-all relative group shadow-sm",
-                      isSpecial ? "border-accent/30 bg-accent/5" : "border-muted/10 hover:border-primary/30"
+                      "bg-white rounded-[4rem] p-8 flex flex-col items-center border-8 transition-all relative group shadow-lg",
+                      isSpecial ? "border-accent/30 shadow-accent/5" : "border-white hover:border-primary/20 shadow-primary/5"
                     )}
                   >
                     {countInInventory > 0 && (
-                      <div className="absolute top-4 left-4 bg-blue-600 text-white px-3 py-1 rounded-full text-[9px] font-black shadow-lg">
-                        Mochila: {countInInventory}
+                      <div className="absolute top-6 left-6 bg-blue-600 text-white px-5 py-2 rounded-full text-[10px] font-black shadow-2xl z-20">
+                        EM USO: {countInInventory}
                       </div>
                     )}
 
                     {item.isAiGenerated && (
-                      <div className="absolute top-4 right-4 bg-accent text-white p-2 rounded-full shadow-lg">
-                        <Sparkles className="w-3 h-3" />
+                      <div className="absolute top-6 right-6 bg-accent text-white p-3 rounded-2xl shadow-2xl z-20">
+                        <Sparkles className="w-5 h-5" />
                       </div>
                     )}
 
-                    <div className="w-28 h-28 mb-6 flex items-center justify-center bg-muted/20 rounded-[2.5rem] shadow-inner border-2 border-white overflow-hidden p-4">
-                       <img src={item.assetPath} alt={item.name} className="max-w-full max-h-full object-contain drop-shadow-xl group-hover:scale-110 transition-transform duration-500" />
+                    <div className="w-40 h-40 mb-8 flex items-center justify-center bg-muted/20 rounded-[3rem] shadow-inner border-4 border-white overflow-hidden p-6 relative">
+                       <img src={item.assetPath} alt={item.name} className="max-w-full max-h-full object-contain drop-shadow-2xl group-hover:scale-115 transition-transform duration-700" />
                     </div>
 
-                    <div className="text-center mb-6 space-y-1">
-                      <h3 className="text-[12px] font-black text-foreground uppercase italic tracking-tighter leading-none">{item.name}</h3>
-                      <p className="text-[8px] text-muted-foreground font-bold leading-tight px-4">{item.description}</p>
+                    <div className="text-center mb-8 space-y-2">
+                      <h3 className="text-lg font-black text-foreground uppercase italic tracking-tighter leading-none">{item.name}</h3>
+                      <p className="text-[10px] text-muted-foreground font-bold leading-tight px-6 opacity-60">{item.description}</p>
                     </div>
                     
-                    <div className="mt-auto w-full space-y-3">
+                    <div className="mt-auto w-full space-y-4">
                       {countInInventory > 0 && (
                         <button 
                           onClick={() => onPlaceItem(item.id)}
-                          className="w-full py-4 bg-green-500 text-white rounded-2xl text-[11px] font-black uppercase flex items-center justify-center gap-2 shadow-xl shadow-green-500/20 active:scale-95 border-b-4 border-green-700 active:border-b-0"
+                          className="w-full py-5 bg-green-500 text-white rounded-[2rem] text-[12px] font-black uppercase flex items-center justify-center gap-3 shadow-2xl shadow-green-500/20 active:scale-95 border-b-8 border-green-700 active:border-b-0"
                         >
-                          <Package className="w-4 h-4" /> Posicionar no Studio
+                          <Package className="w-5 h-5" /> POSICIONAR NO STUDIO
                         </button>
                       )}
                       
@@ -154,14 +155,14 @@ export function ShopDrawer({
                           disabled={!canAfford && !isSapient}
                           onClick={() => onBuyItem(item.id, isSapient ? 0 : item.price)}
                           className={cn(
-                            "w-full py-4 rounded-2xl text-[11px] font-black uppercase flex items-center justify-center gap-2 transition-all active:scale-95 border-b-4",
+                            "w-full py-5 rounded-[2rem] text-[12px] font-black uppercase flex items-center justify-center gap-3 transition-all active:scale-95 border-b-8",
                             (canAfford || isSapient) 
-                              ? "bg-primary text-white shadow-xl shadow-primary/20 border-primary-foreground/20 active:border-b-0" 
-                              : "bg-muted text-muted-foreground opacity-50 cursor-not-allowed border-transparent"
+                              ? "bg-primary text-white shadow-2xl shadow-primary/20 border-primary-foreground/20 active:border-b-0" 
+                              : "bg-muted text-muted-foreground opacity-40 cursor-not-allowed border-transparent"
                           )}
                         >
-                          {!canAfford && !isSapient && <Lock className="w-4 h-4" />}
-                          <Coins className="w-4 h-4" /> {isSapient ? 'GRÁTIS' : item.price}
+                          {!canAfford && !isSapient && <Lock className="w-5 h-5" />}
+                          <Coins className="w-5 h-5" /> {isSapient ? 'GRÁTIS' : item.price}
                         </button>
                       )}
                     </div>
