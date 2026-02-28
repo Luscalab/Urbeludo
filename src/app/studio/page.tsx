@@ -119,7 +119,7 @@ export default function StudioPage() {
           className="w-[1200px] h-[1200px] relative bg-white flex flex-col shadow-[0_0_100px_rgba(0,0,0,0.5)]"
           initial={{ x: -400, y: -200 }} 
         >
-          {/* Paredes Isométricas */}
+          {/* Paredes Isométricas em V */}
           <div className="relative w-full h-[40%] flex" style={{ 
             background: `linear-gradient(to bottom, ${auraColor}20, ${auraColor}40)` 
           }}>
