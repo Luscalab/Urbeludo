@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState } from 'react';
@@ -11,17 +10,15 @@ import { UrbeLudoLogo } from '@/components/UrbeLudoLogo';
 import { 
   ArrowLeft, 
   Coins, 
-  User as UserIcon, 
-  Dog, 
-  Home as FurnitureIcon, 
   Shirt, 
-  Ghost as HatIcon,
-  ShoppingBag,
-  Sparkles,
-  Check,
+  Home as HomeIcon, 
   Zap,
   Star,
-  Gamepad2
+  Gamepad2,
+  Lock,
+  Eye,
+  Check,
+  ShoppingBag
 } from 'lucide-react';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
@@ -32,359 +29,221 @@ import { cn } from '@/lib/utils';
 interface ShopItem {
   id: string;
   name: string;
-  breed?: string;
   price: number;
-  category: 'avatar' | 'pets' | 'furniture' | 'clothes' | 'hats';
+  category: 'vestiario' | 'decoracao' | 'aura';
   rarity: 'common' | 'rare' | 'epic' | 'legendary';
   description: string;
-  animationHint: string;
+  levelGate?: number; // Minimum psychomotor level required
+  challengeGate?: number; // Minimum total challenges required
   image: string;
 }
 
-const SHOP_ITEMS: ShopItem[] = [
-  // --- PETS ---
+const LUDO_SHOP_ITEMS: ShopItem[] = [
+  // --- VESTIÁRIO ---
   { 
-    id: 'cyber-husky', 
-    name: 'Cyber Husky', 
-    breed: 'Husky Siberiano',
-    price: 600, 
-    category: 'pets', 
-    rarity: 'epic',
-    description: 'Um pet de gelo digital que deixa rastros de neon por onde passa.', 
-    animationHint: 'Uiva frequências de som e corre em círculos digitais.',
-    image: 'https://picsum.photos/seed/husky/400' 
+    id: 'foundation-sneakers', 
+    name: 'Tênis de Alicerce', 
+    price: 0, 
+    category: 'vestiario', 
+    rarity: 'common',
+    description: 'O primeiro passo da sua jornada. Confortável e minimalista.',
+    image: 'https://picsum.photos/seed/sneakers1/400'
   },
   { 
-    id: 'neon-siamese', 
-    name: 'Gato Neon', 
-    breed: 'Siamês Quantum',
-    price: 450, 
-    category: 'pets', 
-    rarity: 'rare',
-    description: 'Elegante e furtivo, ele detecta bordas urbanas antes de você.', 
-    animationHint: 'Se espreguiça emitindo pulsos de luz azul.',
-    image: 'https://picsum.photos/seed/siamese/400' 
-  },
-  { 
-    id: 'gravity-turtle', 
-    name: 'Tartaruga Gravitacional', 
-    breed: 'Galápagos-Void',
-    price: 800, 
-    category: 'pets', 
-    rarity: 'legendary',
-    description: 'Flutua ao seu lado, ajudando no equilíbrio estático.', 
-    animationHint: 'Gira o casco lentamente criando um campo de gravidade zero.',
-    image: 'https://picsum.photos/seed/turtle/400' 
-  },
-  { 
-    id: 'techno-shiba', 
-    name: 'Techno Shiba', 
-    breed: 'Shiba Inu Digital',
+    id: 'neon-sneakers', 
+    name: 'Tênis Pulse Neon', 
     price: 350, 
-    category: 'pets', 
-    rarity: 'common',
-    description: 'Sempre animado para uma missão de rua.', 
-    animationHint: 'Abana o rabo de fibra óptica freneticamente.',
-    image: 'https://picsum.photos/seed/shiba/400' 
-  },
-
-  // --- CLOTHES (ROUPAS) ---
-  { 
-    id: 'kinetic-suit', 
-    name: 'Traje Cinético', 
-    price: 250, 
-    category: 'clothes', 
-    rarity: 'epic',
-    description: 'Roupa que brilha intensamente durante movimentos bruscos.', 
-    animationHint: 'As linhas de costura mudam de cor com seu batimento cardíaco.',
-    image: 'https://picsum.photos/seed/suit/400' 
-  },
-  { 
-    id: 'flow-cape', 
-    name: 'Capa Flow', 
-    price: 180, 
-    category: 'clothes', 
+    category: 'vestiario', 
     rarity: 'rare',
-    description: 'Uma capa semi-transparente que segue o fluxo do vento.', 
-    animationHint: 'Ondula suavemente mesmo em ambientes fechados.',
-    image: 'https://picsum.photos/seed/cape/400' 
+    description: 'Brilha em sincronia com seu movimento. Estilo Um Studio.',
+    challengeGate: 10,
+    image: 'https://picsum.photos/seed/sneakers-neon/400'
   },
   { 
-    id: 'rhythm-sneakers', 
-    name: 'Tênis Rítmico', 
-    price: 120, 
-    category: 'clothes', 
-    rarity: 'common',
-    description: 'Solado que deixa pegadas de luz no asfalto.', 
-    animationHint: 'Solta faíscas neon quando você pula.',
-    image: 'https://picsum.photos/seed/sneakers/400' 
+    id: 'rhythm-visor', 
+    name: 'Visor Rítmico', 
+    price: 800, 
+    category: 'vestiario', 
+    rarity: 'epic',
+    description: 'Exibe padrões de onda baseados na sua precisão motora.',
+    levelGate: 4,
+    image: 'https://picsum.photos/seed/visor/400'
   },
 
-  // --- HATS (CHAPÉUS) ---
+  // --- DECORAÇÃO ---
   { 
-    id: 'freq-visor', 
-    name: 'Visor de Frequência', 
-    price: 300, 
-    category: 'hats', 
-    rarity: 'epic',
-    description: 'Analisa elementos urbanos em tempo real nos seus olhos.', 
-    animationHint: 'Dados digitais descem pela lente como chuva de Matrix.',
-    image: 'https://picsum.photos/seed/visor/400' 
+    id: 'zen-rug', 
+    name: 'Tapete de Treino Zen', 
+    price: 200, 
+    category: 'decoracao', 
+    rarity: 'common',
+    description: 'Um tapete minimalista para suas missões de casa.',
+    image: 'https://picsum.photos/seed/rug/400'
   },
   { 
-    id: 'halo-crown', 
-    name: 'Coroa de Luz', 
+    id: 'cyber-chair', 
+    name: 'Poltrona Gravity', 
     price: 1200, 
-    category: 'hats', 
-    rarity: 'legendary',
-    description: 'O símbolo supremo de quem dominou o Nível 4: Ritmo.', 
-    animationHint: 'Gira sobre a cabeça emanando anéis de energia.',
-    image: 'https://picsum.photos/seed/halo/400' 
-  },
-
-  // --- FURNITURE (MÓVEIS) ---
-  { 
-    id: 'zen-cube', 
-    name: 'Cubo Zen', 
-    price: 500, 
-    category: 'furniture', 
-    rarity: 'rare',
-    description: 'Um puff flutuante para seu avatar meditar.', 
-    animationHint: 'Pulsa uma luz quente e sobe/desce suavemente.',
-    image: 'https://picsum.photos/seed/cube/400' 
-  },
-  { 
-    id: 'data-plant', 
-    name: 'Planta de Dados', 
-    price: 150, 
-    category: 'furniture', 
-    rarity: 'common',
-    description: 'Folhas que crescem conforme você completa desafios.', 
-    animationHint: 'As folhas balançam e brilham quando você entra na casa.',
-    image: 'https://picsum.photos/seed/plant/400' 
-  },
-
-  // --- AVATAR ---
-  { 
-    id: 'aura-pulsar', 
-    name: 'Aura Pulsar', 
-    price: 1500, 
-    category: 'avatar', 
-    rarity: 'legendary',
-    description: 'O efeito visual definitivo de energia vital.', 
-    animationHint: 'O avatar fica envolto em chamas de neon constantes.',
-    image: 'https://picsum.photos/seed/aura2/400' 
-  },
-  { 
-    id: 'glitch-skin', 
-    name: 'Pele Glitch', 
-    price: 900, 
-    category: 'avatar', 
+    category: 'decoracao', 
     rarity: 'epic',
-    description: 'Efeito de distorção digital para um visual cyberpunk.', 
-    animationHint: 'Partes do corpo desaparecem e reaparecem em milissegundos.',
-    image: 'https://picsum.photos/seed/glitch/400' 
+    description: 'Flutua 10cm acima do chão. O ápice do conforto digital.',
+    challengeGate: 25,
+    image: 'https://picsum.photos/seed/chair/400'
   },
-];
 
-const RARITY_COLORS = {
-  common: 'bg-slate-500',
-  rare: 'bg-blue-500',
-  epic: 'bg-purple-500',
-  legendary: 'bg-amber-500 animate-pulse',
-};
+  // --- AURA ---
+  { 
+    id: 'blue-precision-aura', 
+    name: 'Aura de Precisão Azul', 
+    price: 2500, 
+    category: 'aura', 
+    rarity: 'legendary',
+    description: 'Um rastro de luz azul que aparece quando você atinge o equilíbrio perfeito.',
+    levelGate: 3,
+    challengeGate: 50,
+    image: 'https://picsum.photos/seed/aura-blue/400'
+  }
+];
 
 export default function ShopPage() {
   const { user } = useUser();
   const db = useFirestore();
   const { toast } = useToast();
+  const [previewItem, setPreviewItem] = useState<ShopItem | null>(null);
   
   const userProgressRef = useMemoFirebase(() => user ? doc(db, 'user_progress', user.uid) : null, [db, user]);
   const { data: profile } = useDoc(userProgressRef);
 
   const ludoCoins = profile?.ludoCoins || 0;
   const unlockedItems = profile?.avatar?.unlockedItems || [];
+  const currentLevel = profile?.psychomotorLevel || 1;
+  const totalCompleted = profile?.totalChallengesCompleted || 0;
 
   const handleBuy = (item: ShopItem) => {
     if (ludoCoins < item.price) {
-      toast({ 
-        variant: 'destructive', 
-        title: 'Saldo Insuficiente', 
-        description: 'Mova-se mais para ganhar LudoCoins!' 
-      });
+      toast({ variant: 'destructive', title: 'Saldo Insuficiente', description: 'Mova-se mais para ganhar LudoCoins!' });
       return;
     }
 
-    if (unlockedItems.includes(item.id)) {
-      toast({ title: 'Item já Desbloqueado' });
+    if (item.levelGate && currentLevel < item.levelGate) {
+      toast({ variant: 'destructive', title: 'Nível Bloqueado', description: `Necessário Nível ${item.levelGate}.` });
+      return;
+    }
+
+    if (item.challengeGate && totalCompleted < item.challengeGate) {
+      toast({ variant: 'destructive', title: 'Experiência Insuficiente', description: `Complete ${item.challengeGate} desafios primeiro.` });
       return;
     }
 
     const newUnlocked = [...unlockedItems, item.id];
-    const newCoins = ludoCoins - item.price;
-
     updateDocumentNonBlocking(userProgressRef!, {
-      ludoCoins: newCoins,
-      avatar: {
-        ...profile?.avatar,
-        unlockedItems: newUnlocked
-      }
+      ludoCoins: ludoCoins - item.price,
+      avatar: { ...profile?.avatar, unlockedItems: newUnlocked }
     });
 
-    toast({
-      title: 'Aquisição de Sucesso!',
-      description: `${item.name} agora faz parte do seu inventário.`,
-    });
+    toast({ title: 'Item Desbloqueado!', description: `${item.name} agora é seu.` });
   };
 
-  const categories = [
-    { id: 'avatar', label: 'Efeitos', icon: <Sparkles className="w-4 h-4" /> },
-    { id: 'pets', label: 'Companheiros', icon: <Dog className="w-4 h-4" /> },
-    { id: 'furniture', label: 'Estúdio', icon: <FurnitureIcon className="w-4 h-4" /> },
-    { id: 'clothes', label: 'Estilo', icon: <Shirt className="w-4 h-4" /> },
-    { id: 'hats', label: 'Acessórios', icon: <HatIcon className="w-4 h-4" /> },
-  ];
-
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col pb-24">
       <header className="px-6 h-20 flex items-center border-b bg-background/80 backdrop-blur-md sticky top-0 z-50">
-        <Link href="/dashboard" className="flex items-center gap-2 mr-6 hover:text-primary transition-colors">
-          <ArrowLeft className="w-5 h-5" />
-          <span className="font-bold text-sm uppercase tracking-widest hidden sm:inline">Voltar</span>
-        </Link>
-        <div className="flex items-center gap-2 flex-1 justify-center sm:justify-start">
-          <UrbeLudoLogo className="w-8 h-8 text-primary" />
-          <span className="text-lg font-black tracking-tighter uppercase italic">Shop de Elite</span>
+        <Link href="/dashboard" className="mr-4"><ArrowLeft className="w-6 h-6" /></Link>
+        <div className="flex-1">
+          <h1 className="text-xl font-black uppercase italic tracking-tighter">LudoShop</h1>
+          <p className="text-[10px] font-bold text-muted-foreground uppercase">Estilo Um Studio</p>
         </div>
-        <div className="bg-primary/10 px-4 py-2 rounded-2xl flex items-center gap-2 border border-primary/20 shadow-inner">
+        <div className="bg-primary/10 px-4 py-2 rounded-2xl flex items-center gap-2 border border-primary/20">
           <Coins className="w-5 h-5 text-yellow-600" />
           <span className="font-black text-lg">{ludoCoins}</span>
         </div>
       </header>
 
-      <main className="flex-1 p-6 container mx-auto max-w-7xl">
-        <div className="mb-12 text-center space-y-3">
-          <Badge className="bg-accent text-accent-foreground px-6 py-1.5 text-[10px] uppercase font-black tracking-[0.3em] shadow-lg">
-            Sincronização de Progresso Ativa
-          </Badge>
-          <h1 className="text-5xl font-black tracking-tighter uppercase italic leading-none">
-            Arsenal <span className="text-primary">Psicomotor</span>
-          </h1>
-          <p className="text-muted-foreground text-sm font-medium">Equipe seu avatar com as recompensas do seu esforço físico real.</p>
-        </div>
+      <main className="flex-1 p-6 space-y-8">
+        {/* Provador Interativo Simulation */}
+        {previewItem && (
+          <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex flex-col items-center justify-center p-8 text-center animate-in fade-in zoom-in-95 duration-300">
+             <div className="relative w-full aspect-square max-w-sm rounded-[3rem] overflow-hidden bg-slate-900 mb-8 border-4 border-primary/50">
+                <img src={previewItem.image} alt="Preview" className="w-full h-full object-cover opacity-80" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent" />
+                <div className="absolute bottom-8 inset-x-0">
+                   <h3 className="text-2xl font-black text-white uppercase italic">{previewItem.name}</h3>
+                   <Badge className="bg-primary text-white mt-2">Modo Provador</Badge>
+                </div>
+             </div>
+             <p className="text-white/60 text-sm mb-8 max-w-xs">{previewItem.description}</p>
+             <div className="flex gap-4 w-full max-w-sm">
+                <Button variant="outline" className="flex-1 h-14 rounded-2xl border-white/20 text-white font-bold" onClick={() => setPreviewItem(null)}>Voltar</Button>
+                <Button className="flex-1 h-14 rounded-2xl font-black uppercase" onClick={() => { handleBuy(previewItem); setPreviewItem(null); }}>Comprar</Button>
+             </div>
+          </div>
+        )}
 
-        <Tabs defaultValue="avatar" className="space-y-10">
-          <TabsList className="flex flex-wrap h-auto p-1.5 bg-muted/30 rounded-3xl justify-center gap-1">
-            {categories.map(cat => (
-              <TabsTrigger 
-                key={cat.id} 
-                value={cat.id}
-                className="rounded-2xl py-3 px-6 data-[state=active]:bg-background data-[state=active]:shadow-xl flex items-center gap-2 transition-all duration-300"
-              >
-                {cat.icon}
-                <span className="text-xs font-black uppercase tracking-widest">{cat.label}</span>
-              </TabsTrigger>
-            ))}
+        <Tabs defaultValue="vestiario" className="space-y-6">
+          <TabsList className="w-full bg-muted/30 rounded-2xl p-1 h-auto flex gap-1">
+            <TabsTrigger value="vestiario" className="flex-1 py-3 rounded-xl gap-2 font-black uppercase text-[10px]">
+              <Shirt className="w-4 h-4" /> Vestiário
+            </TabsTrigger>
+            <TabsTrigger value="decoracao" className="flex-1 py-3 rounded-xl gap-2 font-black uppercase text-[10px]">
+              <HomeIcon className="w-4 h-4" /> Decoração
+            </TabsTrigger>
+            <TabsTrigger value="aura" className="flex-1 py-3 rounded-xl gap-2 font-black uppercase text-[10px]">
+              <Zap className="w-4 h-4" /> Auras
+            </TabsTrigger>
           </TabsList>
 
-          {categories.map(cat => (
-            <TabsContent key={cat.id} value={cat.id} className="animate-in fade-in zoom-in-95 duration-500">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-                {SHOP_ITEMS.filter(item => item.category === cat.id).map(item => (
-                  <Card key={item.id} className="group relative overflow-hidden border-none bg-muted/20 hover:bg-muted/40 transition-all duration-500 rounded-3xl shadow-sm hover:shadow-2xl">
-                    {/* Rarity Tag */}
-                    <div className={cn(
-                      "absolute top-4 left-4 z-10 px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest text-white shadow-lg",
-                      RARITY_COLORS[item.rarity]
-                    )}>
-                      {item.rarity}
-                    </div>
+          {['vestiario', 'decoracao', 'aura'].map(cat => (
+            <TabsContent key={cat} value={cat} className="grid grid-cols-1 gap-4">
+              {LUDO_SHOP_ITEMS.filter(i => i.category === cat).map(item => {
+                const isLocked = (item.levelGate && currentLevel < item.levelGate) || (item.challengeGate && totalCompleted < item.challengeGate);
+                const isUnlocked = unlockedItems.includes(item.id);
 
-                    <div className="aspect-[4/5] relative overflow-hidden">
-                      <img 
-                        src={item.image} 
-                        alt={item.name} 
-                        className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-1000 ease-out"
-                        data-ai-hint={item.name}
-                      />
-                      
-                      {/* Price Badge Overlay */}
-                      <div className="absolute top-4 right-4 z-10">
-                         <Badge variant="secondary" className="bg-background/90 backdrop-blur-xl px-3 py-1.5 border border-white/20 shadow-xl flex gap-2 items-center rounded-xl">
-                            <Coins className="w-4 h-4 text-yellow-600" />
-                            <span className="font-black text-sm">{item.price}</span>
-                         </Badge>
-                      </div>
-
-                      {/* Purchased Overlay */}
-                      {unlockedItems.includes(item.id) && (
-                        <div className="absolute inset-0 bg-primary/40 backdrop-blur-sm flex items-center justify-center z-20 transition-opacity">
-                          <div className="bg-white text-primary px-6 py-2 rounded-2xl font-black uppercase tracking-widest scale-110 shadow-2xl flex items-center gap-2">
-                            <Check className="w-5 h-5" /> Adquirido
+                return (
+                  <Card key={item.id} className={cn(
+                    "relative overflow-hidden border-none rounded-[2rem] shadow-sm transition-all active:scale-95",
+                    isUnlocked ? "bg-primary/5" : "bg-white"
+                  )}>
+                    <div className="flex p-4 gap-4">
+                      <div className="w-24 h-24 rounded-2xl overflow-hidden bg-muted shrink-0 relative">
+                        <img src={item.image} alt={item.name} className={cn("w-full h-full object-cover", isLocked && "grayscale")} />
+                        {isLocked && (
+                          <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                            <Lock className="w-6 h-6 text-white" />
                           </div>
+                        )}
+                      </div>
+                      <div className="flex-1 flex flex-col justify-center min-w-0">
+                        <div className="flex justify-between items-start">
+                           <h3 className="font-black uppercase italic tracking-tighter text-sm truncate">{item.name}</h3>
+                           <div className="flex items-center gap-1">
+                              <Coins className="w-3 h-3 text-yellow-600" />
+                              <span className="text-xs font-black">{item.price}</span>
+                           </div>
                         </div>
-                      )}
-                      
-                      {/* Animation Hint Hover */}
-                      <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black/80 via-black/40 to-transparent translate-y-full group-hover:translate-y-0 transition-transform duration-500">
-                        <div className="flex items-center gap-2 text-white/90 mb-1">
-                          <Zap className="w-3 h-3 text-accent" />
-                          <span className="text-[10px] font-black uppercase tracking-widest">Animação</span>
+                        <p className="text-[10px] text-muted-foreground font-medium line-clamp-2 mt-1">{item.description}</p>
+                        <div className="mt-2 flex gap-2">
+                           {isUnlocked ? (
+                             <Badge variant="secondary" className="bg-primary/20 text-primary border-none text-[8px] uppercase font-black"><Check className="w-2 h-2 mr-1" /> Adquirido</Badge>
+                           ) : (
+                             <>
+                               <Button size="sm" variant="ghost" className="h-8 rounded-xl text-[9px] font-black uppercase" onClick={() => setPreviewItem(item)}><Eye className="w-3 h-3 mr-1" /> Testar</Button>
+                               <Button size="sm" className="h-8 rounded-xl text-[9px] font-black uppercase" disabled={isLocked} onClick={() => handleBuy(item)}>{isLocked ? "Bloqueado" : "Comprar"}</Button>
+                             </>
+                           )}
                         </div>
-                        <p className="text-[10px] text-white/80 italic leading-tight">{item.animationHint}</p>
                       </div>
                     </div>
-
-                    <CardHeader className="p-6 pb-2">
-                      <div className="space-y-1">
-                        {item.breed && (
-                          <span className="text-[10px] font-black uppercase tracking-widest text-primary/60">{item.breed}</span>
-                        )}
-                        <CardTitle className="text-xl font-black uppercase tracking-tighter italic">{item.name}</CardTitle>
-                      </div>
-                    </CardHeader>
-                    
-                    <CardContent className="p-6 pt-2 space-y-6">
-                      <p className="text-xs text-muted-foreground font-medium leading-relaxed min-h-[3em]">{item.description}</p>
-                      
-                      <Button 
-                        onClick={() => handleBuy(item)} 
-                        disabled={unlockedItems.includes(item.id)}
-                        variant={unlockedItems.includes(item.id) ? "secondary" : "default"}
-                        className={cn(
-                          "w-full rounded-2xl font-black uppercase tracking-[0.2em] h-14 text-xs transition-all duration-300 shadow-lg",
-                          !unlockedItems.includes(item.id) && "hover:scale-105 hover:bg-accent hover:text-accent-foreground active:scale-95"
-                        )}
-                      >
-                        {unlockedItems.includes(item.id) ? (
-                          <span className="flex items-center gap-2"><Star className="w-4 h-4" /> Item da Coleção</span>
-                        ) : (
-                          <span className="flex items-center gap-2">Resgatar Item <ArrowLeft className="w-4 h-4 rotate-180" /></span>
-                        )}
-                      </Button>
-                    </CardContent>
                   </Card>
-                ))}
-              </div>
+                );
+              })}
             </TabsContent>
           ))}
         </Tabs>
       </main>
 
-      <footer className="p-12 text-center border-t mt-24 bg-muted/10">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-            <Gamepad2 className="w-8 h-8 text-primary/40" />
-          </div>
-          <p className="text-xs font-black uppercase tracking-[0.4em] text-muted-foreground">
-            Sua jornada física, seu estilo digital
-          </p>
-          <div className="flex gap-4 opacity-30 grayscale hover:grayscale-0 transition-all">
-             <UrbeLudoLogo className="w-6 h-6" />
-             <UrbeLudoLogo className="w-6 h-6 rotate-90" />
-             <UrbeLudoLogo className="w-6 h-6 rotate-180" />
-          </div>
-        </div>
+      <footer className="fixed bottom-0 inset-x-0 h-20 bg-background border-t flex items-center justify-around px-6 z-50">
+         <Link href="/playground" className="flex flex-col items-center gap-1 text-muted-foreground hover:text-primary"><Zap className="w-6 h-6" /><span className="text-[8px] font-black uppercase">Play</span></Link>
+         <Link href="/dashboard" className="flex flex-col items-center gap-1 text-muted-foreground"><Gamepad2 className="w-6 h-6" /><span className="text-[8px] font-black uppercase">Estúdio</span></Link>
+         <div className="flex flex-col items-center gap-1 text-primary"><ShoppingBag className="w-6 h-6" /><span className="text-[8px] font-black uppercase">Loja</span></div>
       </footer>
     </div>
   );

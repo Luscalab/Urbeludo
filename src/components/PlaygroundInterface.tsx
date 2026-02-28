@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -9,16 +8,15 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { 
   Loader2, 
   CheckCircle2, 
-  Sun, 
-  Moon, 
   Home as HomeIcon, 
   MapPin, 
   Lock, 
   Coins, 
-  Sparkles,
+  Zap,
   Trophy,
   Camera,
-  RefreshCw
+  RefreshCw,
+  Battery
 } from 'lucide-react';
 import { proposeDynamicChallenges, type ProposeDynamicChallengesOutput } from '@/ai/flows/propose-dynamic-challenges';
 import { identifyUrbanElements } from '@/ai/flows/identify-urban-elements-flow';
@@ -80,7 +78,9 @@ export function PlaygroundInterface() {
               homeMissionCompleted: false,
               streetMissionCompleted: false,
               lastResetDate: today
-            }
+            },
+            // Regenerate some energy daily
+            avatar: { ...profile?.avatar, energy: Math.min(100, (profile?.avatar?.energy || 0) + 50) }
           }, { merge: true });
         }
       }
@@ -92,6 +92,12 @@ export function PlaygroundInterface() {
   }, [profile, userProgressRef]);
 
   const handleStartMission = async (type: 'home' | 'street') => {
+    const energy = profile?.avatar?.energy ?? 100;
+    if (energy < 15) {
+      toast({ variant: 'destructive', title: 'Avatar Cansado', description: 'Descanse para recuperar stamina!' });
+      return;
+    }
+
     setIsScanning(true);
     let detectedElements: string[] = [];
 
@@ -145,11 +151,16 @@ export function PlaygroundInterface() {
 
     const totalCompleted = (profile?.totalChallengesCompleted || 0) + 1;
     const shouldLevelUp = totalCompleted % 5 === 0 && (profile?.psychomotorLevel || 1) < 4;
+    const currentEnergy = profile?.avatar?.energy ?? 100;
 
     setDocumentNonBlocking(userProgressRef, {
       ludoCoins: (profile?.ludoCoins || 0) + activeChallenge.ludoCoinsReward,
       totalChallengesCompleted: totalCompleted,
       psychomotorLevel: shouldLevelUp ? (profile?.psychomotorLevel || 1) + 1 : (profile?.psychomotorLevel || 1),
+      avatar: {
+        ...profile?.avatar,
+        energy: Math.max(0, currentEnergy - 20) // Stamina cost
+      },
       dailyCycle: {
         homeMissionCompleted: missionType === 'home' ? true : profile?.dailyCycle?.homeMissionCompleted,
         streetMissionCompleted: missionType === 'street' ? true : profile?.dailyCycle?.streetMissionCompleted,
@@ -175,6 +186,7 @@ export function PlaygroundInterface() {
   const streetCompleted = profile?.dailyCycle?.streetMissionCompleted;
   const pLevel = profile?.psychomotorLevel || 1;
   const levelNames = ["Alicerce", "Movimento", "Precisão", "Ritmo"];
+  const energy = profile?.avatar?.energy ?? 100;
 
   if (celebrating) {
     return (
@@ -182,13 +194,13 @@ export function PlaygroundInterface() {
         <div className="animate-bounce mb-8">
            <Trophy className="w-24 h-24" />
         </div>
-        <h2 className="text-4xl font-black uppercase italic mb-4">Evolução!</h2>
+        <h2 className="text-4xl font-black uppercase italic mb-4">Missão Concluída!</h2>
         <div className="bg-white/20 px-8 py-4 rounded-3xl border border-white/30 backdrop-blur-xl mb-6">
            <span className="text-4xl font-black flex items-center gap-2">
              <Coins className="w-8 h-8 text-yellow-300" /> +{activeChallenge?.ludoCoinsReward}
            </span>
         </div>
-        <p className="text-xs font-bold uppercase tracking-[0.3em] opacity-80">Sincronia concluída com sucesso</p>
+        <p className="text-xs font-bold uppercase tracking-[0.3em] opacity-80">Seu avatar está subindo de nível!</p>
       </div>
     );
   }
@@ -228,14 +240,21 @@ export function PlaygroundInterface() {
       </div>
 
       <div className="flex-1 -mt-8 bg-background rounded-t-[3rem] p-6 shadow-2xl overflow-y-auto space-y-6">
+        {/* Top Indicators */}
         <div className="flex justify-between items-center mb-2">
           <div className="space-y-0.5">
             <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{levelNames[pLevel-1]}</span>
             <h3 className="text-xl font-black italic uppercase tracking-tighter text-primary">Nível {pLevel}</h3>
           </div>
-          <div className="bg-primary/10 px-4 py-2 rounded-2xl flex items-center gap-2 border border-primary/20">
-            <Coins className="w-5 h-5 text-yellow-600" />
-            <span className="font-black text-lg">{profile?.ludoCoins || 0}</span>
+          <div className="flex flex-col items-end gap-1">
+             <div className="bg-primary/10 px-4 py-2 rounded-2xl flex items-center gap-2 border border-primary/20">
+               <Coins className="w-5 h-5 text-yellow-600" />
+               <span className="font-black text-lg">{profile?.ludoCoins || 0}</span>
+             </div>
+             <div className="flex items-center gap-1.5 px-2">
+                <Battery className={cn("w-3 h-3", energy < 30 ? "text-destructive" : "text-primary")} />
+                <span className="text-[8px] font-black uppercase text-muted-foreground">Stamina: {energy}%</span>
+             </div>
           </div>
         </div>
 
@@ -251,7 +270,7 @@ export function PlaygroundInterface() {
             <CardContent className="space-y-6">
               <p className="text-sm font-medium text-muted-foreground leading-relaxed italic">{activeChallenge.challengeDescription}</p>
               <Button onClick={completeMission} className="w-full h-16 rounded-2xl text-lg font-black uppercase tracking-[0.2em] shadow-lg">
-                <CheckCircle2 className="w-6 h-6 mr-3" /> Finalizar
+                <CheckCircle2 className="w-6 h-6 mr-3" /> Finalizar Missão
               </Button>
             </CardContent>
           </Card>
@@ -261,7 +280,7 @@ export function PlaygroundInterface() {
               title="O Despertar"
               subtitle="Missão de Casa"
               isCompleted={homeCompleted}
-              disabled={isScanning}
+              disabled={isScanning || energy < 15}
               icon={<HomeIcon />}
               onClick={() => handleStartMission('home')}
             />
@@ -269,22 +288,11 @@ export function PlaygroundInterface() {
               title="A Jornada"
               subtitle="Missão de Rua"
               isCompleted={streetCompleted}
-              disabled={!homeCompleted || phase === 'NIGHT' || isScanning}
+              disabled={!homeCompleted || phase === 'NIGHT' || isScanning || energy < 15}
               icon={<MapPin />}
               onClick={() => handleStartMission('street')}
-              lockedText={!homeCompleted ? "Complete a Casa primeiro" : phase === 'NIGHT' ? "Aguarde o amanhecer" : ""}
+              lockedText={energy < 15 ? "Avatar Cansado" : !homeCompleted ? "Complete a Casa primeiro" : phase === 'NIGHT' ? "Aguarde o amanhecer" : ""}
             />
-            
-            {phase === 'NIGHT' && (
-              <div className="bg-slate-900 rounded-[2.5rem] p-8 text-center text-white space-y-4 shadow-2xl">
-                <Moon className="w-10 h-10 mx-auto text-blue-400 animate-pulse" />
-                <h4 className="text-xl font-black italic uppercase">Modo Descanso</h4>
-                <p className="text-xs text-white/50">A cidade descansa. Aproveite para equipar seu avatar no Estúdio.</p>
-                <Button asChild variant="outline" className="w-full rounded-2xl border-white/20 hover:bg-white/10 text-white font-black uppercase text-xs">
-                  <Link href="/dashboard">Ir para o Estúdio</Link>
-                </Button>
-              </div>
-            )}
           </div>
         )}
       </div>
