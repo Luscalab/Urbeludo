@@ -20,7 +20,12 @@ import {
   ShieldCheck,
   Share2,
   Lock,
-  EyeOff
+  EyeOff,
+  Palette,
+  Zap,
+  Brain,
+  Wind,
+  Info
 } from 'lucide-react';
 import { proposeDynamicChallenges, type ProposeDynamicChallengesOutput } from '@/ai/flows/propose-dynamic-challenges';
 import { identifyUrbanElements } from '@/ai/flows/identify-urban-elements-flow';
@@ -30,6 +35,8 @@ import { setDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase/non-b
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
+type CategoryType = 'artistic' | 'motor' | 'memory' | 'relaxation';
+
 export function PlaygroundInterface() {
   const { user } = useUser();
   const db = useFirestore();
@@ -37,13 +44,15 @@ export function PlaygroundInterface() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   
+  const [showGuide, setShowGuide] = useState(true);
   const [isScanning, setIsScanning] = useState(false);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
-  const [activeChallenge, setActiveChallenge] = useState<ProposeDynamicChallengesOutput | null>(null);
+  const [activeChallenge, setActiveChallenge] = useState<ProposeDynamicChallengesOutput & { missionType?: 'home' | 'street' } | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [photoProof, setPhotoProof] = useState<string | null>(null);
   const [celebrating, setCelebrating] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<CategoryType>('motor');
 
   const userProgressRef = useMemoFirebase(() => user ? doc(db, 'user_progress', user.uid) : null, [db, user]);
   const { data: profile, isLoading: isProfileLoading } = useDoc(userProgressRef);
@@ -81,12 +90,13 @@ export function PlaygroundInterface() {
       }
       const challenge = await proposeDynamicChallenges({
         missionType: type,
+        category: selectedCategory,
         psychomotorLevel: profile?.psychomotorLevel || 1,
         userAgeGroup: profile?.ageGroup || 'adolescent_adult',
         userSkillLevel: profile?.skillLevel || 'intermediate',
         detectedElements: detected
       });
-      setActiveChallenge(challenge);
+      setActiveChallenge({ ...challenge, missionType: type });
       setCurrentStep(0);
       setPhotoProof(null);
     } catch (e) {
@@ -106,25 +116,18 @@ export function PlaygroundInterface() {
       const ctx = canvas.getContext('2d');
       
       if (ctx) {
-        // Draw original frame
         ctx.drawImage(video, 0, 0);
-        
-        // Simulação de IA: Ativando Blur Facial Automático no processamento de borda
-        // Aplicamos um desfoque circular no centro onde geralmente está o rosto do usuário em selfies/provas
         ctx.save();
         ctx.beginPath();
         const centerX = canvas.width / 2;
-        const centerY = canvas.height * 0.4; // Um pouco acima do centro
+        const centerY = canvas.height * 0.4;
         const radius = Math.min(canvas.width, canvas.height) * 0.25;
         ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
         ctx.clip();
-        
-        // Aplicar o blur apenas na área clipada
         ctx.filter = 'blur(40px)';
         ctx.drawImage(video, 0, 0);
         ctx.restore();
 
-        // Adicionar marca d'água de privacidade
         ctx.fillStyle = 'rgba(0,0,0,0.5)';
         ctx.fillRect(0, canvas.height - 40, canvas.width, 40);
         ctx.fillStyle = 'white';
@@ -187,6 +190,33 @@ export function PlaygroundInterface() {
     setTimeout(() => { setCelebrating(false); setActiveChallenge(null); }, 4000);
   };
 
+  if (showGuide) {
+    return (
+      <div className="min-h-full bg-background flex flex-col p-8 items-center justify-center text-center space-y-8 animate-in fade-in duration-500">
+        <div className="w-20 h-20 bg-primary/10 rounded-[2rem] flex items-center justify-center text-primary">
+          <Info className="w-10 h-10" />
+        </div>
+        <div className="space-y-4">
+          <h2 className="text-3xl font-black uppercase italic tracking-tighter leading-none">Bem-vindo à Jornada</h2>
+          <p className="text-sm text-muted-foreground font-medium max-w-xs mx-auto">
+            O UrbeLudo conecta seu corpo à cidade. Siga o Ciclo do Sol e evolua sua Escada Psicomotora.
+          </p>
+        </div>
+        <div className="grid gap-4 w-full max-w-xs">
+          <div className="flex items-center gap-4 text-left p-4 bg-muted/30 rounded-3xl">
+            <Zap className="w-6 h-6 text-primary shrink-0" />
+            <p className="text-[10px] font-bold uppercase leading-tight">Comece em Casa para despertar o corpo e ganhar energia.</p>
+          </div>
+          <div className="flex items-center gap-4 text-left p-4 bg-muted/30 rounded-3xl">
+            <MapPin className="w-6 h-6 text-accent shrink-0" />
+            <p className="text-[10px] font-bold uppercase leading-tight">Vá para a Rua para explorar e conquistar o ambiente urbano.</p>
+          </div>
+        </div>
+        <Button onClick={() => setShowGuide(false)} className="w-full max-w-xs h-16 rounded-[2.5rem] font-black uppercase tracking-widest shadow-xl">Entendido</Button>
+      </div>
+    );
+  }
+
   if (isProfileLoading) return (
     <div className="flex flex-col h-full items-center justify-center p-6 text-center space-y-4">
       <Loader2 className="animate-spin text-primary w-12 h-12" />
@@ -210,7 +240,6 @@ export function PlaygroundInterface() {
         <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
         <canvas ref={canvasRef} className="hidden" />
         
-        {/* Camada de Blur Facial em Tempo Real (Simulada para visualização) */}
         {activeChallenge && currentStep === activeChallenge.steps.length - 1 && !photoProof && (
           <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
              <div className="w-48 h-48 rounded-full border-2 border-dashed border-accent/50 backdrop-blur-3xl bg-white/5 animate-pulse flex flex-col items-center justify-center text-white/50 text-[8px] font-black text-center px-4">
@@ -247,7 +276,29 @@ export function PlaygroundInterface() {
           </Alert>
         )}
 
-        {activeChallenge ? (
+        {!activeChallenge && (
+          <div className="space-y-4">
+             <div className="flex flex-wrap gap-2 mb-2">
+                <CategoryButton active={selectedCategory === 'artistic'} onClick={() => setSelectedCategory('artistic')} icon={<Palette className="w-3 h-3" />} label="Artístico" />
+                <CategoryButton active={selectedCategory === 'motor'} onClick={() => setSelectedCategory('motor')} icon={<Zap className="w-3 h-3" />} label="Motor" />
+                <CategoryButton active={selectedCategory === 'memory'} onClick={() => setSelectedCategory('memory')} icon={<Brain className="w-3 h-3" />} label="Memória" />
+                <CategoryButton active={selectedCategory === 'relaxation'} onClick={() => setSelectedCategory('relaxation')} icon={<Wind className="w-3 h-3" />} label="Relax" />
+             </div>
+             
+             <div className="flex justify-between items-center px-2">
+                <div className="flex items-center gap-2">
+                   <Battery className={cn("w-4 h-4", (profile?.avatar?.energy ?? 100) < 30 ? "text-destructive" : "text-primary")} />
+                   <span className="text-[10px] font-black uppercase text-muted-foreground">Stamina: {profile?.avatar?.energy ?? 100}%</span>
+                </div>
+                <Link href="/community" className="text-[10px] font-black uppercase text-primary flex items-center gap-1"><Share2 className="w-3 h-3" /> Comunidade</Link>
+             </div>
+             
+             <ChallengeRow title="O Despertar" subtitle="Casa & Criatividade" icon={<HomeIcon />} isCompleted={profile?.dailyCycle?.homeMissionCompleted} onClick={() => handleStartMission('home')} disabled={isScanning || (profile?.avatar?.energy ?? 100) < 15} />
+             <ChallengeRow title="A Jornada" subtitle="Rua & Descoberta" icon={<MapPin />} isCompleted={profile?.dailyCycle?.streetMissionCompleted} onClick={() => handleStartMission('street')} disabled={!profile?.dailyCycle?.homeMissionCompleted || isScanning || (profile?.avatar?.energy ?? 100) < 15} />
+          </div>
+        )}
+
+        {activeChallenge && (
           <Card className="border-none bg-primary/5 rounded-[2.5rem] shadow-sm animate-in slide-in-from-bottom-4">
             <CardHeader className="pb-2">
               <div className="flex justify-between items-center mb-2">
@@ -279,10 +330,10 @@ export function PlaygroundInterface() {
                         <ShieldCheck className="w-4 h-4" /> Segurança UrbeLudo
                      </p>
                      <p className="text-[9px] font-medium leading-tight text-muted-foreground italic">
-                        "Seu rosto é borrado automaticamente por segurança. Não mantemos seus dados de imagem em nossos servidores; o processamento é feito localmente no seu dispositivo."
+                        "Seu rosto é borrado automaticamente por segurança. O processamento é local."
                      </p>
                   </div>
-                  <Button onClick={takePhotoWithBlur} disabled={isCapturing} className="w-full h-16 rounded-2xl font-black uppercase bg-accent text-accent-foreground hover:bg-accent/80 shadow-lg border-b-4 border-accent-foreground/10 active:border-b-0 active:translate-y-1 transition-all">
+                  <Button onClick={takePhotoWithBlur} disabled={isCapturing} className="w-full h-16 rounded-2xl font-black uppercase bg-accent text-accent-foreground shadow-lg border-b-4 border-accent-foreground/10 active:border-b-0 active:translate-y-1 transition-all">
                     {isCapturing ? <Loader2 className="w-6 h-6 animate-spin" /> : <Camera className="w-6 h-6 mr-3" />} 
                     Capturar Prova Segura
                   </Button>
@@ -294,21 +345,23 @@ export function PlaygroundInterface() {
               )}
             </CardContent>
           </Card>
-        ) : (
-          <div className="space-y-4">
-             <div className="flex justify-between items-center mb-2 px-2">
-                <div className="flex items-center gap-2">
-                   <Battery className={cn("w-4 h-4", (profile?.avatar?.energy ?? 100) < 30 ? "text-destructive" : "text-primary")} />
-                   <span className="text-[10px] font-black uppercase text-muted-foreground">Stamina: {profile?.avatar?.energy ?? 100}%</span>
-                </div>
-                <Link href="/community" className="text-[10px] font-black uppercase text-primary flex items-center gap-1"><Share2 className="w-3 h-3" /> Comunidade</Link>
-             </div>
-             <ChallengeRow title="O Despertar" subtitle="Casa & Criatividade" icon={<HomeIcon />} isCompleted={profile?.dailyCycle?.homeMissionCompleted} onClick={() => handleStartMission('home')} disabled={isScanning || (profile?.avatar?.energy ?? 100) < 15} />
-             <ChallengeRow title="A Jornada" subtitle="Rua & Descoberta" icon={<MapPin />} isCompleted={profile?.dailyCycle?.streetMissionCompleted} onClick={() => handleStartMission('street')} disabled={!profile?.dailyCycle?.homeMissionCompleted || isScanning || (profile?.avatar?.energy ?? 100) < 15} />
-          </div>
         )}
       </div>
     </div>
+  );
+}
+
+function CategoryButton({ active, onClick, icon, label }: { active: boolean, onClick: () => void, icon: React.ReactNode, label: string }) {
+  return (
+    <button 
+      onClick={onClick}
+      className={cn(
+        "px-4 py-2 rounded-2xl text-[8px] font-black uppercase flex items-center gap-2 transition-all border shadow-sm",
+        active ? "bg-primary text-white border-primary" : "bg-white text-muted-foreground border-muted hover:bg-muted/10"
+      )}
+    >
+      {icon} {label}
+    </button>
   );
 }
 

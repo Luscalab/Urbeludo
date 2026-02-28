@@ -1,10 +1,10 @@
 'use server';
 /**
- * @fileOverview Flow para proposição de desafios dinâmicos, seguros e lúdicos.
+ * @fileOverview Flow para proposição de desafios dinâmicos, seguros e lúdicos, agora categorizados.
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import {z} from 'kit';
 
 const ProposeDynamicChallengesInputSchema = z.object({
   detectedElements: z.array(z.string()).optional().default([]),
@@ -12,13 +12,14 @@ const ProposeDynamicChallengesInputSchema = z.object({
   userAgeGroup: z.enum(['preschool', 'school_age', 'adolescent_adult']).default('adolescent_adult'),
   psychomotorLevel: z.number().min(1).max(4).default(1),
   missionType: z.enum(['home', 'street']).default('street'),
+  category: z.enum(['artistic', 'motor', 'memory', 'relaxation']).default('motor'),
 });
 export type ProposeDynamicChallengesInput = z.infer<typeof ProposeDynamicChallengesInputSchema>;
 
 const ProposeDynamicChallengesOutputSchema = z.object({
   challengeTitle: z.string(),
   challengeDescription: z.string(),
-  challengeType: z.enum(['balance', 'jump', 'crawl', 'lateral_movement', 'spatial_awareness', 'strength', 'rhythm', 'creative']),
+  challengeType: z.enum(['balance', 'jump', 'crawl', 'lateral_movement', 'spatial_awareness', 'strength', 'rhythm', 'creative', 'memory_game', 'breathing']),
   difficulty: z.enum(['easy', 'medium', 'hard']),
   ludoCoinsReward: z.number(),
   isLudicDrawing: z.boolean().describe('Se o desafio envolve desenhar algo no chão ou criar arte urbana temporária.'),
@@ -46,14 +47,17 @@ const proposeDynamicChallengesPrompt = ai.definePrompt({
       }
     ],
   },
-  prompt: `Você é o Mestre do Movimento do UrbeLudo. Seu objetivo é criar desafios psicomotores lúdicos e seguros.
+  prompt: `Você é o Mestre do Movimento do UrbeLudo. Seu objetivo é criar desafios psicomotores lúdicos, seguros e categorizados.
+
+CATEGORIA DA MISSÃO: {{{category}}}
+- artistic: Foco em desenho lúdico, formas e cores no ambiente.
+- motor: Foco em equilíbrio, saltos, locomoção e força.
+- memory: Desafios de memorização espacial (ex: toque em 3 elementos na ordem X).
+- relaxation: Alongamentos, respiração consciente e posturas estáticas.
 
 REGRA DE OURO DE SEGURANÇA:
 - JAMAIS sugira atividades em locais com tráfego de carros.
 - O foco deve ser espaços seguros: Calçadas amplas, praças ou o interior da Casa do usuário.
-
-OBJETIVO DA MISSÃO:
-Tipo: {{{missionType}}} (Se for 'home', foque em objetos domésticos como cadeiras, tapetes ou linhas no piso. Se for 'street', use os elementos detectados).
 
 ESTRUTURA PSICOMOTORA (Level {{{psychomotorLevel}}}):
 - Level 1: Equilíbrio estático e consciência corporal.
@@ -61,13 +65,13 @@ ESTRUTURA PSICOMOTORA (Level {{{psychomotorLevel}}}):
 - Level 3: Saltos e precisão.
 - Level 4: Sequências rítmicas.
 
-CONTEXTO DO USUÁRIO:
+CONTEXTO:
+- Tipo: {{{missionType}}}
 - Idade: {{{userAgeGroup}}}
 - Habilidade: {{{userSkillLevel}}}
 - Elementos Detectados: {{#each detectedElements}}{{{this}}}, {{/each}}
 
-INSTRUÇÕES DE SAÍDA:
-Gere um desafio criativo com um título empolgante, uma descrição curta e 2 a 3 passos claros de execução. Atribua uma recompensa de 10 a 50 LudoCoins.`,
+Gere um desafio criativo alinhado à categoria selecionada com passos claros. Atribua uma recompensa de 10 a 50 LudoCoins.`,
 });
 
 const proposeDynamicChallengesFlow = ai.defineFlow(
@@ -83,18 +87,17 @@ const proposeDynamicChallengesFlow = ai.defineFlow(
       return output;
     } catch (error) {
       console.error("Erro no Flow de Desafios:", error);
-      // Fallback para garantir que o usuário não fique travado
       return {
-        challengeTitle: "Equilíbrio de Bronze",
-        challengeDescription: "Fique em um pé só por 10 segundos para despertar seu corpo.",
-        challengeType: "balance",
+        challengeTitle: "Respiro de Bronze",
+        challengeDescription: "Feche os olhos e respire fundo 3 vezes.",
+        challengeType: "breathing",
         difficulty: "easy",
         ludoCoinsReward: 15,
         isLudicDrawing: false,
         steps: [
-          "Encontre um espaço livre no chão",
-          "Levante o pé direito e conte até 10",
-          "Troque de pé e repita"
+          "Encontre um lugar calmo",
+          "Respire pelo nariz por 4 segundos",
+          "Solte o ar pela boca lentamente"
         ]
       };
     }
