@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PlacedItem } from '@/lib/types';
 import { STUDIO_CATALOG } from '@/lib/studio-catalog';
-import { Package, Trash2, Coins } from 'lucide-react';
+import { Package, Trash2, Coins, Cloud } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface StudioItemProps {
@@ -26,6 +26,7 @@ export function StudioItem({ data, onUpdate, onStore, onSell, isEditing, auraCol
 
   return (
     <motion.div
+      layoutId={data.instanceId}
       drag={isEditing}
       dragMomentum={false}
       onDragEnd={(_, info) => {
@@ -42,11 +43,19 @@ export function StudioItem({ data, onUpdate, onStore, onSell, isEditing, auraCol
         }
       }}
       onClick={() => isEditing && setIsSelected(!isSelected)}
-      initial={false}
+      initial={{ opacity: 0, scale: 0.8 }}
       animate={{ 
+        opacity: 1,
+        scale: 1,
         x: data.position.x,
         y: data.position.y,
         zIndex: data.zIndex || Math.floor(data.position.y / 10)
+      }}
+      exit={{ 
+        opacity: 0, 
+        scale: 1.5, 
+        filter: 'blur(10px)',
+        transition: { duration: 0.3, ease: "circOut" } 
       }}
       whileDrag={{ 
         scale: 1.1,
@@ -65,6 +74,7 @@ export function StudioItem({ data, onUpdate, onStore, onSell, isEditing, auraCol
       }}
     >
       <div className="relative group">
+        {/* Efeito Visual de Fumaça (Poof) ao sair */}
         <div 
           className="relative flex items-center justify-center"
           style={{ 

@@ -162,19 +162,21 @@ export default function StudioPage() {
             <div className="absolute inset-0 opacity-5 bg-[linear-gradient(to_right,#000_1px,transparent_1px),linear-gradient(to_bottom,#000_1px,transparent_1px)] [background-size:40px_40px]"></div>
           </div>
 
-          {/* Itens Posicionados */}
+          {/* Itens Posicionados com AnimatePresence para o efeito Poof */}
           <div className="absolute inset-0 z-20 pointer-events-none">
-            {studioState.placedItems.map(item => (
-              <StudioItem 
-                key={item.instanceId} 
-                data={item} 
-                onUpdate={updateItemPosition}
-                onStore={handleStore}
-                onSell={handleSell}
-                isEditing={mode === 'edit'}
-                auraColor={auraColor}
-              />
-            ))}
+            <AnimatePresence>
+              {studioState.placedItems.map(item => (
+                <StudioItem 
+                  key={item.instanceId} 
+                  data={item} 
+                  onUpdate={updateItemPosition}
+                  onStore={handleStore}
+                  onSell={handleSell}
+                  isEditing={mode === 'edit'}
+                  auraColor={auraColor}
+                />
+              ))}
+            </AnimatePresence>
           </div>
 
           {/* Avatar */}
