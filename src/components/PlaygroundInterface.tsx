@@ -1,7 +1,10 @@
 
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { OrbitControls, PerspectiveCamera, Float, Sphere, MeshDistortMaterial, MeshWobbleMaterial } from '@react-three/drei';
+import * as THREE from 'three';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -41,6 +44,94 @@ import { cn } from '@/lib/utils';
 
 type CategoryType = 'artistic' | 'motor' | 'memory' | 'relaxation';
 
+// --- COMPONENTE DO PERSONAGEM 3D ---
+function LudoAvatar3D({ traits, isBreathing }: { traits: AvatarizeUserOutput, isBreathing: boolean }) {
+  const groupRef = useRef<THREE.Group>(null);
+  const headRef = useRef<THREE.Mesh>(null);
+
+  useFrame((state) => {
+    if (groupRef.current) {
+      // Movimento suave de "vida"
+      const t = state.clock.getElapsedTime();
+      groupRef.current.position.y = Math.sin(t) * 0.1;
+      groupRef.current.rotation.y = Math.sin(t * 0.5) * 0.15;
+      
+      // Reação de respiração
+      if (isBreathing) {
+        const breathScale = 1 + Math.sin(t * 1.5) * 0.05;
+        groupRef.current.scale.set(breathScale, breathScale, breathScale);
+      }
+    }
+  });
+
+  return (
+    <group ref={groupRef}>
+      {/* Corpo / Tronco Estilizado */}
+      <mesh position={[0, -1.2, 0]}>
+        <capsuleGeometry args={[0.5, 1, 4, 16]} />
+        <meshStandardMaterial color={traits.dominantColor || "#33993D"} />
+      </mesh>
+
+      {/* Cabeça */}
+      <mesh ref={headRef} position={[0, 0.2, 0]}>
+        {traits.face?.shape === 'Quadrado' ? (
+          <boxGeometry args={[0.8, 0.9, 0.8]} />
+        ) : (
+          <sphereGeometry args={[0.5, 32, 32]} />
+        )}
+        <meshStandardMaterial color={traits.face?.tone === 'Escuro' ? "#4b2c20" : "#f1c27d"} />
+        
+        {/* Olhos */}
+        <group position={[0, 0.1, 0.4]}>
+          <mesh position={[-0.15, 0, 0]}>
+            <sphereGeometry args={[0.08, 16, 16]} />
+            <meshStandardMaterial color={traits.eyes?.color || "cyan"} emissive={traits.eyes?.color || "cyan"} emissiveIntensity={2} />
+          </mesh>
+          <mesh position={[0.15, 0, 0]}>
+            <sphereGeometry args={[0.08, 16, 16]} />
+            <meshStandardMaterial color={traits.eyes?.color || "cyan"} emissive={traits.eyes?.color || "cyan"} emissiveIntensity={2} />
+          </mesh>
+        </group>
+
+        {/* Visor Pulse */}
+        <mesh position={[0, 0.1, 0.45]}>
+          <boxGeometry args={[0.6, 0.15, 0.1]} />
+          <meshStandardMaterial color="cyan" transparent opacity={0.6} />
+        </mesh>
+      </mesh>
+
+      {/* Cabelo */}
+      <group position={[0, 0.5, 0]}>
+        <mesh>
+          {traits.hair?.style === 'cacheado' ? (
+            <torusKnotGeometry args={[0.3, 0.1, 64, 8]} />
+          ) : (
+            <sphereGeometry args={[0.52, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
+          )}
+          <meshStandardMaterial color={traits.hair?.color || "#333"} />
+        </mesh>
+      </group>
+
+      {/* Aura de Partículas Simbolizada */}
+      <Float speed={2} rotationIntensity={0.5} floatIntensity={0.5}>
+        <mesh position={[0, 0, -0.5]}>
+          <Sphere args={[1.5, 32, 32]}>
+            <MeshDistortMaterial
+              color={traits.dominantColor || "#33993D"}
+              speed={2}
+              distort={0.4}
+              radius={1}
+              transparent
+              opacity={0.15}
+            />
+          </Sphere>
+        </mesh>
+      </Float>
+    </group>
+  );
+}
+
+// --- INTERFACE PRINCIPAL ---
 export function PlaygroundInterface() {
   const { user } = useUser();
   const db = useFirestore();
@@ -65,7 +156,6 @@ export function PlaygroundInterface() {
   const [isAudioEnabled, setIsAudioEnabled] = useState(false);
   const [isLibrasEnabled, setIsLibrasEnabled] = useState(false);
   const [isLowLight, setIsLowLight] = useState(false);
-  const [isBlinking, setIsBlinking] = useState(false);
 
   const [ageGroup, setAgeGroup] = useState('adolescent_adult');
   const [neurodivergence, setNeurodivergence] = useState('');
@@ -82,14 +172,6 @@ export function PlaygroundInterface() {
       }
     }
   }, [profile]);
-
-  useEffect(() => {
-    const blinkInterval = setInterval(() => {
-      setIsBlinking(true);
-      setTimeout(() => setIsBlinking(false), 150);
-    }, 4000 + Math.random() * 2000);
-    return () => clearInterval(blinkInterval);
-  }, []);
 
   const startCamera = async (mode: 'user' | 'environment') => {
     setIsInitializingCamera(true);
@@ -126,7 +208,6 @@ export function PlaygroundInterface() {
 
   useEffect(() => {
     if (!showGuide) {
-      // Se não houver avatar, sempre forçar câmera frontal para o scan
       if (!safeAvatar) {
         setCameraMode('user');
         startCamera('user');
@@ -208,7 +289,7 @@ export function PlaygroundInterface() {
       if (userProgressRef) {
         updateDocumentNonBlocking(userProgressRef, { "avatar.traits": result });
       }
-      toast({ title: "Avatar Criado!", description: "Sua identidade está protegida." });
+      toast({ title: "Avatar 3D Criado!", description: "Sua identidade segura está pronta." });
     } catch (e) {
       toast({ variant: 'destructive', title: "Erro no Scan", description: "Tentando novamente com avatar padrão." });
       const fallback: AvatarizeUserOutput = {
@@ -287,27 +368,12 @@ export function PlaygroundInterface() {
       if (ctx) {
         ctx.drawImage(video, 0, 0);
         
-        const centerX = canvas.width / 2;
-        const centerY = canvas.height * 0.4;
-        const radius = Math.min(canvas.width, canvas.height) * 0.22;
-
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-        ctx.clip();
-        ctx.fillStyle = safeAvatar?.dominantColor || '#33993D';
-        ctx.fillRect(centerX - radius, centerY - radius, radius * 2, radius * 2);
-        ctx.strokeStyle = 'white';
-        ctx.lineWidth = 10;
-        ctx.stroke();
-        ctx.restore();
-
         ctx.fillStyle = 'rgba(0,0,0,0.9)';
         ctx.fillRect(0, canvas.height - 100, canvas.width, 100);
         ctx.fillStyle = '#99E630';
         ctx.font = 'black 16px Inter';
         ctx.textAlign = 'center';
-        ctx.fillText('IDENTIDADE PROTEGIDA • IA DE BORDA URBELUDO', canvas.width / 2, canvas.height - 60);
+        ctx.fillText('IDENTIDADE PROTEGIDA 3D • IA DE BORDA URBELUDO', canvas.width / 2, canvas.height - 60);
         ctx.fillStyle = 'white';
         ctx.font = 'bold 12px Inter';
         ctx.fillText('DADOS BIOMÉTRICOS DESCARTADOS POR SEGURANÇA', canvas.width / 2, canvas.height - 35);
@@ -362,7 +428,7 @@ export function PlaygroundInterface() {
 
   return (
     <div className="flex flex-col h-full bg-background relative overflow-hidden">
-      {/* Viewport da Câmera */}
+      {/* Viewport da Câmera + Renderizador 3D */}
       <div className="relative w-full aspect-[4/3] bg-black overflow-hidden shadow-2xl z-0">
         <video 
           ref={videoRef} 
@@ -373,12 +439,30 @@ export function PlaygroundInterface() {
         />
         <canvas ref={canvasRef} className="hidden" />
 
+        {/* CAMADA 3D AO VIVO */}
+        {safeAvatar && cameraMode === 'user' && (
+          <div className="absolute inset-0 z-30 pointer-events-none">
+            <Canvas shadows alpha>
+              <PerspectiveCamera makeDefault position={[0, 0, 5]} fov={40} />
+              <ambientLight intensity={1.5} />
+              <pointLight position={[10, 10, 10]} intensity={2} />
+              <spotLight position={[0, 5, 5]} angle={0.15} penumbra={1} intensity={1} />
+              
+              <Suspense fallback={null}>
+                <LudoAvatar3D traits={safeAvatar} isBreathing={isBreathingActivity} />
+              </Suspense>
+              
+              <OrbitControls enableZoom={false} enablePan={false} enableRotate={false} />
+            </Canvas>
+          </div>
+        )}
+
         {/* Alerta de Luz */}
         {isLowLight && (
           <div className="absolute inset-0 z-40 bg-black/80 flex flex-col items-center justify-center text-center p-8 animate-pulse">
             <Sun className="w-12 h-12 text-destructive mb-4" />
             <h3 className="text-white font-black uppercase text-sm">Ambiente Escuro</h3>
-            <p className="text-white/60 text-[9px] font-bold uppercase mt-2">O Scan Facial requer mais luz para sua proteção.</p>
+            <p className="text-white/60 text-[9px] font-bold uppercase mt-2">O Scan 3D requer mais luz para sua proteção.</p>
           </div>
         )}
 
@@ -387,74 +471,8 @@ export function PlaygroundInterface() {
           <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
             <div className="w-60 h-72 border-4 border-dashed border-primary/40 rounded-[3.5rem] relative">
               <div className="absolute inset-0 bg-primary/5 rounded-[3.5rem]" />
-              <div className="absolute -top-12 inset-x-0 text-center text-primary font-black text-[10px] uppercase">Enquadre seu rosto para o scan</div>
+              <div className="absolute -top-12 inset-x-0 text-center text-primary font-black text-[10px] uppercase">Enquadre seu rosto para o Scan 3D</div>
             </div>
-          </div>
-        )}
-
-        {/* Representação do Personagem (LUDO PERSONA) */}
-        {safeAvatar && cameraMode === 'user' && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
-             <div 
-               className={cn(
-                 "relative w-64 h-72 flex flex-col items-center justify-center transition-all duration-700",
-                 isBreathingActivity ? "animate-breathing-avatar" : "animate-float-libras"
-               )}
-             >
-                {/* Formato do Rosto Dinâmico */}
-                <div 
-                  className={cn(
-                    "absolute w-48 h-56 border-4 border-white/30 shadow-2xl flex flex-col items-center justify-center overflow-hidden z-0",
-                    safeAvatar.face?.shape === 'Oval' ? "rounded-[5rem]" : 
-                    safeAvatar.face?.shape === 'Quadrado' ? "rounded-[2rem]" : "rounded-full"
-                  )}
-                  style={{ backgroundColor: safeAvatar.dominantColor || '#33993D' }}
-                >
-                    {/* Sombra Interna do Rosto */}
-                    <div className="absolute inset-0 bg-black/5" />
-                    
-                    {/* Nariz Simulado */}
-                    <div className="absolute top-[55%] w-2 h-4 bg-black/10 rounded-full" />
-                    
-                    {/* Boca Simulada */}
-                    <div className="absolute bottom-[20%] w-8 h-1 bg-white/20 rounded-full" />
-                </div>
-
-                {/* Camada de Estilo: Cabelo Detalhado */}
-                <div 
-                  className={cn(
-                    "absolute top-0 w-52 opacity-95 transition-all z-20",
-                    safeAvatar.hair?.style === 'liso' ? "h-20 rounded-t-full" : 
-                    safeAvatar.hair?.style === 'ondulado' ? "h-24 rounded-t-full rounded-b-xl" :
-                    safeAvatar.hair?.style === 'cacheado' ? "h-28 rounded-full border-4 border-dashed border-black/10" :
-                    safeAvatar.hair?.style === 'crespo' ? "h-32 rounded-t-[3rem]" : "h-10 rounded-t-full"
-                  )}
-                  style={{ backgroundColor: safeAvatar.hair?.color || '#333' }}
-                />
-
-                {/* Camada de Olhos / Visor de Neon */}
-                <div className="w-40 h-10 bg-black/40 backdrop-blur-xl border border-white/30 rounded-full flex items-center justify-around px-6 z-30 animate-pulse-glow shadow-lg mt-4">
-                   <div 
-                     className={cn("w-3 h-3 rounded-full transition-all shadow-[0_0_10px_rgba(0,255,255,0.8)]", isBlinking && "scale-y-0")} 
-                     style={{ backgroundColor: safeAvatar.eyes?.color || 'cyan' }} 
-                   />
-                   <div 
-                     className={cn("w-3 h-3 rounded-full transition-all shadow-[0_0_10px_rgba(0,255,255,0.8)]", isBlinking && "scale-y-0")} 
-                     style={{ backgroundColor: safeAvatar.eyes?.color || 'cyan' }} 
-                   />
-                </div>
-
-                {/* Label de Identidade */}
-                <div className="absolute -bottom-10 text-center">
-                   <Badge className="bg-white/20 text-white backdrop-blur-md border-none text-[8px] font-black uppercase italic tracking-tighter">
-                     {safeAvatar.accessoryType}
-                   </Badge>
-                   <div className="text-[7px] font-bold text-white/50 uppercase tracking-widest mt-1">Identidade UrbeLudo</div>
-                </div>
-             </div>
-             
-             {/* Efeito de Aura de Privacidade */}
-             <div className="absolute inset-0 bg-primary/5 backdrop-blur-[0.5px] pointer-events-none" />
           </div>
         )}
 
@@ -470,7 +488,7 @@ export function PlaygroundInterface() {
         {isInitializingCamera && (
           <div className="absolute inset-0 z-50 bg-black flex flex-col items-center justify-center gap-4 text-white">
              <Loader2 className="w-8 h-8 animate-spin text-primary" />
-             <span className="text-[10px] font-black uppercase tracking-widest">Sincronizando Sensores...</span>
+             <span className="text-[10px] font-black uppercase tracking-widest">Sincronizando Sensores 3D...</span>
           </div>
         )}
 
@@ -491,7 +509,7 @@ export function PlaygroundInterface() {
             <div className="flex flex-col items-center text-center space-y-4">
                <div className="w-20 h-20 bg-primary/10 rounded-[2.5rem] flex items-center justify-center text-primary shadow-inner"><Info className="w-10 h-10" /></div>
                <h2 className="text-3xl font-black uppercase italic tracking-tighter">Guia de Exploração</h2>
-               <p className="text-xs font-medium text-muted-foreground max-w-xs leading-relaxed">Personalize seu playground para uma experiência inclusiva.</p>
+               <p className="text-xs font-medium text-muted-foreground max-w-xs leading-relaxed">Personalize seu playground 3D para uma experiência inclusiva.</p>
             </div>
             <div className="grid gap-3">
               <AcessibilityToggle active={isAudioEnabled} onClick={() => setIsAudioEnabled(!isAudioEnabled)} icon={<Volume2 />} label="Áudio Guia" sub="Narra missões" />
@@ -513,13 +531,13 @@ export function PlaygroundInterface() {
           <div className="p-8 bg-primary/5 rounded-[3rem] border-2 border-dashed border-primary/20 text-center space-y-6">
              <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto text-primary animate-pulse"><Scan className="w-10 h-10" /></div>
              <div className="space-y-2">
-                <h3 className="text-2xl font-black uppercase italic">Scan de Privacidade</h3>
+                <h3 className="text-2xl font-black uppercase italic">Renderização Facial 3D</h3>
                 <p className="text-[10px] font-medium text-muted-foreground max-w-[260px] mx-auto leading-relaxed">
-                  Transformaremos seu rosto em traços artísticos digitais. Seus dados biométricos reais serão deletados permanentemente após o scan.
+                  Transformaremos seu rosto em um personagem 3D artístico. Seus dados biométricos reais serão deletados permanentemente após o scan.
                 </p>
              </div>
              <Button onClick={handleFaceScan} disabled={isAvatarizing || isInitializingCamera} className="w-full h-16 rounded-[2.5rem] font-black uppercase tracking-widest bg-primary shadow-lg border-b-4 border-primary/80 active:border-b-0 active:translate-y-1 transition-all">
-               {isAvatarizing ? <Loader2 className="animate-spin" /> : "Gerar Identidade Segura"}
+               {isAvatarizing ? <Loader2 className="animate-spin" /> : "Gerar Personagem 3D"}
              </Button>
           </div>
         ) : (
@@ -578,7 +596,7 @@ export function PlaygroundInterface() {
           <div className="bg-white/20 px-10 py-5 rounded-[2.5rem] border border-white/30 backdrop-blur-2xl">
              <span className="text-4xl font-black">+{activeChallenge?.ludoCoinsReward} LudoCoins</span>
           </div>
-          <p className="mt-8 text-xs font-bold uppercase tracking-widest opacity-80">Seu avatar subiu de nível!</p>
+          <p className="mt-8 text-xs font-bold uppercase tracking-widest opacity-80">Seu personagem 3D subiu de nível!</p>
         </div>
       )}
     </div>
@@ -647,4 +665,3 @@ function ChallengeRow({ title, subtitle, icon, isCompleted, onClick, disabled }:
     </div>
   );
 }
-
