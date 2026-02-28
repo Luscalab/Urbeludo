@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { StudioItem } from '@/components/studio/StudioItem';
 import { ShopDrawer } from '@/components/studio/ShopDrawer';
+import { AiGeneratorDialog } from '@/components/studio/AiGeneratorDialog';
 import { TutorialOverlay } from '@/components/studio/TutorialOverlay';
 import { useStudio } from '@/hooks/use-studio';
 import { useUser, useDoc, useMemoFirebase } from '@/firebase';
@@ -20,7 +21,8 @@ import {
   Coins,
   Sparkles,
   ShoppingBag,
-  Navigation as NavIconIcon
+  Navigation as NavIconIcon,
+  Wand2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -31,6 +33,7 @@ export default function StudioPage() {
     updateItemPosition, 
     updateAvatarPosition, 
     buyItem, 
+    addCustomItem,
     placeItem, 
     storeItem, 
     sellItem 
@@ -39,6 +42,7 @@ export default function StudioPage() {
   const viewportRef = useRef<HTMLDivElement>(null);
   const [mode, setMode] = useState<'explore' | 'edit'>('explore');
   const [isShopOpen, setIsShopOpen] = useState(false);
+  const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
   
   const userProgressRef = useMemoFirebase(() => user ? { id: user.uid, path: `user_progress/${user.uid}` } : null, [user]);
@@ -56,7 +60,6 @@ export default function StudioPage() {
     const world = document.getElementById('studio-world');
     if (world) {
       const rect = world.getBoundingClientRect();
-      // Calcula posição baseada no scroll e zoom se houver
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
       
@@ -98,6 +101,14 @@ export default function StudioPage() {
             <Coins className="w-4 h-4 text-yellow-600" />
             <span className="text-sm font-black">{isSapient ? '∞' : (profile?.ludoCoins || 0)}</span>
           </div>
+
+          <Button 
+            variant="outline"
+            onClick={() => setIsGeneratorOpen(true)}
+            className="rounded-2xl font-black uppercase text-[10px] gap-2 shadow-sm h-11 border-primary/20 text-primary"
+          >
+            <Wand2 className="w-4 h-4" /> IA
+          </Button>
           
           <Button 
             variant={mode === 'edit' ? "default" : "outline"} 
@@ -237,9 +248,17 @@ export default function StudioPage() {
         onClose={() => setIsShopOpen(false)}
         userCoins={profile?.ludoCoins || 0}
         unlockedItemIds={studioState.unlockedItemIds}
+        customItems={studioState.customItems}
         onBuyItem={buyItem}
         onPlaceItem={placeItem}
+        onOpenGenerator={() => { setIsShopOpen(false); setIsGeneratorOpen(true); }}
         userName={profile?.displayName}
+      />
+
+      <AiGeneratorDialog 
+        isOpen={isGeneratorOpen}
+        onClose={() => setIsGeneratorOpen(false)}
+        onItemGenerated={addCustomItem}
       />
     </div>
   );

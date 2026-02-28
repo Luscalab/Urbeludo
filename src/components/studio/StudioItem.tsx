@@ -1,11 +1,13 @@
+
 'use client';
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { PlacedItem } from '@/lib/types';
+import { PlacedItem, StudioItem as StudioItemType } from '@/lib/types';
 import { STUDIO_CATALOG } from '@/lib/studio-catalog';
-import { Package, Coins, Trash2 } from 'lucide-react';
+import { Package, Coins, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useStudio } from '@/hooks/use-studio';
 
 interface StudioItemProps {
   data: PlacedItem;
@@ -18,7 +20,11 @@ interface StudioItemProps {
 
 export function StudioItem({ data, onUpdate, onStore, onSell, isEditing, auraColor }: StudioItemProps) {
   const [isSelected, setIsSelected] = useState(false);
-  const itemInfo = STUDIO_CATALOG.find(i => i.id === data.itemId);
+  const { studioState } = useStudio();
+  
+  // Buscar o item no catálogo ou nos itens customizados gerados por IA
+  const allItems = [...STUDIO_CATALOG, ...(studioState.customItems || [])];
+  const itemInfo = allItems.find(i => i.id === data.itemId);
   
   if (!itemInfo) return null;
 
@@ -93,6 +99,12 @@ export function StudioItem({ data, onUpdate, onStore, onSell, isEditing, auraCol
               (e.target as HTMLImageElement).src = 'https://placehold.co/100x100?text=Item';
             }}
           />
+
+          {itemInfo.isAiGenerated && (
+            <div className="absolute top-0 right-0 p-1 bg-accent text-white rounded-full shadow-lg">
+              <Sparkles className="w-3 h-3" />
+            </div>
+          )}
         </div>
 
         <AnimatePresence>

@@ -3,22 +3,35 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Lock, Coins, Sparkles, Package, Home, Zap, ShoppingBag, Star } from 'lucide-react';
+import { X, Lock, Coins, Sparkles, Package, Home, Zap, ShoppingBag, Star, Wand2 } from 'lucide-react';
 import { STUDIO_CATALOG } from '@/lib/studio-catalog';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { StudioItem } from '@/lib/types';
 
 interface ShopDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   userCoins: number;
   unlockedItemIds: string[];
+  customItems?: StudioItem[];
   onBuyItem: (itemId: string, price: number) => void;
   onPlaceItem: (itemId: string) => void;
+  onOpenGenerator: () => void;
   userName?: string;
 }
 
-export function ShopDrawer({ isOpen, onClose, userCoins, unlockedItemIds, onBuyItem, onPlaceItem, userName }: ShopDrawerProps) {
+export function ShopDrawer({ 
+  isOpen, 
+  onClose, 
+  userCoins, 
+  unlockedItemIds, 
+  customItems = [], 
+  onBuyItem, 
+  onPlaceItem, 
+  onOpenGenerator,
+  userName 
+}: ShopDrawerProps) {
   const [activeTab, setActiveTab] = useState<string>("Todos");
 
   const categories = [
@@ -31,9 +44,11 @@ export function ShopDrawer({ isOpen, onClose, userCoins, unlockedItemIds, onBuyI
 
   const isSapient = userName?.toLowerCase() === 'sapient';
 
+  const allAvailableItems = [...STUDIO_CATALOG, ...customItems];
+
   const filteredCatalog = activeTab === "Todos" 
-    ? STUDIO_CATALOG 
-    : STUDIO_CATALOG.filter(item => item.category === activeTab);
+    ? allAvailableItems 
+    : allAvailableItems.filter(item => item.category === activeTab);
 
   return (
     <AnimatePresence>
@@ -58,9 +73,17 @@ export function ShopDrawer({ isOpen, onClose, userCoins, unlockedItemIds, onBuyI
                   <span className="text-xl font-black">{isSapient ? '∞' : userCoins} <span className="text-[10px] uppercase opacity-40">LudoCoins</span></span>
                 </div>
               </div>
-              <button onClick={onClose} className="p-4 bg-white text-primary rounded-3xl shadow-xl hover:scale-110 active:scale-95 transition-all">
-                <X className="w-7 h-7" />
-              </button>
+              <div className="flex gap-4">
+                <Button 
+                  onClick={onOpenGenerator}
+                  className="h-14 px-8 rounded-2xl bg-primary text-white font-black uppercase tracking-widest gap-3 shadow-xl hover:scale-105 active:scale-95 transition-all"
+                >
+                  <Wand2 className="w-5 h-5" /> Criar com IA
+                </Button>
+                <button onClick={onClose} className="p-4 bg-white text-primary rounded-3xl shadow-xl hover:scale-110 active:scale-95 transition-all">
+                  <X className="w-7 h-7" />
+                </button>
+              </div>
             </div>
 
             <div className="flex gap-2 p-6 overflow-x-auto no-scrollbar border-b">
@@ -84,7 +107,7 @@ export function ShopDrawer({ isOpen, onClose, userCoins, unlockedItemIds, onBuyI
               {filteredCatalog.map((item) => {
                 const countInInventory = unlockedItemIds.filter(id => id === item.id).length;
                 const canAfford = isSapient || userCoins >= item.price;
-                const isSpecial = item.category === 'Especial';
+                const isSpecial = item.category === 'Especial' || item.isAiGenerated;
 
                 return (
                   <motion.div 
@@ -98,6 +121,12 @@ export function ShopDrawer({ isOpen, onClose, userCoins, unlockedItemIds, onBuyI
                     {countInInventory > 0 && (
                       <div className="absolute top-4 left-4 bg-blue-600 text-white px-3 py-1 rounded-full text-[9px] font-black shadow-lg">
                         Mochila: {countInInventory}
+                      </div>
+                    )}
+
+                    {item.isAiGenerated && (
+                      <div className="absolute top-4 right-4 bg-accent text-white p-2 rounded-full shadow-lg">
+                        <Sparkles className="w-3 h-3" />
                       </div>
                     )}
 
@@ -120,19 +149,21 @@ export function ShopDrawer({ isOpen, onClose, userCoins, unlockedItemIds, onBuyI
                         </button>
                       )}
                       
-                      <button 
-                        disabled={!canAfford && !isSapient}
-                        onClick={() => onBuyItem(item.id, isSapient ? 0 : item.price)}
-                        className={cn(
-                          "w-full py-4 rounded-2xl text-[11px] font-black uppercase flex items-center justify-center gap-2 transition-all active:scale-95 border-b-4",
-                          (canAfford || isSapient) 
-                            ? "bg-primary text-white shadow-xl shadow-primary/20 border-primary-foreground/20 active:border-b-0" 
-                            : "bg-muted text-muted-foreground opacity-50 cursor-not-allowed border-transparent"
-                        )}
-                      >
-                        {!canAfford && !isSapient && <Lock className="w-4 h-4" />}
-                        <Coins className="w-4 h-4" /> {isSapient ? 'GRÁTIS' : item.price}
-                      </button>
+                      {!item.isAiGenerated && (
+                        <button 
+                          disabled={!canAfford && !isSapient}
+                          onClick={() => onBuyItem(item.id, isSapient ? 0 : item.price)}
+                          className={cn(
+                            "w-full py-4 rounded-2xl text-[11px] font-black uppercase flex items-center justify-center gap-2 transition-all active:scale-95 border-b-4",
+                            (canAfford || isSapient) 
+                              ? "bg-primary text-white shadow-xl shadow-primary/20 border-primary-foreground/20 active:border-b-0" 
+                              : "bg-muted text-muted-foreground opacity-50 cursor-not-allowed border-transparent"
+                          )}
+                        >
+                          {!canAfford && !isSapient && <Lock className="w-4 h-4" />}
+                          <Coins className="w-4 h-4" /> {isSapient ? 'GRÁTIS' : item.price}
+                        </button>
+                      )}
                     </div>
                   </motion.div>
                 );
@@ -143,4 +174,8 @@ export function ShopDrawer({ isOpen, onClose, userCoins, unlockedItemIds, onBuyI
       )}
     </AnimatePresence>
   );
+}
+
+function Button(props: any) {
+  return <button {...props} className={cn("inline-flex items-center justify-center", props.className)} />;
 }

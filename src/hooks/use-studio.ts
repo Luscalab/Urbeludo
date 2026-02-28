@@ -1,8 +1,9 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { LocalPersistence } from '@/lib/local-persistence';
-import { PlacedItem, StudioState } from '@/lib/types';
+import { PlacedItem, StudioState, StudioItem } from '@/lib/types';
 import { STUDIO_CATALOG } from '@/lib/studio-catalog';
 
 const GRID_SIZE = 40; 
@@ -12,6 +13,7 @@ export function useStudio() {
   const [studioState, setStudioState] = useState<StudioState>({
     unlockedItemIds: [],
     placedItems: [],
+    customItems: [],
     backgroundId: 'default',
     worldConfig: {
       width: WORLD_SIZE,
@@ -27,7 +29,10 @@ export function useStudio() {
   const loadStudio = useCallback(async () => {
     const profile = await LocalPersistence.getProgress();
     if (profile?.studioState) {
-      setStudioState(profile.studioState);
+      setStudioState(prev => ({
+        ...prev,
+        ...profile.studioState
+      }));
     }
     setIsLoading(false);
   }, []);
@@ -95,6 +100,18 @@ export function useStudio() {
     return true;
   };
 
+  const addCustomItem = async (item: StudioItem) => {
+    setStudioState(prev => {
+      const newState = {
+        ...prev,
+        customItems: [...(prev.customItems || []), item],
+        unlockedItemIds: [...prev.unlockedItemIds, item.id]
+      };
+      saveState(newState);
+      return newState;
+    });
+  };
+
   const placeItem = async (itemId: string) => {
     setStudioState(prev => {
       const index = prev.unlockedItemIds.indexOf(itemId);
@@ -143,7 +160,8 @@ export function useStudio() {
     const itemToSell = studioState.placedItems.find(i => i.instanceId === instanceId);
     if (!itemToSell) return;
 
-    const catalogItem = STUDIO_CATALOG.find(i => i.id === itemToSell.itemId);
+    const allItems = [...STUDIO_CATALOG, ...(studioState.customItems || [])];
+    const catalogItem = allItems.find(i => i.id === itemToSell.itemId);
     const isSapient = userName?.toLowerCase() === 'sapient';
     
     const profile = await LocalPersistence.getProgress();
@@ -173,6 +191,7 @@ export function useStudio() {
     updateItemPosition, 
     updateAvatarPosition,
     buyItem,
+    addCustomItem,
     placeItem,
     storeItem, 
     sellItem

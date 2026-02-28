@@ -23,12 +23,13 @@ export interface StudioItem {
   category: ItemCategory;
   price: number;
   description: string;
-  assetPath: string; // Caminho em /public/assets/studio/ ou Emoji
+  assetPath: string; // Caminho em /public/assets/studio/ ou DataURI (Base64)
   dimensions: {
     width: number;
     height: number;
   };
   gridSize?: { w: number; h: number };
+  isAiGenerated?: boolean;
 }
 
 /**
@@ -51,6 +52,7 @@ export interface PlacedItem {
 export interface StudioState {
   unlockedItemIds: string[];
   placedItems: PlacedItem[];
+  customItems?: StudioItem[]; // Armazena itens criados por IA
   backgroundId: string;
   worldConfig: {
     width: number;
