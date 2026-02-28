@@ -5,32 +5,27 @@
 
 @layer base {
   :root {
-    /* Purple Theme 2026 - Ultra Vivid */
-    --background: 270 40% 98%;
-    --foreground: 270 60% 5%;
+    /* Cafeland-Inspired Vibrant Palette */
+    --background: 210 100% 98%;
+    --foreground: 222 47% 11%;
     --card: 0 0% 100%;
-    --card-foreground: 270 60% 5%;
+    --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 270 60% 5%;
-    --primary: 270 80% 50%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 270 40% 94%;
-    --secondary-foreground: 270 80% 20%;
-    --muted: 270 20% 92%;
-    --muted-foreground: 270 10% 40%;
-    --accent: 310 90% 65%; /* Neon Pink */
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 270 20% 90%;
-    --input: 270 20% 90%;
-    --ring: 270 80% 50%;
-    --radius: 2.5rem;
-  }
-
-  .dark {
-    --background: 270 50% 3%;
-    --foreground: 270 10% 95%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 270 80% 55%; /* Vibrant Purple */
+    --primary-foreground: 210 40% 98%;
+    --secondary: 199 89% 48%; /* Sky Blue */
+    --secondary-foreground: 222 47% 11%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 322 90% 60%; /* Hot Pink */
+    --accent-foreground: 222 47% 11%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 270 80% 55%;
+    --radius: 2rem;
   }
 
   * {
@@ -44,41 +39,34 @@
   }
 
   body {
-    @apply bg-background text-foreground antialiased selection:bg-primary/20;
+    @apply bg-background text-foreground antialiased;
     overflow-x: hidden;
+    font-family: 'Inter', sans-serif;
   }
 }
 
 @layer utilities {
-  .bg-glass {
-    @apply bg-white/60 backdrop-blur-2xl border border-white/20 shadow-xl;
+  .game-button-shadow {
+    box-shadow: 0 4px 0 0 rgba(0, 0, 0, 0.2);
+  }
+  
+  .game-button-active {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 0 rgba(0, 0, 0, 0.2);
   }
 
-  .bg-mesh-purple {
+  .bg-mesh-vibrant {
     background-image: 
-      radial-gradient(at 0% 0%, hsla(270, 80%, 50%, 0.15) 0px, transparent 50%),
-      radial-gradient(at 100% 0%, hsla(310, 90%, 65%, 0.15) 0px, transparent 50%),
-      radial-gradient(at 100% 100%, hsla(270, 80%, 50%, 0.1) 0px, transparent 50%),
-      radial-gradient(at 0% 100%, hsla(310, 90%, 65%, 0.1) 0px, transparent 50%);
+      radial-gradient(at 0% 0%, hsla(270, 80%, 55%, 0.15) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, hsla(199, 89%, 48%, 0.15) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, hsla(322, 90%, 60%, 0.1) 0px, transparent 50%);
   }
 
-  .isometric-shadow {
-    filter: drop-shadow(0 20px 30px rgba(0,0,0,0.15));
+  @keyframes bounce-subtle {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
   }
-
-  @keyframes float {
-    0%, 100% { transform: translateY(0) rotate(0); }
-    50% { transform: translateY(-15px) rotate(1deg); }
-  }
-  .animate-float {
-    animation: float 5s ease-in-out infinite;
-  }
-
-  @keyframes scanline {
-    0% { transform: translateY(-100%); }
-    100% { transform: translateY(100%); }
-  }
-  .animate-scanline {
-    animation: scanline 3s linear infinite;
+  .animate-bounce-subtle {
+    animation: bounce-subtle 2s ease-in-out infinite;
   }
 }
