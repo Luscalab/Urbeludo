@@ -1,3 +1,16 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "hero-urban",
+      "description": "A modern urban square with stairs and concrete elements",
+      "imageUrl": "https://images.unsplash.com/photo-1581175990636-0c75be2d4aea?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHx1cmJhbiUyMGFyY2hpdGVjdHVyZXxlbnwwfHx8fDE3NzIyMTY2NjF8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "urban architecture"
+    },
+    {
+      "id": "play-movement",
+      "description": "Someone balancing on a urban curb",
+      "imageUrl": "https://images.unsplash.com/photo-1572101954010-2f3c78fc3ab6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxiYWxhbmNlJTIwbW92ZW1lbnR8ZW58MHx8fHwxNzcyMjU3NzU3fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "balance movement"
+    }
+  ]
 }
