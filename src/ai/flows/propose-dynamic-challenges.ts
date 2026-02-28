@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview Flow para proposição de desafios dinâmicos, seguros e lúdicos, agora categorizados.
@@ -13,7 +12,7 @@ const ProposeDynamicChallengesInputSchema = z.object({
   userAgeGroup: z.enum(['preschool', 'school_age', 'adolescent_adult']).default('adolescent_adult'),
   psychomotorLevel: z.number().min(1).max(4).default(1),
   missionType: z.enum(['home', 'street']).default('street'),
-  category: z.enum(['artistic', 'motor', 'memory', 'relaxation']).default('motor'),
+  category: z.enum(['Arte', 'Motor', 'Mente', 'Zen']).default('Motor'),
 });
 export type ProposeDynamicChallengesInput = z.infer<typeof ProposeDynamicChallengesInputSchema>;
 
@@ -24,7 +23,7 @@ const ProposeDynamicChallengesOutputSchema = z.object({
   difficulty: z.enum(['easy', 'medium', 'hard']),
   ludoCoinsReward: z.number(),
   isLudicDrawing: z.boolean().describe('Se o desafio envolve desenhar algo no chão ou criar arte urbana temporária.'),
-  steps: z.array(z.string()).describe('Lista de 2 a 3 passos para garantir a execução da atividade.'),
+  steps: z.tuple([z.string(), z.string(), z.string()]).describe('Exatamente 3 passos para garantir a execução da atividade.'),
 });
 export type ProposeDynamicChallengesOutput = z.infer<typeof ProposeDynamicChallengesOutputSchema>;
 
@@ -51,10 +50,10 @@ const proposeDynamicChallengesPrompt = ai.definePrompt({
   prompt: `Você é o Mestre do Movimento do UrbeLudo. Seu objetivo é criar desafios psicomotores lúdicos, seguros e categorizados.
 
 CATEGORIA DA MISSÃO: {{{category}}}
-- artistic: Foco em desenho lúdico, formas e cores no ambiente.
-- motor: Foco em equilíbrio, saltos, locomoção e força.
-- memory: Desafios de memorização espacial (ex: toque em 3 elementos na ordem X).
-- relaxation: Alongamentos, respiração consciente e posturas estáticas.
+- Arte: Foco em desenho lúdico, formas e cores no ambiente.
+- Motor: Foco em equilíbrio, saltos, locomoção e força.
+- Mente: Desafios de memorização espacial (ex: toque em 3 elementos na ordem X).
+- Zen: Alongamentos, respiração consciente e posturas estáticas.
 
 REGRA DE OURO DE SEGURANÇA:
 - JAMAIS sugira atividades em locais com tráfego de carros, avenidas ou calçadas estreitas.

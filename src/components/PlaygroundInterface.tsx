@@ -36,8 +36,7 @@ import { setDocumentNonBlocking, addDocumentNonBlocking, updateDocumentNonBlocki
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/components/I18nProvider';
-
-type CategoryType = 'artistic' | 'motor' | 'memory' | 'relaxation';
+import { MissionCategory } from '@/lib/types';
 
 export function PlaygroundInterface() {
   const { user } = useUser();
@@ -54,7 +53,7 @@ export function PlaygroundInterface() {
   const [activeChallenge, setActiveChallenge] = useState<ProposeDynamicChallengesOutput & { missionType?: 'home' | 'street' } | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [celebrating, setCelebrating] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<CategoryType>('motor');
+  const [selectedCategory, setSelectedCategory] = useState<MissionCategory>('Motor');
   
   const [cameraMode, setCameraMode] = useState<'user' | 'environment'>('user');
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
@@ -67,17 +66,13 @@ export function PlaygroundInterface() {
   const userProgressRef = useMemoFirebase(() => user ? doc(db, 'user_progress', user.uid) : null, [db, user]);
   const { data: profile } = useDoc(userProgressRef);
 
-  // Determina se a câmera é necessária no momento
   const isCameraRequired = useMemo(() => {
     if (showGuide) return false;
     if (isScanning) return true;
     if (!activeChallenge) return false;
-    
-    // Câmera ligada para modo artístico (Rastros de Tinta) ou missões de rua (Contexto Urbano)
-    return selectedCategory === 'artistic' || activeChallenge.missionType === 'street';
+    return selectedCategory === 'Arte' || activeChallenge.missionType === 'street';
   }, [showGuide, isScanning, activeChallenge, selectedCategory]);
 
-  // Motor de "Rastros de Tinta" e Diferenciação de Quadros
   useEffect(() => {
     let animationId: number;
     let lastFrame: ImageData | null = null;
@@ -103,12 +98,12 @@ export function PlaygroundInterface() {
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         const currentFrame = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
-        if (lastFrame && activeChallenge?.category === 'artistic') {
+        if (lastFrame && selectedCategory === 'Arte') {
           let movementX = 0;
           let movementY = 0;
           let pixelCount = 0;
 
-          for (let i = 0; i < currentFrame.data.length; i += 40) { // Amostragem para performance
+          for (let i = 0; i < currentFrame.data.length; i += 40) {
             const diff = Math.abs(currentFrame.data[i] - lastFrame.data[i]);
             if (diff > 40) {
               const x = (i / 4) % canvas.width;
@@ -129,7 +124,6 @@ export function PlaygroundInterface() {
             trailCtx.globalAlpha = 0.4;
             trailCtx.fill();
             
-            // "Eco Urbano": Som sutil baseado no movimento
             if (isAudioEnabled && pixelCount % 100 === 0) {
                playBeep(200 + (centerX / canvas.width) * 400);
             }
@@ -137,7 +131,6 @@ export function PlaygroundInterface() {
         }
         lastFrame = currentFrame;
 
-        // Detecção de baixa luminosidade
         let brightnessSum = 0;
         for (let i = 0; i < currentFrame.data.length; i += 400) {
           brightnessSum += (currentFrame.data[i] + currentFrame.data[i+1] + currentFrame.data[i+2]) / 3;
@@ -149,7 +142,7 @@ export function PlaygroundInterface() {
 
     processFrames();
     return () => cancelAnimationFrame(animationId);
-  }, [isCameraRequired, activeChallenge, avatarColor, isAudioEnabled]);
+  }, [isCameraRequired, selectedCategory, avatarColor, isAudioEnabled]);
 
   const playBeep = (freq: number) => {
     try {
@@ -234,7 +227,6 @@ export function PlaygroundInterface() {
     setCameraMode(type === 'street' ? 'environment' : 'user');
     setIsScanning(true);
     
-    // Limpar rastro anterior
     if (trailCanvasRef.current) {
       const trailCtx = trailCanvasRef.current.getContext('2d');
       trailCtx?.clearRect(0, 0, trailCanvasRef.current.width, trailCanvasRef.current.height);
@@ -242,12 +234,8 @@ export function PlaygroundInterface() {
 
     try {
       let detected: string[] = [];
-      
-      // Se for rua, precisamos da câmera para identificar elementos
       if (type === 'street') {
-        // Aguarda a câmera estabilizar se estiver ligando agora
         await new Promise(r => setTimeout(r, 1000));
-        
         if (videoRef.current) {
           const canvas = document.createElement('canvas');
           canvas.width = videoRef.current.videoWidth;
@@ -289,7 +277,7 @@ export function PlaygroundInterface() {
       missionType,
       challengeTitle: activeChallenge.challengeTitle,
       challengeDescription: activeChallenge.challengeDescription,
-      photoUrl: '', // Prova visual não armazenada por privacidade
+      photoUrl: '',
       likes: 0,
       isPublic: false
     };
@@ -311,9 +299,7 @@ export function PlaygroundInterface() {
 
   return (
     <div className="flex flex-col h-full bg-background relative overflow-hidden">
-      {/* Viewport Mobile 2026 */}
       <div className="relative w-full aspect-[3/4] bg-zinc-950 overflow-hidden shadow-inner z-0 border-b border-primary/10">
-        
         {isCameraRequired ? (
           <>
             <video ref={videoRef} className="w-full h-full object-cover opacity-80" autoPlay muted playsInline />
@@ -322,11 +308,7 @@ export function PlaygroundInterface() {
           </>
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-b from-zinc-900 to-zinc-950 p-12 text-center space-y-6">
-            <motion.div 
-              animate={{ y: [0, -10, 0] }}
-              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-              className="w-24 h-24 rounded-[2.5rem] bg-primary/10 border border-primary/20 flex items-center justify-center text-primary/40"
-            >
+            <motion.div animate={{ y: [0, -10, 0] }} transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }} className="w-24 h-24 rounded-[2.5rem] bg-primary/10 border border-primary/20 flex items-center justify-center text-primary/40">
               <CameraOff className="w-10 h-10" />
             </motion.div>
             <div className="space-y-2">
@@ -336,29 +318,18 @@ export function PlaygroundInterface() {
           </div>
         )}
         
-        {/* HUD de Scan Ativo */}
         <AnimatePresence>
           {isScanning && (
-            <motion.div 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 z-40 bg-primary/20 backdrop-blur-[2px] flex flex-col items-center justify-center"
-            >
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 z-40 bg-primary/20 backdrop-blur-[2px] flex flex-col items-center justify-center">
               <div className="w-64 h-64 border-2 border-white/50 rounded-[3rem] relative overflow-hidden">
-                <motion.div 
-                  animate={{ y: [0, 256, 0] }} 
-                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                  className="w-full h-1 bg-primary shadow-[0_0_15px_rgba(147,51,234,0.8)]"
-                />
+                <motion.div animate={{ y: [0, 256, 0] }} transition={{ duration: 2, repeat: Infinity, ease: "linear" }} className="w-full h-1 bg-primary shadow-[0_0_15px_rgba(147,51,234,0.8)]" />
               </div>
               <span className="mt-6 text-[10px] font-black uppercase tracking-[0.3em] text-white drop-shadow-md">Analisando Ambiente...</span>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* HUD de Modo Ativo */}
-        {activeChallenge?.category === 'artistic' && (
+        {selectedCategory === 'Arte' && (
           <div className="absolute top-4 left-4 z-30 flex items-center gap-2 bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 animate-pulse">
             <PaletteIcon className="w-4 h-4 text-accent" />
             <span className="text-[9px] font-black uppercase text-white tracking-widest">{t('playground.drawingActive')}</span>
@@ -436,10 +407,10 @@ export function PlaygroundInterface() {
         ) : (
           <div className="space-y-8 pb-12">
             <div className="flex overflow-x-auto gap-3 pb-4 no-scrollbar -mx-8 px-8">
-                <CategoryButton active={selectedCategory === 'artistic'} onClick={() => setSelectedCategory('artistic')} icon={<PaletteIcon className="w-4 h-4" />} label={t('playground.art')} />
-                <CategoryButton active={selectedCategory === 'motor'} onClick={() => setSelectedCategory('motor')} icon={<Zap className="w-4 h-4" />} label={t('playground.motor')} />
-                <CategoryButton active={selectedCategory === 'memory'} onClick={() => setSelectedCategory('memory')} icon={<Brain className="w-4 h-4" />} label={t('playground.mind')} />
-                <CategoryButton active={selectedCategory === 'relaxation'} onClick={() => setSelectedCategory('relaxation')} icon={<Wind className="w-4 h-4" />} label={t('playground.zen')} />
+                <CategoryButton active={selectedCategory === 'Arte'} onClick={() => setSelectedCategory('Arte')} icon={<PaletteIcon className="w-4 h-4" />} label={t('playground.art')} />
+                <CategoryButton active={selectedCategory === 'Motor'} onClick={() => setSelectedCategory('Motor')} icon={<Zap className="w-4 h-4" />} label={t('playground.motor')} />
+                <CategoryButton active={selectedCategory === 'Mente'} onClick={() => setSelectedCategory('Mente')} icon={<Brain className="w-4 h-4" />} label={t('playground.mind')} />
+                <CategoryButton active={selectedCategory === 'Zen'} onClick={() => setSelectedCategory('Zen')} icon={<Wind className="w-4 h-4" />} label={t('playground.zen')} />
             </div>
 
             {!activeChallenge ? (

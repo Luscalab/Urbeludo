@@ -1,4 +1,3 @@
-
 export type Language = 'pt' | 'en' | 'es';
 
 export const translations = {
@@ -154,9 +153,9 @@ export const translations = {
       edgeAi: 'Edge AI: Biometrics discarded locally',
     },
     playground: {
-      art: 'Art',
+      art: 'Arte',
       motor: 'Motor',
-      mind: 'Mind',
+      mind: 'Mente',
       zen: 'Zen',
       homeMission: 'Home Mission',
       streetMission: 'Street Mission',
@@ -196,7 +195,7 @@ export const translations = {
       mobileTitle: 'Nativo Móvil',
       mobileDesc: 'Alto rendimiento y baja latencia.',
       ctaTitle: 'La ciudad es tu gimnasio.',
-      ctaDesc: 'Deja de mirar pantallas y empieza a mirar a través de ellas.',
+      ctaDesc: 'Deja de mirar pantallas e começa a mirar a través de ellas.',
       connectIdentity: 'Conectar Identidad',
     }
   }
