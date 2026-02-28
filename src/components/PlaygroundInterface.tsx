@@ -80,16 +80,15 @@ export function PlaygroundInterface() {
       setHasCameraPermission(true);
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        // Garantir que o vídeo comece a tocar
-        videoRef.current.play().catch(e => console.error("Erro ao tocar vídeo:", e));
+        videoRef.current.play().catch(e => console.error("Erro ao reproduzir vídeo:", e));
       }
     } catch (error) {
       console.error("Erro ao acessar câmera:", error);
       setHasCameraPermission(false);
       toast({
         variant: 'destructive',
-        title: 'Câmera Bloqueada',
-        description: 'Por favor, permita o acesso à câmera nas configurações do seu navegador.'
+        title: 'Câmera Não Encontrada',
+        description: 'Por favor, verifique as permissões de câmera do seu dispositivo.'
       });
     }
   };
@@ -105,7 +104,7 @@ export function PlaygroundInterface() {
     };
   }, [cameraMode, showGuide]);
 
-  // Audio Guide Logic
+  // Audio Guide Logic - Narrador dos passos
   useEffect(() => {
     if (isAudioEnabled && activeChallenge) {
       const stepText = activeChallenge.steps[currentStep];
@@ -118,12 +117,12 @@ export function PlaygroundInterface() {
   const handleFaceScan = async () => {
     if (!videoRef.current) return;
     
-    // Verificar se o vídeo está realmente pronto para captura
+    // Garantir que a câmera está pronta para captura
     if (videoRef.current.videoWidth === 0 || videoRef.current.videoHeight === 0) {
       toast({ 
         variant: 'destructive', 
-        title: "Câmera Iniciando", 
-        description: "Aguarde um momento e tente novamente." 
+        title: "Câmera Inicializando", 
+        description: "Aguarde a imagem aparecer na tela e tente o scan novamente." 
       });
       return;
     }
@@ -135,25 +134,27 @@ export function PlaygroundInterface() {
       canvas.width = videoRef.current.videoWidth;
       canvas.height = videoRef.current.videoHeight;
       const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error("Não foi possível obter contexto 2D");
+      if (!ctx) throw new Error("Falha ao criar contexto 2D");
       
       ctx.drawImage(videoRef.current, 0, 0);
       const photo = canvas.toDataURL('image/jpeg');
       
       const result = await avatarizeUser({ photoDataUri: photo });
       setSafeAvatar(result);
-      setCameraMode('environment'); // Muda para a câmera traseira para as missões
+      
+      // Muda para a câmera traseira após o scan para a exploração de rua
+      setCameraMode('environment');
       
       toast({ 
-        title: "Avatar Seguro Gerado", 
-        description: "Sua identidade está protegida. Foto original descartada." 
+        title: "Avatar Seguro Criado!", 
+        description: "Sua identidade está protegida. Dados biométricos descartados com sucesso." 
       });
     } catch (e) {
-      console.error("Erro no Face Scan:", e);
+      console.error("Erro no Scan Facial:", e);
       toast({ 
         variant: 'destructive', 
-        title: "Erro no Scan", 
-        description: "Não foi possível capturar sua imagem. Tente novamente." 
+        title: "Erro no Reconhecimento", 
+        description: "Não foi possível processar seu rosto. Tente em um ambiente mais iluminado." 
       });
     } finally {
       setIsAvatarizing(false);
@@ -162,7 +163,7 @@ export function PlaygroundInterface() {
 
   const handleStartMission = async (type: 'home' | 'street') => {
     if ((profile?.avatar?.energy ?? 100) < 15) {
-      toast({ variant: 'destructive', title: 'Energia Baixa', description: 'O seu avatar precisa descansar.' });
+      toast({ variant: 'destructive', title: 'Energia Insuficiente', description: 'Seu avatar precisa descansar um pouco.' });
       return;
     }
     setIsScanning(true);
@@ -188,7 +189,7 @@ export function PlaygroundInterface() {
       setCurrentStep(0);
       setPhotoProof(null);
     } catch (e) {
-      toast({ variant: 'destructive', title: 'Erro na IA', description: 'Falha ao propor desafio. Tente novamente.' });
+      toast({ variant: 'destructive', title: 'IA Fora de Sintonia', description: 'O Mestre do Movimento está meditando. Tente novamente em instantes.' });
     } finally {
       setIsScanning(false);
     }
@@ -212,7 +213,7 @@ export function PlaygroundInterface() {
       if (ctx) {
         ctx.drawImage(video, 0, 0);
         
-        // Sobreposição do Avatar (Filtro de Privacidade)
+        // Aplicação do Filtro de Avatar (Privacidade Ativa)
         const centerX = canvas.width / 2;
         const centerY = canvas.height * 0.4;
         const radius = Math.min(canvas.width, canvas.height) * 0.22;
@@ -224,24 +225,24 @@ export function PlaygroundInterface() {
         ctx.fillStyle = safeAvatar?.dominantColor || '#33993D';
         ctx.fillRect(centerX - radius, centerY - radius, radius * 2, radius * 2);
         
-        // Elementos visuais do avatar
-        ctx.strokeStyle = 'white';
+        // Detalhes estilizados do avatar
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
         ctx.lineWidth = 4;
         ctx.strokeRect(centerX - radius/2, centerY - radius/4, radius, radius/8);
         ctx.restore();
 
-        // Banner de Privacidade
-        ctx.fillStyle = 'rgba(0,0,0,0.8)';
-        ctx.fillRect(0, canvas.height - 60, canvas.width, 60);
+        // Banner de Conformidade e Segurança
+        ctx.fillStyle = 'rgba(0,0,0,0.85)';
+        ctx.fillRect(0, canvas.height - 70, canvas.width, 70);
         ctx.fillStyle = 'white';
-        ctx.font = 'bold 12px Inter';
+        ctx.font = 'bold 14px Inter';
         ctx.textAlign = 'center';
-        ctx.fillText('IDENTIDADE PROTEGIDA POR IA', canvas.width / 2, canvas.height - 35);
+        ctx.fillText('IDENTIDADE PROTEGIDA POR IA', canvas.width / 2, canvas.height - 40);
         ctx.font = '10px Inter';
-        ctx.fillText('BIO-DADOS DESCARTADOS LOCALMENTE', canvas.width / 2, canvas.height - 15);
+        ctx.fillText('BIO-DADOS DESCARTADOS • PROCESSADO LOCALMENTE', canvas.width / 2, canvas.height - 20);
 
         setPhotoProof(canvas.toDataURL('image/jpeg'));
-        toast({ title: "Privacidade Garantida", description: "Sua identidade está protegida por desfoque bio-digital." });
+        toast({ title: "Privacidade Garantida", description: "Sua identidade foi preservada por processamento de borda." });
       }
       setIsCapturing(false);
     }
@@ -289,33 +290,39 @@ export function PlaygroundInterface() {
   if (showGuide) {
     return (
       <div className="min-h-full bg-background flex flex-col p-8 items-center justify-center text-center space-y-8 animate-in fade-in duration-500">
-        <div className="w-20 h-20 bg-primary/10 rounded-[2rem] flex items-center justify-center text-primary">
-          <Info className="w-10 h-10" />
+        <div className="w-24 h-24 bg-primary/10 rounded-[2.5rem] flex items-center justify-center text-primary shadow-inner">
+          <Info className="w-12 h-12" />
         </div>
         <div className="space-y-4">
-          <h2 className="text-3xl font-black uppercase italic tracking-tighter leading-none">Guia de Exploração</h2>
-          <p className="text-sm text-muted-foreground font-medium max-w-xs mx-auto">
-            O UrbeLudo transforma o seu ambiente em um estúdio de movimento seguro e acessível.
+          <h2 className="text-4xl font-black uppercase italic tracking-tighter leading-none">Exploração Inclusiva</h2>
+          <p className="text-sm text-muted-foreground font-medium max-w-xs mx-auto leading-relaxed">
+            O UrbeLudo foi desenhado para ser acessível. Ative as ferramentas de suporte abaixo antes de começar.
           </p>
         </div>
         <div className="grid gap-4 w-full max-w-xs">
-          <Button variant="outline" className="h-14 rounded-2xl gap-3" onClick={() => setIsAudioEnabled(!isAudioEnabled)}>
-            <Volume2 className={cn("w-5 h-5", isAudioEnabled ? "text-primary" : "text-muted-foreground")} />
-            <span className="text-[10px] font-black uppercase">{isAudioEnabled ? "Áudio Guia Ativo" : "Ativar Áudio Guia"}</span>
+          <Button variant="outline" className={cn("h-16 rounded-2xl gap-3 transition-all", isAudioEnabled && "border-primary bg-primary/5")} onClick={() => setIsAudioEnabled(!isAudioEnabled)}>
+            <Volume2 className={cn("w-6 h-6", isAudioEnabled ? "text-primary" : "text-muted-foreground")} />
+            <div className="text-left">
+              <span className="text-[10px] font-black uppercase block leading-none">Áudio Guia</span>
+              <span className="text-[8px] font-bold text-muted-foreground">{isAudioEnabled ? "Ativado" : "Desativado"}</span>
+            </div>
           </Button>
-          <Button variant="outline" className="h-14 rounded-2xl gap-3" onClick={() => setIsLibrasEnabled(!isLibrasEnabled)}>
-            <Hand className={cn("w-5 h-5", isLibrasEnabled ? "text-primary" : "text-muted-foreground")} />
-            <span className="text-[10px] font-black uppercase">{isLibrasEnabled ? "Libras Ativo" : "Ativar Libras"}</span>
+          <Button variant="outline" className={cn("h-16 rounded-2xl gap-3 transition-all", isLibrasEnabled && "border-primary bg-primary/5")} onClick={() => setIsLibrasEnabled(!isLibrasEnabled)}>
+            <Hand className={cn("w-6 h-6", isLibrasEnabled ? "text-primary" : "text-muted-foreground")} />
+            <div className="text-left">
+              <span className="text-[10px] font-black uppercase block leading-none">Guia de Libras</span>
+              <span className="text-[8px] font-bold text-muted-foreground">{isLibrasEnabled ? "Ativado" : "Desativado"}</span>
+            </div>
           </Button>
         </div>
-        <Button onClick={() => setShowGuide(false)} className="w-full max-w-xs h-16 rounded-[2.5rem] font-black uppercase tracking-widest shadow-xl">Iniciar Jornada</Button>
+        <Button onClick={() => setShowGuide(false)} className="w-full max-w-xs h-16 rounded-[2.5rem] font-black uppercase tracking-widest shadow-xl bg-primary hover:bg-primary/90">Começar a Jogar</Button>
       </div>
     );
   }
 
   return (
     <div className="flex flex-col h-full bg-background relative overflow-hidden">
-      <div className="relative w-full aspect-[4/3] bg-black overflow-hidden shadow-inner">
+      <div className="relative w-full aspect-[4/3] bg-black overflow-hidden shadow-2xl">
         <video 
           ref={videoRef} 
           className="w-full h-full object-cover" 
@@ -325,136 +332,149 @@ export function PlaygroundInterface() {
         />
         <canvas ref={canvasRef} className="hidden" />
         
-        {/* Libras Avatar Overlay */}
+        {/* Acessibilidade: Avatar de Libras flutuante */}
         {isLibrasEnabled && activeChallenge && (
-          <div className="absolute bottom-4 right-4 w-20 h-20 bg-black/40 backdrop-blur-md rounded-2xl border border-white/20 flex items-center justify-center overflow-hidden z-30 animate-pulse">
+          <div className="absolute bottom-6 right-6 w-24 h-24 bg-black/60 backdrop-blur-xl rounded-3xl border-2 border-primary/50 flex flex-col items-center justify-center overflow-hidden z-30 animate-pulse transition-all">
              <div className="flex flex-col items-center gap-1">
-                <Hand className="w-8 h-8 text-primary" />
-                <span className="text-[8px] font-black text-white uppercase">Libras</span>
+                <Hand className="w-10 h-10 text-primary" />
+                <span className="text-[8px] font-black text-white uppercase tracking-widest">Libras</span>
+             </div>
+             <div className="absolute top-0 right-0 p-1">
+                <div className="w-1.5 h-1.5 rounded-full bg-primary animate-ping" />
              </div>
           </div>
         )}
 
-        {/* Dynamic Avatar Filter */}
+        {/* Overlay do Avatar de Privacidade em Tempo Real */}
         {safeAvatar && !photoProof && (
           <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
              <div 
-               className="w-44 h-44 rounded-full border-4 border-white/50 shadow-2xl flex flex-col items-center justify-center text-white text-center p-4 transition-all"
-               style={{ backgroundColor: `${safeAvatar.dominantColor}99`, backdropFilter: 'blur(10px)' }}
+               className="w-48 h-48 rounded-full border-4 border-white/60 shadow-[0_0_50px_rgba(0,0,0,0.5)] flex flex-col items-center justify-center text-white text-center p-6 transition-all duration-500 scale-110"
+               style={{ backgroundColor: `${safeAvatar.dominantColor}A0`, backdropFilter: 'blur(12px)' }}
              >
-                <div className="bg-white/20 w-32 h-6 rounded-full border border-white/40 mb-2" />
-                <span className="text-[10px] font-black uppercase tracking-widest leading-none">Avatar Ativo</span>
+                <div className="bg-white/30 w-36 h-8 rounded-full border border-white/40 mb-3 animate-pulse" />
+                <span className="text-[10px] font-black uppercase tracking-widest leading-none drop-shadow-md">Escudo Digital Ativo</span>
              </div>
           </div>
         )}
 
         {photoProof && (
-          <div className="absolute inset-0 bg-black/60 flex items-center justify-center p-4 z-10">
-             <img src={photoProof} className="max-h-full rounded-2xl border-4 border-white/20 shadow-2xl" alt="Proof" />
-             <Button variant="destructive" size="icon" className="absolute top-4 right-4 rounded-full" onClick={() => setPhotoProof(null)}><RefreshCw className="w-4 h-4" /></Button>
+          <div className="absolute inset-0 bg-black/80 flex items-center justify-center p-6 z-40 animate-in fade-in zoom-in-95">
+             <div className="relative">
+               <img src={photoProof} className="max-h-[80vh] rounded-3xl border-4 border-white/20 shadow-[0_0_100px_rgba(0,0,0,0.8)]" alt="Prova de Atividade" />
+               <Button variant="destructive" size="icon" className="absolute -top-4 -right-4 rounded-full w-12 h-12 shadow-xl" onClick={() => setPhotoProof(null)}><RefreshCw className="w-6 h-6" /></Button>
+             </div>
           </div>
         )}
         
-        <div className="absolute top-4 left-4 right-4 flex justify-between pointer-events-none">
-           <Badge variant="outline" className="bg-black/40 text-white border-white/20 backdrop-blur-md gap-2 py-1.5 px-3">
-              <ShieldCheck className="w-3 h-3 text-green-400" />
-              <span className="text-[8px] font-black uppercase tracking-tighter">Bio-Privacidade Ativa</span>
+        <div className="absolute top-4 left-4 right-4 flex justify-between pointer-events-none z-10">
+           <Badge variant="outline" className="bg-black/50 text-white border-white/20 backdrop-blur-lg gap-2 py-2 px-4 shadow-xl">
+              <ShieldCheck className="w-4 h-4 text-green-400" />
+              <span className="text-[9px] font-black uppercase tracking-tighter">Identidade Preservada</span>
            </Badge>
         </div>
       </div>
 
-      <div className="flex-1 -mt-10 bg-background rounded-t-[3rem] p-6 shadow-2xl overflow-y-auto space-y-6 z-20">
+      <div className="flex-1 -mt-12 bg-background rounded-t-[3.5rem] p-8 shadow-[0_-20px_40px_rgba(0,0,0,0.1)] overflow-y-auto space-y-6 z-20">
         
+        {/* Tela de Scan Inicial */}
         {!safeAvatar && hasCameraPermission && (
-          <div className="p-6 bg-accent/5 rounded-[2.5rem] border-2 border-dashed border-accent/20 text-center space-y-4 animate-in zoom-in-95">
-             <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mx-auto text-accent">
-                <Scan className="w-8 h-8" />
+          <div className="p-8 bg-primary/5 rounded-[3rem] border-2 border-dashed border-primary/20 text-center space-y-6 animate-in zoom-in-95">
+             <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto text-primary shadow-inner">
+                <Scan className="w-10 h-10" />
              </div>
-             <div className="space-y-1">
-                <h3 className="text-xl font-black uppercase italic tracking-tighter">Scan de Identidade</h3>
-                <p className="text-[10px] font-medium text-muted-foreground leading-relaxed">
-                  Posicione o rosto para gerar o seu Avatar Seguro. <br/>
-                  <span className="text-primary font-bold">A imagem original será descartada imediatamente após o scan.</span>
+             <div className="space-y-2">
+                <h3 className="text-2xl font-black uppercase italic tracking-tighter">Scan de Identidade</h3>
+                <p className="text-xs font-medium text-muted-foreground leading-relaxed max-w-xs mx-auto">
+                  Posicione seu rosto no centro da câmera para gerar seu avatar seguro. 
+                  <span className="block mt-2 text-primary font-black uppercase tracking-widest text-[10px]">A foto original é descartada instantaneamente.</span>
                 </p>
              </div>
-             <Button onClick={handleFaceScan} disabled={isAvatarizing} className="w-full h-14 rounded-2xl font-black uppercase bg-accent text-accent-foreground">
-               {isAvatarizing ? <Loader2 className="animate-spin" /> : "Iniciar Captura Segura"}
+             <Button onClick={handleFaceScan} disabled={isAvatarizing} className="w-full h-16 rounded-[2rem] font-black uppercase tracking-widest bg-primary text-white shadow-xl">
+               {isAvatarizing ? <Loader2 className="animate-spin" /> : "Gerar Avatar Seguro"}
              </Button>
           </div>
         )}
 
+        {/* Seleção de Desafios após o Scan */}
         {safeAvatar && !activeChallenge && (
-          <div className="space-y-4">
-             <div className="flex flex-wrap gap-2 mb-2">
+          <div className="space-y-6">
+             <div className="flex flex-wrap gap-2 mb-4 scroll-smooth">
                 <CategoryButton active={selectedCategory === 'artistic'} onClick={() => setSelectedCategory('artistic')} icon={<Palette className="w-3 h-3" />} label="Artístico" />
                 <CategoryButton active={selectedCategory === 'motor'} onClick={() => setSelectedCategory('motor')} icon={<Zap className="w-3 h-3" />} label="Motor" />
-                <CategoryButton active={selectedCategory === 'memory'} onClick={() => setSelectedCategory('memory')} icon={<Brain className="w-3 h-3" />} label="Memória" />
+                <CategoryButton active={selectedCategory === 'memory'} onClick={() => setSelectedCategory('memory')} icon={<Brain className="w-3 h-3" />} label="Cognitivo" />
                 <CategoryButton active={selectedCategory === 'relaxation'} onClick={() => setSelectedCategory('relaxation')} icon={<Wind className="w-3 h-3" />} label="Relax" />
              </div>
              
              <div className="flex justify-between items-center px-2">
-                <div className="flex items-center gap-4">
-                   <div className="flex items-center gap-1">
-                      <Battery className={cn("w-4 h-4", (profile?.avatar?.energy ?? 100) < 30 ? "text-destructive" : "text-primary")} />
-                      <span className="text-[10px] font-black uppercase text-muted-foreground">{profile?.avatar?.energy ?? 100}%</span>
+                <div className="flex items-center gap-5">
+                   <div className="flex items-center gap-2">
+                      <Battery className={cn("w-5 h-5", (profile?.avatar?.energy ?? 100) < 30 ? "text-destructive" : "text-primary")} />
+                      <span className="text-[11px] font-black uppercase text-muted-foreground">{profile?.avatar?.energy ?? 100}% Energia</span>
                    </div>
-                   <button onClick={() => setIsAudioEnabled(!isAudioEnabled)} className={cn("p-1 rounded-full", isAudioEnabled ? "text-primary" : "text-muted-foreground")}><Volume2 className="w-4 h-4" /></button>
+                   <button onClick={() => setIsAudioEnabled(!isAudioEnabled)} className={cn("p-2 rounded-xl bg-muted/50", isAudioEnabled ? "text-primary border border-primary/20" : "text-muted-foreground")}><Volume2 className="w-5 h-5" /></button>
                 </div>
-                <Link href="/community" className="text-[10px] font-black uppercase text-primary flex items-center gap-1"><Share2 className="w-3 h-3" /> Galeria</Link>
+                <Link href="/community" className="text-[11px] font-black uppercase text-primary flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-xl"><Share2 className="w-4 h-4" /> Mural</Link>
              </div>
              
-             <ChallengeRow title="O Despertar" subtitle="Casa" icon={<HomeIcon />} isCompleted={profile?.dailyCycle?.homeMissionCompleted} onClick={() => handleStartMission('home')} disabled={isScanning} />
-             <ChallengeRow title="A Jornada" subtitle="Rua" icon={<MapPin />} isCompleted={profile?.dailyCycle?.streetMissionCompleted} onClick={() => handleStartMission('street')} disabled={isScanning} />
+             <ChallengeRow title="O Despertar" subtitle="Casa & Imaginação" icon={<HomeIcon />} isCompleted={profile?.dailyCycle?.homeMissionCompleted} onClick={() => handleStartMission('home')} disabled={isScanning} />
+             <ChallengeRow title="A Jornada" subtitle="Rua & Descoberta" icon={<MapPin />} isCompleted={profile?.dailyCycle?.streetMissionCompleted} onClick={() => handleStartMission('street')} disabled={isScanning} />
           </div>
         )}
 
+        {/* Fluxo de Missão Ativa */}
         {activeChallenge && (
-          <Card className="border-none bg-primary/5 rounded-[2.5rem] shadow-sm animate-in slide-in-from-bottom-4">
-            <CardHeader className="pb-2">
-              <div className="flex justify-between items-center mb-2">
-                <Badge className="bg-accent text-accent-foreground font-black text-[8px] uppercase">{activeChallenge.difficulty}</Badge>
-                <div className="flex items-center gap-1 font-black text-primary text-sm"><Coins className="w-3 h-3" /> {activeChallenge.ludoCoinsReward}</div>
+          <Card className="border-none bg-primary/5 rounded-[3rem] shadow-sm animate-in slide-in-from-bottom-6 duration-500">
+            <CardHeader className="pb-4">
+              <div className="flex justify-between items-center mb-4">
+                <Badge className="bg-accent text-accent-foreground font-black text-[10px] uppercase tracking-widest px-4 py-1">Nível: {activeChallenge.difficulty}</Badge>
+                <div className="flex items-center gap-2 font-black text-primary text-lg"><Coins className="w-5 h-5 text-yellow-500" /> {activeChallenge.ludoCoinsReward}</div>
               </div>
-              <CardTitle className="text-xl font-black uppercase italic tracking-tighter leading-none">{activeChallenge.challengeTitle}</CardTitle>
+              <CardTitle className="text-2xl font-black uppercase italic tracking-tighter leading-none">{activeChallenge.challengeTitle}</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-3">
+            <CardContent className="space-y-8">
+              <div className="space-y-4">
                  {activeChallenge.steps.map((step, idx) => (
                    <div key={idx} className={cn(
-                     "flex items-center gap-3 p-3 rounded-2xl transition-all",
-                     currentStep === idx ? "bg-white shadow-sm border border-primary/20" : 
-                     currentStep > idx ? "bg-primary/20 opacity-60" : "bg-muted/40 opacity-40"
+                     "flex items-center gap-4 p-5 rounded-3xl transition-all duration-300 border-2",
+                     currentStep === idx ? "bg-white shadow-md border-primary/30 translate-x-1" : 
+                     currentStep > idx ? "bg-primary/10 opacity-60 border-transparent" : "bg-muted/40 opacity-40 border-transparent"
                    )}>
-                     <div className={cn("w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black", currentStep >= idx ? "bg-primary text-white" : "bg-muted text-muted-foreground")}>{idx + 1}</div>
-                     <p className="text-xs font-bold leading-tight">{step}</p>
+                     <div className={cn("w-8 h-8 rounded-full flex items-center justify-center text-xs font-black", currentStep >= idx ? "bg-primary text-white" : "bg-muted text-muted-foreground")}>{idx + 1}</div>
+                     <p className="text-sm font-bold leading-tight flex-1">{step}</p>
                    </div>
                  ))}
               </div>
 
-              {currentStep < activeChallenge.steps.length - 1 ? (
-                <Button onClick={() => setCurrentStep(prev => prev + 1)} className="w-full h-14 rounded-2xl font-black uppercase">Próximo Passo <ChevronRight className="w-4 h-4 ml-2" /></Button>
-              ) : !photoProof ? (
-                <Button onClick={takePhotoWithAvatarOverlay} disabled={isCapturing} className="w-full h-16 rounded-2xl font-black uppercase bg-accent text-accent-foreground shadow-lg">
-                  {isCapturing ? <Loader2 className="w-6 h-6 animate-spin" /> : <Camera className="w-6 h-6 mr-3" />} 
-                  Comprovar Atividade
-                </Button>
-              ) : (
-                <Button onClick={completeMission} className="w-full h-16 rounded-2xl font-black uppercase bg-primary text-white shadow-xl">
-                  <CheckCircle2 className="w-6 h-6 mr-3" /> Finalizar Missão
-                </Button>
-              )}
+              <div className="pt-4">
+                {currentStep < activeChallenge.steps.length - 1 ? (
+                  <Button onClick={() => setCurrentStep(prev => prev + 1)} className="w-full h-16 rounded-[2rem] font-black uppercase tracking-widest bg-primary text-white shadow-xl hover:translate-y-1 transition-transform">
+                    Concluir Etapa <ChevronRight className="w-5 h-5 ml-2" />
+                  </Button>
+                ) : !photoProof ? (
+                  <Button onClick={takePhotoWithAvatarOverlay} disabled={isCapturing} className="w-full h-20 rounded-[2.5rem] font-black uppercase tracking-widest bg-accent text-accent-foreground shadow-2xl flex items-center justify-center gap-4 active:scale-95 transition-all">
+                    {isCapturing ? <Loader2 className="w-8 h-8 animate-spin" /> : <Camera className="w-8 h-8" />} 
+                    Comprovar com IA
+                  </Button>
+                ) : (
+                  <Button onClick={completeMission} className="w-full h-20 rounded-[2.5rem] font-black uppercase tracking-widest bg-primary text-white shadow-2xl animate-bounce">
+                    <CheckCircle2 className="w-8 h-8 mr-3" /> Receber Recompensa
+                  </Button>
+                )}
+              </div>
             </CardContent>
           </Card>
         )}
       </div>
 
       {celebrating && (
-        <div className="fixed inset-0 z-[100] bg-primary flex flex-col items-center justify-center p-8 text-center text-white animate-in zoom-in">
-          <Trophy className="w-24 h-24 mb-8 animate-bounce" />
-          <h2 className="text-4xl font-black uppercase italic mb-4">Excelente!</h2>
-          <div className="bg-white/20 px-8 py-4 rounded-3xl border border-white/30 backdrop-blur-xl">
-             <span className="text-4xl font-black flex items-center gap-2"><Coins className="w-8 h-8 text-yellow-300" /> +{activeChallenge?.ludoCoinsReward}</span>
+        <div className="fixed inset-0 z-[100] bg-primary flex flex-col items-center justify-center p-10 text-center text-white animate-in zoom-in duration-500">
+          <Trophy className="w-32 h-32 mb-10 animate-bounce text-yellow-300" />
+          <h2 className="text-5xl font-black uppercase italic mb-6 tracking-tighter">Explêndido!</h2>
+          <div className="bg-white/20 px-10 py-6 rounded-[3rem] border-2 border-white/30 backdrop-blur-3xl shadow-2xl">
+             <span className="text-5xl font-black flex items-center gap-3"><Coins className="w-10 h-10 text-yellow-300" /> +{activeChallenge?.ludoCoinsReward}</span>
           </div>
+          <p className="mt-8 text-sm font-black uppercase tracking-widest opacity-80">Seu avatar está mais forte!</p>
         </div>
       )}
     </div>
@@ -466,8 +486,8 @@ function CategoryButton({ active, onClick, icon, label }: { active: boolean, onC
     <button 
       onClick={onClick}
       className={cn(
-        "px-4 py-2 rounded-2xl text-[8px] font-black uppercase flex items-center gap-2 transition-all border shadow-sm",
-        active ? "bg-primary text-white border-primary" : "bg-white text-muted-foreground border-muted hover:bg-muted/10"
+        "px-5 py-2.5 rounded-2xl text-[9px] font-black uppercase flex items-center gap-2 transition-all border-2 shadow-sm whitespace-nowrap",
+        active ? "bg-primary text-white border-primary scale-105" : "bg-white text-muted-foreground border-transparent hover:border-muted/20"
       )}
     >
       {icon} {label}
@@ -477,13 +497,17 @@ function CategoryButton({ active, onClick, icon, label }: { active: boolean, onC
 
 function ChallengeRow({ title, subtitle, icon, isCompleted, onClick, disabled }: any) {
   return (
-    <div onClick={!disabled && !isCompleted ? onClick : undefined} className={cn("p-6 rounded-[2.5rem] flex items-center gap-5 transition-all active:scale-95", isCompleted ? "bg-muted/40 opacity-60" : disabled ? "bg-muted/10 opacity-30" : "bg-white border-2 border-primary/5 shadow-md")}>
-      <div className={cn("w-14 h-14 rounded-[1.5rem] flex items-center justify-center", isCompleted ? "bg-primary text-white" : "bg-primary/10 text-primary")}>
-        {isCompleted ? <CheckCircle2 className="w-7 h-7" /> : icon}
+    <div onClick={!disabled && !isCompleted ? onClick : undefined} className={cn(
+      "p-7 rounded-[3rem] flex items-center gap-6 transition-all duration-300", 
+      isCompleted ? "bg-muted/40 opacity-60 grayscale" : 
+      disabled ? "bg-muted/10 opacity-30 cursor-not-allowed" : "bg-white border-2 border-primary/5 shadow-xl hover:shadow-2xl active:scale-95 cursor-pointer"
+    )}>
+      <div className={cn("w-16 h-16 rounded-[1.5rem] flex items-center justify-center transition-colors", isCompleted ? "bg-primary text-white" : "bg-primary/10 text-primary")}>
+        {isCompleted ? <CheckCircle2 className="w-8 h-8" /> : icon}
       </div>
-      <div className="flex-1 min-w-0">
-        <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">{subtitle}</span>
-        <h4 className="text-lg font-black uppercase italic leading-none">{title}</h4>
+      <div className="flex-1 min-w-0 text-left">
+        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">{subtitle}</span>
+        <h4 className="text-xl font-black uppercase italic leading-none mt-1">{title}</h4>
       </div>
     </div>
   );

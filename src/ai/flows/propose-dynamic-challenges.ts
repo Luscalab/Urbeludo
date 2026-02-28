@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview Flow para proposição de desafios dinâmicos, seguros e lúdicos, agora categorizados.
@@ -56,8 +57,8 @@ CATEGORIA DA MISSÃO: {{{category}}}
 - relaxation: Alongamentos, respiração consciente e posturas estáticas.
 
 REGRA DE OURO DE SEGURANÇA:
-- JAMAIS sugira atividades em locais com tráfego de carros.
-- O foco deve ser espaços seguros: Calçadas amplas, praças ou o interior da Casa do usuário.
+- JAMAIS sugira atividades em locais com tráfego de carros, avenidas ou calçadas estreitas.
+- O foco deve ser espaços seguros e controlados: Calçadas amplas, praças, parques ou o interior da Casa do usuário.
 
 ESTRUTURA PSICOMOTORA (Level {{{psychomotorLevel}}}):
 - Level 1: Equilíbrio estático e consciência corporal.
@@ -95,7 +96,7 @@ const proposeDynamicChallengesFlow = ai.defineFlow(
         ludoCoinsReward: 15,
         isLudicDrawing: false,
         steps: [
-          "Encontre um lugar calmo",
+          "Encontre um lugar calmo e seguro",
           "Respire pelo nariz por 4 segundos",
           "Solte o ar pela boca lentamente"
         ]
