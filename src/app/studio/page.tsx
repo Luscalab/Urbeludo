@@ -56,6 +56,7 @@ export default function StudioPage() {
     const world = document.getElementById('studio-world');
     if (world) {
       const rect = world.getBoundingClientRect();
+      // Calcula posição baseada no scroll e zoom se houver
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
       
