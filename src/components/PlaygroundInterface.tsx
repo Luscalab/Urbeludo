@@ -151,6 +151,7 @@ export function PlaygroundInterface() {
         physicalLimitations
       });
     }
+    setSetupStep(0);
     setShowGuide(false);
   };
 
@@ -180,12 +181,14 @@ export function PlaygroundInterface() {
       
       const result = await avatarizeUser({ photoDataUri: photo });
       setSafeAvatar(result);
-      setCameraMode('environment');
       
       toast({ 
         title: "Avatar Seguro Criado!", 
         description: "Sua identidade foi preservada. Dados originais descartados." 
       });
+      
+      // Muda para câmera traseira após o scan bem sucedido
+      setTimeout(() => setCameraMode('environment'), 1500);
     } catch (e) {
       console.error("Erro no scan:", e);
       setSafeAvatar({
@@ -350,10 +353,10 @@ export function PlaygroundInterface() {
                 </div>
               </Button>
             </div>
-            <Button onClick={() => setSetupStep(1)} className="w-full max-w-xs h-16 rounded-[2rem] font-black uppercase tracking-widest shadow-xl bg-primary hover:bg-primary/90">Próximo</Button>
+            <Button onClick={() => setSetupStep(1)} className="w-full max-w-xs h-16 rounded-[2rem] font-black uppercase tracking-widest shadow-xl bg-primary hover:bg-primary/90">Configurar Perfil</Button>
           </>
         ) : (
-          <div className="w-full max-w-xs space-y-6 text-left">
+          <div className="w-full max-w-xs space-y-6 text-left animate-in slide-in-from-right-4">
             <div className="flex items-center gap-3 mb-6">
                <UserCircle className="w-8 h-8 text-primary" />
                <h2 className="text-xl font-black uppercase italic leading-none">Seu Perfil</h2>
@@ -439,25 +442,26 @@ export function PlaygroundInterface() {
         />
         <canvas ref={canvasRef} className="hidden" />
 
-        {activeChallenge && safeAvatar && (
+        {/* Overlay do Avatar Seguro */}
+        {safeAvatar && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
              <div 
                className={cn(
                  "w-48 h-48 rounded-full border-4 border-white/50 shadow-2xl flex items-center justify-center overflow-hidden transition-all duration-1000",
-                 isBreathingActivity ? "animate-breathing-avatar" : "scale-75 opacity-20"
+                 isBreathingActivity ? "animate-breathing-avatar" : "animate-pulse"
                )}
                style={{ backgroundColor: safeAvatar.dominantColor }}
              >
                 <div className="text-white text-center p-4">
                    <div className="text-[8px] font-black uppercase tracking-tighter mb-1">{safeAvatar.accessoryType}</div>
-                   <div className="text-[6px] font-bold uppercase opacity-60">Avatar de Privacidade</div>
+                   <div className="text-[6px] font-bold uppercase opacity-60">Identidade Protegida</div>
                 </div>
              </div>
              {isBreathingActivity && (
                <div className="absolute inset-0 flex items-center justify-center">
                   <div className="w-64 h-64 rounded-full border border-primary/30 animate-ping opacity-20" />
                   <div className="absolute bottom-10 bg-black/60 px-6 py-2 rounded-full border border-primary/40 backdrop-blur-md">
-                     <span className="text-[10px] font-black text-primary uppercase tracking-widest">Acompanhe o Ritmo</span>
+                     <span className="text-[10px] font-black text-primary uppercase tracking-widest">Respire com o Avatar</span>
                   </div>
                </div>
              )}
@@ -492,7 +496,7 @@ export function PlaygroundInterface() {
              <div className="space-y-1">
                 <h3 className="text-xl font-black uppercase italic">Scan de Identidade</h3>
                 <p className="text-[10px] font-medium text-muted-foreground leading-relaxed max-w-[200px] mx-auto">
-                  Sua foto original será descartada após gerar seu avatar de privacidade.
+                  Analise seu rosto para gerar um avatar de privacidade. A foto original será descartada instantaneamente.
                 </p>
              </div>
              <Button onClick={handleFaceScan} disabled={isAvatarizing || isInitializingCamera} className="w-full h-14 rounded-[1.5rem] font-black uppercase tracking-widest bg-primary">
