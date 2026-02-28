@@ -2,8 +2,7 @@
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
-  output: 'export',
-  transpilePackages: ['three', '@react-three/fiber', '@react-three/drei'],
+  // Removido output: 'export' pois conflita com Server Actions (Genkit)
   typescript: {
     ignoreBuildErrors: true,
   },

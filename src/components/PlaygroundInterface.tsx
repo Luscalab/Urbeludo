@@ -44,7 +44,6 @@ function ensureHexColor(color: string | undefined, fallback: string): string {
   if (!color) return fallback;
   if (color.startsWith('#') && (color.length === 4 || color.length === 7)) return color;
   
-  // Mapping common descriptive terms to hex
   const map: Record<string, string> = {
     'claro': '#f5d1b0',
     'medio': '#e0ac69',
@@ -65,7 +64,6 @@ function ensureHexColor(color: string | undefined, fallback: string): string {
   return map[normalized] || fallback;
 }
 
-// Helper to darken/lighten colors safely
 function adjustColor(colorStr: string, amt: number): string {
   const hex = ensureHexColor(colorStr, '#000000').replace('#', '');
   const num = parseInt(hex, 16);
@@ -80,29 +78,42 @@ function adjustColor(colorStr: string, amt: number): string {
   return "#" + (g | (b << 8) | (r << 16)).toString(16).padStart(6, '0');
 }
 
-// --- ENGINE DE RENDERIZAÇÃO PROCEDURAL URBELUDO 2026 ---
+// --- ENGINE DE RENDERIZAÇÃO PROCEDURAL URBELUDO 2026 OTIMIZADA ---
 const ProceduralLudoAvatar = ({ traits, motionData, isBreathing }: { traits: AvatarizeUserOutput, motionData: { x: number, y: number }, isBreathing: boolean }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>(0);
+  
+  // Refs para dados que mudam com frequência para evitar reinicialização do loop do Canvas
+  const motionRef = useRef(motionData);
+  const breathingRef = useRef(isBreathing);
+  const traitsRef = useRef(traits);
+
+  useEffect(() => {
+    motionRef.current = motionData;
+    breathingRef.current = isBreathing;
+    traitsRef.current = traits;
+  }, [motionData, isBreathing, traits]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { alpha: true });
     if (!ctx) return;
 
     const draw = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       
-      const { x, y } = motionData;
-      const tilt = x * 20; 
-      const breathScale = isBreathing ? Math.sin(Date.now() / 500) * 5 : 0;
+      const { x, y } = motionRef.current;
+      const breathing = breathingRef.current;
+      const currentTraits = traitsRef.current;
       
-      // Validated Colors
-      const skinTone = ensureHexColor(traits.face?.tone, '#e0ac69');
-      const hairColor = ensureHexColor(traits.hair?.color, '#333333');
-      const eyeColor = ensureHexColor(traits.eyes?.color, '#00FFFF');
-      const accentColor = ensureHexColor(traits.dominantColor, '#33993D');
+      const tilt = x * 20; 
+      const breathScale = breathing ? Math.sin(Date.now() / 500) * 5 : 0;
+      
+      const skinTone = ensureHexColor(currentTraits.face?.tone, '#e0ac69');
+      const hairColor = ensureHexColor(currentTraits.hair?.color, '#333333');
+      const eyeColor = ensureHexColor(currentTraits.eyes?.color, '#00FFFF');
+      const accentColor = ensureHexColor(currentTraits.dominantColor, '#33993D');
 
       // --- TRONCO ---
       ctx.save();
@@ -173,7 +184,7 @@ const ProceduralLudoAvatar = ({ traits, motionData, isBreathing }: { traits: Ava
       ctx.save();
       ctx.beginPath();
       ctx.fillStyle = hairColor;
-      if (traits.hair?.style === 'curto') {
+      if (currentTraits.hair?.style === 'curto') {
         ctx.moveTo(-45, -20);
         ctx.bezierCurveTo(-50, -60, 50, -60, 45, -20);
         ctx.lineTo(40, -10);
@@ -204,7 +215,7 @@ const ProceduralLudoAvatar = ({ traits, motionData, isBreathing }: { traits: Ava
 
       // Boca
       ctx.beginPath();
-      const mouthY = 20 + (isBreathing ? Math.sin(Date.now() / 500) * 3 : 0);
+      const mouthY = 20 + (breathing ? Math.sin(Date.now() / 500) * 3 : 0);
       ctx.moveTo(-10, mouthY);
       ctx.quadraticCurveTo(0, mouthY + 5, 10, mouthY);
       ctx.strokeStyle = 'rgba(0,0,0,0.4)';
@@ -221,7 +232,7 @@ const ProceduralLudoAvatar = ({ traits, motionData, isBreathing }: { traits: Ava
 
     draw();
     return () => cancelAnimationFrame(animationRef.current);
-  }, [traits, motionData, isBreathing]);
+  }, []); // Executa uma vez no mount
 
   return <canvas ref={canvasRef} width={400} height={400} className="w-full h-full" />;
 };
