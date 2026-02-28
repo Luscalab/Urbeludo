@@ -5,7 +5,6 @@ const config: CapacitorConfig = {
   appId: 'com.urbeludo.app',
   appName: 'UrbeLudo',
   webDir: 'out',
-  bundledWebRuntime: false,
   server: {
     androidScheme: 'https'
   }
