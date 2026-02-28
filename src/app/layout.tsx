@@ -4,6 +4,7 @@ import './globals.css';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { AuthInitializer } from '@/components/AuthInitializer';
 import { Toaster } from '@/components/ui/toaster';
+import { I18nProvider } from '@/components/I18nProvider';
 
 export const metadata: Metadata = {
   title: 'UrbeLudo | Playground Urbano Digital',
@@ -45,10 +46,12 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased overflow-x-hidden selection:bg-primary/30 selection:text-primary-foreground">
         <FirebaseClientProvider>
-          <AuthInitializer>
-            {children}
-          </AuthInitializer>
-          <Toaster />
+          <I18nProvider>
+            <AuthInitializer>
+              {children}
+            </AuthInitializer>
+            <Toaster />
+          </I18nProvider>
         </FirebaseClientProvider>
       </body>
     </html>

@@ -30,6 +30,7 @@ import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
+import { useI18n } from '@/components/I18nProvider';
 
 export default function DashboardPage() {
   const { user } = useUser();
@@ -37,6 +38,7 @@ export default function DashboardPage() {
   const db = useFirestore();
   const { toast } = useToast();
   const router = useRouter();
+  const { t } = useI18n();
 
   const userProgressRef = useMemoFirebase(() => user ? doc(db, 'user_progress', user.uid) : null, [db, user]);
   const { data: profile } = useDoc(userProgressRef);
@@ -63,10 +65,10 @@ export default function DashboardPage() {
         <Link href="/playground" className="p-2"><ArrowLeft className="w-5 h-5" /></Link>
         <div className="flex items-center gap-1">
           <UrbeLudoLogo className="w-6 h-6 text-primary" />
-          <span className="text-sm font-black uppercase italic tracking-tighter">Estúdio Ludo</span>
+          <span className="text-sm font-black uppercase italic tracking-tighter">{t('dashboard.studioTitle')}</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="bg-primary/10 px-3 py-1 rounded-xl flex items-center gap-2">
+          <div className="bg-primary/10 px-3 py-1 rounded-xl flex items-center gap-2 border border-primary/20">
               <Coins className="w-3 h-3 text-yellow-600" />
               <span className="text-xs font-black">{profile?.ludoCoins || 0}</span>
           </div>
@@ -97,9 +99,9 @@ export default function DashboardPage() {
            <div className="flex justify-between items-center">
               <div className="flex items-center gap-2">
                  <Home className="w-4 h-4 text-primary" />
-                 <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Expansão do Studio</span>
+                 <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t('dashboard.expansion')}</span>
               </div>
-              <span className="text-[9px] font-black uppercase text-primary">{challengesToNextLevel} missões para evoluir</span>
+              <span className="text-[9px] font-black uppercase text-primary">{challengesToNextLevel} {t('dashboard.missionsToLevel')}</span>
            </div>
            <Progress value={(5 - challengesToNextLevel) * 20} className="h-2.5 rounded-full bg-primary/10" />
         </Card>
@@ -110,21 +112,21 @@ export default function DashboardPage() {
               <Battery className={cn("w-5 h-5", energy < 30 ? "text-destructive" : "text-primary")} />
               <div>
                  <div className="text-xs font-black">{energy}%</div>
-                 <div className="text-[8px] font-bold text-muted-foreground uppercase">Energia</div>
+                 <div className="text-[8px] font-bold text-muted-foreground uppercase">{t('dashboard.energy')}</div>
               </div>
            </Card>
            <Card className="p-4 bg-muted/20 border-none rounded-3xl flex items-center gap-3">
               <Target className="w-5 h-5 text-accent" />
               <div>
                  <div className="text-xs font-black">{profile?.totalChallengesCompleted || 0}</div>
-                 <div className="text-[8px] font-bold text-muted-foreground uppercase">Concluídos</div>
+                 <div className="text-[8px] font-bold text-muted-foreground uppercase">{t('dashboard.completed')}</div>
               </div>
            </Card>
         </div>
 
         {/* Badges */}
         <div className="space-y-3">
-           <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-2">Emblemas Conquistados</h4>
+           <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-2">{t('dashboard.badges')}</h4>
            <div className="flex flex-wrap gap-2">
               {profile?.badges?.map((badgeId: string) => {
                 const badge = BADGE_DATA[badgeId];
@@ -139,7 +141,7 @@ export default function DashboardPage() {
                   </div>
                 );
               }) || (
-                <p className="text-[9px] text-muted-foreground uppercase italic px-2">Nenhum emblema ainda. Vá para a rua!</p>
+                <p className="text-[9px] text-muted-foreground uppercase italic px-2">{t('dashboard.noBadges')}</p>
               )}
            </div>
         </div>
@@ -147,16 +149,16 @@ export default function DashboardPage() {
         {/* Action Button */}
         <Button asChild className="w-full h-16 rounded-[2.5rem] font-black uppercase tracking-widest shadow-xl flex justify-between px-8 bg-black hover:bg-slate-900 border-b-4 border-slate-800 active:border-b-0 active:translate-y-1 transition-all">
           <Link href="/shop">
-            <span className="flex items-center gap-3"><ShoppingBag className="w-6 h-6" /> LudoShop</span>
+            <span className="flex items-center gap-3"><ShoppingBag className="w-6 h-6" /> {t('dashboard.visitShop')}</span>
             <ChevronRight className="w-5 h-5" />
           </Link>
         </Button>
       </main>
 
       <footer className="fixed bottom-0 inset-x-0 h-20 bg-background border-t flex items-center justify-around px-6 z-50">
-         <Link href="/playground" className="flex flex-col items-center gap-1 text-muted-foreground"><Target className="w-6 h-6" /><span className="text-[8px] font-black uppercase">Play</span></Link>
-         <Link href="/community" className="flex flex-col items-center gap-1 text-muted-foreground"><Share2 className="w-6 h-6" /><span className="text-[8px] font-black uppercase">Galeria</span></Link>
-         <div className="flex flex-col items-center gap-1 text-primary"><User className="w-6 h-6" /><span className="text-[8px] font-black uppercase">Perfil</span></div>
+         <Link href="/playground" className="flex flex-col items-center gap-1 text-muted-foreground"><Target className="w-6 h-6" /><span className="text-[8px] font-black uppercase">{t('common.play')}</span></Link>
+         <Link href="/community" className="flex flex-col items-center gap-1 text-muted-foreground"><Share2 className="w-6 h-6" /><span className="text-[8px] font-black uppercase">{t('common.gallery')}</span></Link>
+         <div className="flex flex-col items-center gap-1 text-primary"><User className="w-6 h-6" /><span className="text-[8px] font-black uppercase">{t('common.profile')}</span></div>
       </footer>
     </div>
   );

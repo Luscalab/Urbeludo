@@ -17,14 +17,17 @@ import {
   initiateGoogleSignIn,
   initiateAnonymousSignIn
 } from '@/firebase/non-blocking-login';
-import { Mail, Lock, Chrome, ArrowRight, ShieldCheck, Loader2 } from 'lucide-react';
+import { Mail, Lock, Chrome, ArrowRight, ShieldCheck, Loader2, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useI18n } from '@/components/I18nProvider';
+import { LanguageSelector } from '@/components/LanguageSelector';
 
 export default function AuthPage() {
   const auth = useAuth();
   const { user, isUserLoading } = useUser();
   const router = useRouter();
   const { toast } = useToast();
+  const { t } = useI18n();
 
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
@@ -43,8 +46,8 @@ export default function AuthPage() {
     if (!termsAccepted) {
       toast({
         variant: 'destructive',
-        title: 'Termos Obrigatórios',
-        description: 'Você precisa aceitar os termos de uso para continuar.'
+        title: 'Atenção',
+        description: t('auth.termsAccept')
       });
       return;
     }
@@ -55,15 +58,14 @@ export default function AuthPage() {
     } else {
       initiateEmailSignUp(auth, email, password);
     }
-    // O redirecionamento é feito pelo useEffect monitorando o estado do user
   };
 
   const handleGoogleSignIn = () => {
     if (!termsAccepted) {
       toast({
         variant: 'destructive',
-        title: 'Termos Obrigatórios',
-        description: 'Você precisa aceitar os termos de uso antes de conectar com Google.'
+        title: 'Atenção',
+        description: t('auth.termsAccept')
       });
       return;
     }
@@ -83,22 +85,27 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen bg-muted/30 flex flex-col items-center justify-center p-6">
-      <div className="w-full max-w-md space-y-8">
+    <div className="min-h-screen bg-muted/30 flex flex-col p-6">
+      <header className="flex items-center justify-between mb-8">
+        <Link href="/" className="p-2 bg-white rounded-full shadow-sm"><ArrowLeft className="w-5 h-5 text-primary" /></Link>
+        <LanguageSelector />
+      </header>
+
+      <div className="w-full max-w-md mx-auto space-y-8 flex-1 flex flex-col justify-center">
         <div className="flex flex-col items-center text-center space-y-4">
           <div className="p-4 bg-primary/10 rounded-[2.5rem] shadow-inner">
-            <UrbeLudoLogo className="w-16 h-16 text-primary" />
+            <UrbeLudoLogo className="w-12 h-12 text-primary" />
           </div>
           <div className="space-y-1">
-            <h1 className="text-3xl font-black uppercase italic tracking-tighter">UrbeLudo</h1>
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest">Seu Estúdio de Movimento Urbano</p>
+            <h1 className="text-3xl font-black uppercase italic tracking-tighter leading-none">{t('auth.title')}</h1>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{t('auth.subtitle')}</p>
           </div>
         </div>
 
         <Card className="p-8 border-none rounded-[3rem] shadow-xl bg-background space-y-6">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase text-muted-foreground px-2">E-mail de Explorador</Label>
+              <Label className="text-[10px] font-black uppercase text-muted-foreground px-2">{t('auth.emailLabel')}</Label>
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input 
@@ -113,7 +120,7 @@ export default function AuthPage() {
             </div>
 
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase text-muted-foreground px-2">Senha de Acesso</Label>
+              <Label className="text-[10px] font-black uppercase text-muted-foreground px-2">{t('auth.passwordLabel')}</Label>
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input 
@@ -134,13 +141,13 @@ export default function AuthPage() {
                 onCheckedChange={(checked) => setTermsAccepted(!!checked)}
                 className="w-5 h-5 rounded-md border-2 border-primary"
               />
-              <label htmlFor="terms" className="text-[10px] font-bold text-muted-foreground leading-tight">
-                Eu aceito os <Link href="/terms" className="text-primary underline">Termos de Uso</Link> e a política de descarte de dados biométricos.
+              <label htmlFor="terms" className="text-[9px] font-bold text-muted-foreground leading-tight">
+                {t('auth.termsAccept')}
               </label>
             </div>
 
             <Button type="submit" disabled={isLoading} className="w-full h-16 rounded-[2.5rem] font-black uppercase tracking-widest bg-primary shadow-lg flex justify-between px-8 border-b-4 border-primary/80 active:border-b-0 active:translate-y-1 transition-all">
-              <span>{isLogin ? 'Entrar no Estúdio' : 'Criar Identidade'}</span>
+              <span>{isLogin ? t('auth.loginButton') : t('auth.signUpButton')}</span>
               <ArrowRight className="w-5 h-5" />
             </Button>
           </form>
@@ -150,25 +157,23 @@ export default function AuthPage() {
             <div className="relative flex justify-center text-[8px] font-black uppercase"><span className="bg-background px-4 text-muted-foreground">Ou conecte via</span></div>
           </div>
 
-          <div className="grid grid-cols-1 gap-3">
-            <Button variant="outline" onClick={handleGoogleSignIn} className="h-14 rounded-2xl gap-3 border-muted-foreground/20 font-bold uppercase text-[10px]">
-              <Chrome className="w-4 h-4 text-red-500" /> Entrar com Google
-            </Button>
-          </div>
+          <Button variant="outline" onClick={handleGoogleSignIn} className="w-full h-14 rounded-2xl gap-3 border-muted-foreground/20 font-bold uppercase text-[10px]">
+            <Chrome className="w-4 h-4 text-red-500" /> {t('auth.googleSignIn')}
+          </Button>
 
           <div className="text-center space-y-4 pt-2">
             <button 
               onClick={() => setIsLogin(!isLogin)} 
               className="text-[10px] font-black uppercase text-primary hover:underline"
             >
-              {isLogin ? 'Não tem conta? Cadastre-se' : 'Já tem conta? Faça Login'}
+              {isLogin ? t('auth.toggleSignUp') : t('auth.toggleLogin')}
             </button>
             <div className="block pt-2">
               <button 
                 onClick={handleGuestSignIn}
                 className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest hover:text-foreground"
               >
-                Continuar como convidado (sem salvar progresso)
+                {t('auth.guestSignIn')}
               </button>
             </div>
           </div>
@@ -176,7 +181,7 @@ export default function AuthPage() {
 
         <div className="flex items-center justify-center gap-2 text-[9px] font-black uppercase text-muted-foreground opacity-60">
           <ShieldCheck className="w-3 h-3 text-primary" />
-          IA de Borda: Biometria descartada localmente
+          {t('auth.edgeAi')}
         </div>
       </div>
     </div>
