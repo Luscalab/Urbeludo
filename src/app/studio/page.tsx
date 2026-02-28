@@ -50,7 +50,7 @@ export default function StudioPage() {
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
       
-      // Limita o movimento para a área de chão (abaixo da linha do rodapé)
+      // Limita o movimento para a área de chão (abaixo da linha do rodapé em ~480px)
       if (y > 480) {
         updateAvatarPosition(x, y);
       }
@@ -58,12 +58,13 @@ export default function StudioPage() {
   };
 
   const handleBuy = (itemId: string, price: number) => {
-    if (userProgressRef) {
-      // O addItem já gerencia unlockedItemIds e coloca uma instância no mundo
+    if (userProgressRef && profile) {
+      // Adiciona o item ao StudioState (gerencia colocação no mundo e unlockedItemIds)
       addItem(itemId);
-      // Atualiza as moedas no progresso global
+      
+      // Debita as LudoCoins no progresso global
       updateDocumentNonBlocking(userProgressRef, {
-        ludoCoins: (profile?.ludoCoins || 0) - price
+        ludoCoins: profile.ludoCoins - price
       });
     }
   };
@@ -79,7 +80,10 @@ export default function StudioPage() {
           <TutorialOverlay 
             userName={profile.displayName}
             avatarUrl={avatarUrl}
-            onComplete={() => setShowTutorial(false)}
+            onComplete={() => {
+              setShowTutorial(false);
+              if (userProgressRef) updateDocumentNonBlocking(userProgressRef, { hasSeenTutorial: true });
+            }}
           />
         )}
       </AnimatePresence>
@@ -109,7 +113,6 @@ export default function StudioPage() {
         ref={viewportRef}
         className="flex-1 relative overflow-hidden bg-zinc-900 cursor-crosshair"
       >
-        {/* O MUNDO EXPANSIVO (Canvas 1200x1200px) */}
         <motion.div
           id="studio-world"
           drag={mode === 'explore'}
@@ -133,7 +136,6 @@ export default function StudioPage() {
             </div>
           </div>
 
-          {/* Rodapé separador */}
           <div className="relative z-10 w-full h-6 bg-white border-b border-gray-200 shadow-lg"></div>
 
           {/* 2. CHÃO (Área de Movimento) */}

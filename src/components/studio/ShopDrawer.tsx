@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Lock, CheckCircle2, Coins, ShoppingBag, Sparkles } from 'lucide-react';
+import { X, Lock, CheckCircle2, Coins, Sparkles } from 'lucide-react';
 import { STUDIO_CATALOG } from '@/lib/studio-catalog';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -28,7 +28,6 @@ export function ShopDrawer({ isOpen, onClose, userCoins, unlockedItemIds, onBuyI
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Overlay escuro de fundo */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -37,7 +36,6 @@ export function ShopDrawer({ isOpen, onClose, userCoins, unlockedItemIds, onBuyI
             className="fixed inset-0 bg-black/60 z-[200] backdrop-blur-sm"
           />
 
-          {/* A Gaveta da Loja */}
           <motion.div
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
@@ -45,7 +43,6 @@ export function ShopDrawer({ isOpen, onClose, userCoins, unlockedItemIds, onBuyI
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
             className="fixed bottom-0 left-0 right-0 h-[75vh] bg-background rounded-t-[3.5rem] z-[210] flex flex-col shadow-2xl border-t-8 border-primary"
           >
-            {/* Cabeçalho da Loja */}
             <div className="p-8 border-b border-muted flex justify-between items-start bg-primary/5 rounded-t-[3.5rem]">
               <div className="space-y-1">
                 <h2 className="text-3xl font-black text-primary uppercase italic tracking-tighter">Ludo Shop</h2>
@@ -62,7 +59,6 @@ export function ShopDrawer({ isOpen, onClose, userCoins, unlockedItemIds, onBuyI
               </button>
             </div>
 
-            {/* Filtros de Categoria */}
             <div className="flex gap-2 p-4 overflow-x-auto no-scrollbar border-b border-muted">
               {categories.map((cat) => (
                 <button
@@ -80,7 +76,6 @@ export function ShopDrawer({ isOpen, onClose, userCoins, unlockedItemIds, onBuyI
               ))}
             </div>
 
-            {/* Grid de Itens */}
             <div className="flex-1 overflow-y-auto p-6 grid grid-cols-2 gap-4 pb-24 no-scrollbar">
               {filteredCatalog.map((item) => {
                 const isUnlocked = unlockedItemIds.includes(item.id);
@@ -102,11 +97,18 @@ export function ShopDrawer({ isOpen, onClose, userCoins, unlockedItemIds, onBuyI
                       </div>
                     )}
                     
-                    {/* Visual do Item */}
-                    <div className="w-24 h-24 mb-4 flex items-center justify-center bg-muted/30 rounded-3xl shadow-inner border border-white relative overflow-hidden">
-                       <span className="text-5xl drop-shadow-lg group-hover:scale-110 transition-transform duration-300 select-none">
-                         {item.assetPath}
-                       </span>
+                    <div className="w-24 h-24 mb-4 flex items-center justify-center bg-muted/30 rounded-3xl shadow-inner border border-white relative overflow-hidden p-2">
+                       <img 
+                        src={item.assetPath} 
+                        alt={item.name} 
+                        className="max-w-full max-h-full object-contain drop-shadow-md group-hover:scale-110 transition-transform duration-300"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          const span = e.currentTarget.parentElement?.querySelector('.fallback-emoji-shop');
+                          if (span) (span as HTMLElement).style.display = 'block';
+                        }}
+                       />
+                       <span className="fallback-emoji-shop hidden text-4xl">🎁</span>
                        {item.category === 'Ativo' && (
                          <Badge className="absolute bottom-1 right-1 bg-green-500 text-[7px] font-black px-1.5">+MOD</Badge>
                        )}
