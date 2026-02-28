@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
@@ -53,7 +52,7 @@ import { STUDIO_CATALOG } from '@/lib/studio-catalog';
 import { AvatarSelection } from '@/components/AvatarSelection';
 import { AVATAR_CATALOG } from '@/lib/avatar-catalog';
 
-export function PlaygroundInterface() {
+export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean }) {
   const { user } = useUser();
   const { toast } = useToast();
   const { t } = useI18n();
@@ -90,7 +89,7 @@ export function PlaygroundInterface() {
 
   useEffect(() => {
     if (profile) {
-      if (profile.displayName && !showTutorialCheck()) {
+      if (profile.displayName && profile.hasSeenTutorial !== undefined) {
         setShowGuide(false);
       }
       setExplorerName(profile.displayName || '');
@@ -99,10 +98,6 @@ export function PlaygroundInterface() {
       setSelectedAvatarId(profile.avatar?.avatarId || AVATAR_CATALOG[0].id);
     }
   }, [profile]);
-
-  const showTutorialCheck = () => {
-    return profile && !profile.hasSeenTutorial;
-  };
 
   // Load TensorFlow Model Dynamically
   useEffect(() => {
@@ -271,10 +266,8 @@ export function PlaygroundInterface() {
     const isSapient = explorerName.toLowerCase() === 'sapient';
 
     if (userProgressRef) {
-      const shopItems = ['foundation-sneakers', 'neon-sneakers', 'rhythm-visor', 'zen-rug', 'blue-precision-aura'];
-      const studioItems = STUDIO_CATALOG.map(i => i.id);
-      const allItems = [...shopItems, ...studioItems];
-
+      const allStudioItems = STUDIO_CATALOG.map(i => i.id);
+      
       updateDocumentNonBlocking(userProgressRef, { 
         displayName: explorerName,
         ageGroup, 
@@ -285,7 +278,7 @@ export function PlaygroundInterface() {
         avatar: {
           ...profile?.avatar,
           avatarId: selectedAvatarId,
-          unlockedItems: isSapient ? allItems : (profile?.avatar?.unlockedItems || ['foundation-sneakers'])
+          unlockedItems: isSapient ? allStudioItems : (profile?.avatar?.unlockedItems || ['cama-01'])
         }
       });
     }
@@ -389,13 +382,6 @@ export function PlaygroundInterface() {
               </div>
             )}
 
-            {selectedCategory === 'Arte' && !isScanning && !isModelLoading && (
-              <div className="absolute top-4 left-4 z-30 flex items-center gap-2 bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 animate-pulse">
-                <PaletteIcon className="w-4 h-4 text-accent" />
-                <span className="text-[9px] font-black uppercase text-white tracking-widest">{t('playground.art')}</span>
-              </div>
-            )}
-
             {isInitializingCamera && (
               <div className="absolute inset-0 z-50 bg-zinc-950 flex flex-col items-center justify-center gap-4">
                  <div className="relative">
@@ -423,7 +409,11 @@ export function PlaygroundInterface() {
             </div>
             
             <div className="grid gap-6">
-              <AvatarSelection initialAvatarId={selectedAvatarId} onSelect={setSelectedAvatarId} />
+              <AvatarSelection 
+                initialAvatarId={selectedAvatarId} 
+                onSelect={setSelectedAvatarId} 
+                debugMode={debugMode}
+              />
 
               <div className="space-y-2 px-2">
                 <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">{t('auth.nameLabel')}</Label>
@@ -452,20 +442,6 @@ export function PlaygroundInterface() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                 <Label className="text-[10px] font-black uppercase text-muted-foreground px-2">{t('playground.ageGroup')}</Label>
-                 <Select value={ageGroup} onValueChange={setAgeGroup}>
-                   <SelectTrigger className="rounded-[2rem] h-14 bg-muted/30 border-none font-black px-6 shadow-sm">
-                     <SelectValue />
-                   </SelectTrigger>
-                   <SelectContent className="rounded-[2rem]">
-                     <SelectItem value="preschool" className="font-black uppercase text-[10px]">Infantil</SelectItem>
-                     <SelectItem value="school_age" className="font-black uppercase text-[10px]">Escolar</SelectItem>
-                     <SelectItem value="adolescent_adult" className="font-black uppercase text-[10px]">Adulto</SelectItem>
-                   </SelectContent>
-                 </Select>
-              </div>
-
               <div className="flex items-center space-x-3 px-2">
                 <Checkbox 
                   id="terms-play" 
@@ -473,23 +449,9 @@ export function PlaygroundInterface() {
                   onCheckedChange={(checked) => setTermsAccepted(!!checked)}
                   className="w-6 h-6 rounded-md border-2 border-primary"
                 />
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <label htmlFor="terms-play" className="text-[10px] font-bold text-muted-foreground leading-tight hover:text-primary transition-colors cursor-pointer">
-                      {t('auth.termsAccept')} <Info className="inline w-3 h-3 mb-0.5" />
-                    </label>
-                  </DialogTrigger>
-                  <DialogContent className="rounded-[3rem] max-w-[90vw] overflow-y-auto max-h-[80vh]">
-                    <DialogHeader>
-                      <DialogTitle className="text-2xl font-black uppercase italic">{t('auth.termsTitle')}</DialogTitle>
-                    </DialogHeader>
-                    <div className="text-[11px] font-medium leading-relaxed space-y-4 py-4 text-muted-foreground">
-                      <p><strong>1. Natureza do Aplicativo:</strong> O UrbeLudo utiliza IA local para apoio à psicomotricidade.</p>
-                      <p><strong>2. Segurança:</strong> Atividades devem ser supervisionadas por adultos.</p>
-                      <p><strong>3. Privacidade:</strong> A visão computacional ocorre localmente em tempo real. Nenhuma imagem é enviada para servidores.</p>
-                    </div>
-                  </DialogContent>
-                </Dialog>
+                <label htmlFor="terms-play" className="text-[10px] font-bold text-muted-foreground leading-tight">
+                  {t('auth.termsAccept')}
+                </label>
               </div>
             </div>
 
@@ -613,4 +575,3 @@ function ChallengeRow({ title, subtitle, icon, isCompleted, onClick, disabled }:
     </button>
   );
 }
-

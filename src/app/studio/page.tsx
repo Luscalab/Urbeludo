@@ -66,7 +66,7 @@ export default function StudioPage() {
     }
   };
 
-  const avatarInfo = getAvatarById(profile?.avatar?.avatarId || 'avatar-01');
+  const avatarInfo = getAvatarById(profile?.avatar?.avatarId || 'av-1');
   const auraColor = profile?.dominantColor || '#9333ea';
   const avatarPos = studioState.avatar.lastPosition;
   const isSapient = profile?.displayName?.toLowerCase() === 'sapient';
