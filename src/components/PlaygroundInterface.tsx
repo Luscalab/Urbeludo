@@ -1,12 +1,22 @@
 
 "use client";
 
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Camera, CheckCircle2, ScanLine, Sun, Moon, Home as HomeIcon, MapPin, Lock, Coins, Sparkles } from 'lucide-react';
-import { identifyUrbanElements } from '@/ai/flows/identify-urban-elements-flow';
+import { 
+  Loader2, 
+  CheckCircle2, 
+  Sun, 
+  Moon, 
+  Home as HomeIcon, 
+  MapPin, 
+  Lock, 
+  Coins, 
+  Sparkles,
+  Trophy
+} from 'lucide-react';
 import { proposeDynamicChallenges, type ProposeDynamicChallengesOutput } from '@/ai/flows/propose-dynamic-challenges';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, collection } from 'firebase/firestore';
@@ -17,9 +27,6 @@ import { cn } from '@/lib/utils';
 type Phase = 'MORNING' | 'DAY' | 'NIGHT';
 
 export function PlaygroundInterface() {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  
   const { user } = useUser();
   const db = useFirestore();
   const { toast } = useToast();
@@ -27,12 +34,11 @@ export function PlaygroundInterface() {
   const [phase, setPhase] = useState<Phase>('DAY');
   const [isScanning, setIsScanning] = useState(false);
   const [activeChallenge, setActiveChallenge] = useState<ProposeDynamicChallengesOutput | null>(null);
-  const [showCamera, setShowCamera] = useState(false);
+  const [celebrating, setCelebrating] = useState(false);
 
   const userProgressRef = useMemoFirebase(() => user ? doc(db, 'user_progress', user.uid) : null, [db, user]);
   const { data: profile, isLoading: isProfileLoading } = useDoc(userProgressRef);
 
-  // Determinar fase do dia (Efeito de Cliente para evitar erro de hidratação)
   useEffect(() => {
     const hour = new Date().getHours();
     if (hour >= 6 && hour < 10) setPhase('MORNING');
@@ -43,19 +49,12 @@ export function PlaygroundInterface() {
   const handleStartMission = async (type: 'home' | 'street') => {
     setIsScanning(true);
     try {
-      let elements: string[] = [];
-      if (type === 'street') {
-        setShowCamera(true);
-        // Em um app real, aqui capturaríamos o frame. Simulando por agora ou abrindo câmera.
-        // Para simplificar o fluxo de teste, vamos propor direto se for home ou pedir scan se street.
-      }
-      
       const challenge = await proposeDynamicChallenges({
         missionType: type,
         psychomotorLevel: profile?.psychomotorLevel || 1,
         userAgeGroup: profile?.ageGroup || 'adolescent_adult',
         userSkillLevel: profile?.skillLevel || 'intermediate',
-        detectedElements: [] // Idealmente preenchido após capture
+        detectedElements: []
       });
       setActiveChallenge(challenge);
     } catch (e) {
@@ -68,7 +67,6 @@ export function PlaygroundInterface() {
   const completeMission = () => {
     if (!activeChallenge || !user || !userProgressRef) return;
 
-    const missionType = activeChallenge.ludoCoinsReward > 30 ? 'street' : 'home'; // Simplificação lógica
     const isHome = !profile?.dailyCycle?.homeMissionCompleted;
     
     const activitiesRef = collection(db, 'user_progress', user.uid, 'challenge_activities');
@@ -78,7 +76,9 @@ export function PlaygroundInterface() {
       isCompleted: true,
       ludoCoinsEarned: activeChallenge.ludoCoinsReward,
       missionType: isHome ? 'home' : 'street',
-      psychomotorLevelAtTime: profile?.psychomotorLevel || 1
+      psychomotorLevelAtTime: profile?.psychomotorLevel || 1,
+      challengeDescription: activeChallenge.challengeDescription,
+      difficulty: activeChallenge.difficulty
     });
 
     const nextLevelProgress = (profile?.totalChallengesCompleted || 0) + 1;
@@ -97,12 +97,16 @@ export function PlaygroundInterface() {
       }
     }, { merge: true });
 
+    setCelebrating(true);
     toast({
       title: "Missão Cumprida!",
       description: `Você ganhou ${activeChallenge.ludoCoinsReward} LudoCoins!`,
     });
-    setActiveChallenge(null);
-    setShowCamera(false);
+    
+    setTimeout(() => {
+      setCelebrating(false);
+      setActiveChallenge(null);
+    }, 4000);
   };
 
   if (isProfileLoading) return <div className="flex h-full items-center justify-center"><Loader2 className="animate-spin" /></div>;
@@ -111,6 +115,30 @@ export function PlaygroundInterface() {
   const streetCompleted = profile?.dailyCycle?.streetMissionCompleted;
   const pLevel = profile?.psychomotorLevel || 1;
   const levelNames = ["Alicerce", "Movimento", "Precisão", "Ritmo"];
+
+  if (celebrating) {
+    return (
+      <div className="fixed inset-0 z-[100] bg-primary/95 flex flex-col items-center justify-center p-6 text-center text-white overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none opacity-20 bg-[url('https://picsum.photos/seed/dance/1200/800')] bg-cover" />
+        <div className="space-y-6 animate-in zoom-in-50 duration-500 relative z-10">
+          <div className="w-32 h-32 rounded-full bg-white flex items-center justify-center mx-auto shadow-2xl animate-bounce">
+             <Trophy className="w-16 h-16 text-primary" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-5xl font-black uppercase tracking-tighter italic">Vitória!</h2>
+            <p className="text-xl font-bold opacity-80 uppercase tracking-widest">Seu Avatar está subindo de nível!</p>
+          </div>
+          <div className="flex gap-4 justify-center items-center py-4">
+             <div className="bg-white/20 px-6 py-3 rounded-2xl flex items-center gap-2 border border-white/30 backdrop-blur-sm">
+                <Coins className="w-6 h-6 text-yellow-300" />
+                <span className="text-3xl font-black">+{activeChallenge?.ludoCoinsReward}</span>
+             </div>
+          </div>
+          <p className="text-sm font-medium animate-pulse">Sincronizando conquistas com o estúdio...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={cn(
@@ -163,7 +191,6 @@ export function PlaygroundInterface() {
           <div className="space-y-6">
             <h3 className="font-bold text-lg opacity-60 px-2">Cartas de Desafio do Dia</h3>
             
-            {/* Card 1: HOME */}
             <ChallengeCard 
               title="Missão de Casa"
               description="Prepare o corpo. Foco em tônus e equilíbrio estático."
@@ -173,7 +200,6 @@ export function PlaygroundInterface() {
               onClick={() => handleStartMission('home')}
             />
 
-            {/* Card 2: STREET */}
             <ChallengeCard 
               title="Missão de Rua"
               description="Desafie a gravidade na cidade. Encontre elementos urbanos."
@@ -192,7 +218,7 @@ export function PlaygroundInterface() {
                   <p className="text-sm text-muted-foreground">O sol se pôs. Vá ao Dashboard para cuidar do seu Avatar.</p>
                 </div>
                 <Button variant="outline" asChild className="w-full rounded-xl">
-                  <a href="/dashboard">Ver Avatar</a>
+                  <Link href="/dashboard">Ver Avatar</Link>
                 </Button>
               </Card>
             )}
