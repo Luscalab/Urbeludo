@@ -40,6 +40,7 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="theme-color" content="#33993D" />
       </head>
       <body className="font-body antialiased overflow-x-hidden selection:bg-accent selection:text-accent-foreground">
         <FirebaseClientProvider>
