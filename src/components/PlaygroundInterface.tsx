@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -16,7 +15,6 @@ import {
   Trophy,
   Volume2,
   Hand,
-  Palette,
   Zap,
   Brain,
   Wind,
@@ -36,7 +34,7 @@ import { useI18n } from '@/components/I18nProvider';
 
 type CategoryType = 'artistic' | 'motor' | 'memory' | 'relaxation';
 
-// --- ENGINE DE RENDERIZAÇÃO PROCEDURAL 2026 (CANVAS 2D) ---
+// --- ENGINE DE RENDERIZAÇÃO PROCEDURAL 2D 2026 ---
 const ProceduralLudoAvatar = ({ motionData, color, isBreathing }: { motionData: { x: number, y: number }, color: string, isBreathing: boolean }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -51,60 +49,74 @@ const ProceduralLudoAvatar = ({ motionData, color, isBreathing }: { motionData: 
     const draw = () => {
       ctx.clearRect(0, 0, 400, 400);
       ctx.save();
-      ctx.translate(200 + motionData.x * 20, 200 + motionData.y * 10);
+      
+      // Suavização do movimento (Interpolação)
+      const targetX = 200 + motionData.x * 30;
+      const targetY = 200 + motionData.y * 15;
+      ctx.translate(targetX, targetY);
 
-      const breatheScale = isBreathing ? 1 + Math.sin(Date.now() / 500) * 0.05 : 1;
-      ctx.scale(breatheScale, 1 / breatheScale);
+      const breatheScale = isBreathing ? 1 + Math.sin(Date.now() / 600) * 0.04 : 1;
+      ctx.scale(breatheScale, 1 / (breatheScale * 0.98));
 
+      // Sombra Dinâmica
       ctx.beginPath();
-      ctx.ellipse(0, 160, 60, 20, 0, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(0,0,0,0.1)';
+      ctx.ellipse(0, 160, 70, 15, 0, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(0,0,0,0.08)';
       ctx.fill();
 
-      for (let i = 0; i < 5; i++) {
-        const time = Date.now() / 1000 + i;
-        const px = Math.cos(time) * 100;
-        const py = Math.sin(time) * 100;
+      // Aura de Partículas (Criação via código)
+      for (let i = 0; i < 6; i++) {
+        const time = Date.now() / 800 + i;
+        const px = Math.cos(time) * 110;
+        const py = Math.sin(time) * 110;
         ctx.beginPath();
-        ctx.arc(px, py, 2, 0, Math.PI * 2);
+        ctx.arc(px, py, 1.5, 0, Math.PI * 2);
         ctx.fillStyle = color;
+        ctx.globalAlpha = 0.4;
         ctx.fill();
+        ctx.globalAlpha = 1.0;
       }
 
+      // Corpo (Curvas de Bézier Orgânicas)
       ctx.beginPath();
-      ctx.moveTo(-40, 140);
-      ctx.bezierCurveTo(-60, 80, -30, 40, 0, 40);
-      ctx.bezierCurveTo(30, 40, 60, 80, 40, 140);
+      ctx.moveTo(-45, 140);
+      ctx.bezierCurveTo(-65, 80, -35, 40, 0, 40);
+      ctx.bezierCurveTo(35, 40, 65, 80, 45, 140);
       ctx.closePath();
-      ctx.fillStyle = '#111';
+      ctx.fillStyle = '#0f172a'; // Deep Navy Slate
       ctx.fill();
       ctx.strokeStyle = color;
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 3;
       ctx.stroke();
 
-      const faceGrad = ctx.createRadialGradient(0, -20, 10, 0, -20, 60);
+      // Rosto (Gradientes de Profundidade)
+      const faceGrad = ctx.createRadialGradient(0, -15, 5, 0, -15, 65);
       faceGrad.addColorStop(0, color);
-      faceGrad.addColorStop(1, '#000');
+      faceGrad.addColorStop(1, '#020617');
       
       ctx.beginPath();
-      ctx.moveTo(-35, -20);
-      ctx.bezierCurveTo(-35, -70, 35, -70, 35, -20);
-      ctx.bezierCurveTo(35, 30, -35, 30, -35, -20);
+      ctx.moveTo(-38, -15);
+      ctx.bezierCurveTo(-38, -65, 38, -65, 38, -15);
+      ctx.bezierCurveTo(38, 35, -38, 35, -38, -15);
       ctx.fillStyle = faceGrad;
       ctx.fill();
 
+      // Visor Estilizado
       ctx.beginPath();
-      ctx.roundRect(-25, -25, 50, 15, 8);
-      ctx.fillStyle = 'rgba(255,255,255,0.1)';
+      ctx.roundRect(-28, -22, 56, 12, 6);
+      ctx.fillStyle = 'rgba(255,255,255,0.15)';
       ctx.fill();
-      ctx.strokeStyle = color;
+      ctx.strokeStyle = 'rgba(255,255,255,0.4)';
       ctx.lineWidth = 1;
       ctx.stroke();
 
+      // Olhos Reativos
       ctx.fillStyle = 'white';
       ctx.beginPath();
-      ctx.arc(-10 + motionData.x * 5, -18 + motionData.y * 2, 1.5, 0, Math.PI * 2);
-      ctx.arc(10 + motionData.x * 5, -18 + motionData.y * 2, 1.5, 0, Math.PI * 2);
+      const eyeX = motionData.x * 8;
+      const eyeY = motionData.y * 3;
+      ctx.arc(-12 + eyeX, -16 + eyeY, 1.8, 0, Math.PI * 2);
+      ctx.arc(12 + eyeX, -16 + eyeY, 1.8, 0, Math.PI * 2);
       ctx.fill();
 
       ctx.restore();
@@ -115,7 +127,7 @@ const ProceduralLudoAvatar = ({ motionData, color, isBreathing }: { motionData: 
     return () => cancelAnimationFrame(frameId);
   }, [motionData, color, isBreathing]);
 
-  return <canvas ref={canvasRef} width={400} height={400} className="w-full h-full drop-shadow-[0_20px_50px_rgba(0,0,0,0.3)]" />;
+  return <canvas ref={canvasRef} width={400} height={400} className="w-full h-full drop-shadow-[0_15px_35px_rgba(0,0,0,0.4)]" />;
 };
 
 export function PlaygroundInterface() {
@@ -180,7 +192,7 @@ export function PlaygroundInterface() {
             const b = pixels[i+2];
             const brightness = (r + g + b) / 3;
             
-            if (brightness > 140) { 
+            if (brightness > 145) { 
               const x = (i / 4) % 40;
               const y = Math.floor((i / 4) / 40);
               totalX += x;
@@ -192,8 +204,8 @@ export function PlaygroundInterface() {
           if (weight > 3) {
             const avgX = (totalX / weight) / 40 - 0.5;
             const avgY = (totalY / weight) / 30 - 0.5;
-            lastX = lastX * 0.85 + avgX * 0.15;
-            lastY = lastY * 0.85 + avgY * 0.15;
+            lastX = lastX * 0.9 + avgX * 0.1;
+            lastY = lastY * 0.9 + avgY * 0.1;
             setMotionData({ x: -lastX, y: lastY });
             setIsLowLight(false);
           } else {
@@ -223,7 +235,7 @@ export function PlaygroundInterface() {
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         videoRef.current.onloadedmetadata = () => {
-          videoRef.current?.play().catch(e => console.error("Video play error:", e));
+          videoRef.current?.play().catch(e => console.error("Erro ao iniciar vídeo:", e));
           setTimeout(() => setIsInitializingCamera(false), 300);
         };
       }
@@ -232,7 +244,7 @@ export function PlaygroundInterface() {
       toast({
         variant: 'destructive',
         title: t('common.error'),
-        description: 'Câmera inacessível.'
+        description: 'Câmera indisponível no dispositivo.'
       });
     }
   };
@@ -296,7 +308,7 @@ export function PlaygroundInterface() {
       setCurrentStep(0);
       speak(challenge.challengeTitle);
     } catch (e) {
-      toast({ variant: 'destructive', title: 'Erro de IA', description: 'Reconectando com o estúdio...' });
+      toast({ variant: 'destructive', title: 'Falha de Sincronia', description: 'O Estúdio Ludo está temporariamente offline.' });
     } finally {
       setIsScanning(false);
     }
@@ -336,8 +348,9 @@ export function PlaygroundInterface() {
 
   return (
     <div className="flex flex-col h-full bg-background relative overflow-hidden">
+      {/* Viewport Mobile 2026 */}
       <div className="relative w-full aspect-[3/4] bg-zinc-950 overflow-hidden shadow-inner z-0 border-b border-primary/10">
-        <video ref={videoRef} className="w-full h-full object-cover opacity-60 grayscale-[0.3]" autoPlay muted playsInline />
+        <video ref={videoRef} className="w-full h-full object-cover opacity-60 grayscale-[0.2]" autoPlay muted playsInline />
         
         {!showGuide && cameraMode === 'user' && (
           <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none p-4">
@@ -351,7 +364,7 @@ export function PlaygroundInterface() {
 
         <AnimatePresence>
           {isLowLight && !showGuide && (
-            <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="absolute top-8 left-1/2 -translate-x-1/2 z-[60] bg-destructive/90 text-white px-6 py-2 rounded-full flex items-center gap-2 shadow-lg border border-white/20">
+            <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="absolute top-8 left-1/2 -translate-x-1/2 z-[60] bg-destructive/90 text-white px-6 py-2 rounded-full flex items-center gap-2 shadow-lg border border-white/10">
               <ZapOff className="w-4 h-4" />
               <span className="text-[10px] font-black uppercase tracking-widest">{t('playground.lowLight')}</span>
             </motion.div>
@@ -364,14 +377,15 @@ export function PlaygroundInterface() {
                 <Loader2 className="w-16 h-16 animate-spin text-primary" />
                 <Sparkles className="absolute top-0 right-0 w-6 h-6 text-accent animate-pulse" />
              </div>
-             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/70">Syncing Ludo Studio...</span>
+             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/70">Iniciando Estúdio Ludo...</span>
           </div>
         )}
       </div>
 
-      <div className="flex-1 -mt-20 bg-background rounded-t-[4rem] p-8 shadow-[0_-20px_40px_rgba(147,51,234,0.1)] z-20 border-t border-primary/10 overflow-y-auto">
+      {/* Interface Inferior Otimizada para Mobile */}
+      <div className="flex-1 -mt-20 bg-background rounded-t-[4rem] p-8 shadow-[0_-20px_40px_rgba(147,51,234,0.12)] z-20 border-t border-primary/10 overflow-y-auto">
         {showGuide ? (
-          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-5 duration-500">
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-5 duration-500 pb-12">
             <div className="flex flex-col items-center text-center space-y-4">
                <div className="w-20 h-20 bg-primary/10 rounded-[2.5rem] flex items-center justify-center text-primary border border-primary/20">
                  <UserIcon className="w-10 h-10" />
@@ -393,14 +407,14 @@ export function PlaygroundInterface() {
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <AcessibilityToggle active={isAudioEnabled} onClick={() => setIsAudioEnabled(!isAudioEnabled)} icon={<Volume2 />} label="Audio" />
+                <AcessibilityToggle active={isAudioEnabled} onClick={() => setIsAudioEnabled(!isAudioEnabled)} icon={<Volume2 />} label="Áudio" />
                 <AcessibilityToggle active={isLibrasEnabled} onClick={() => setIsLibrasEnabled(!isLibrasEnabled)} icon={<Hand />} label="Libras" />
               </div>
 
               <div className="space-y-2">
                  <Label className="text-[10px] font-black uppercase text-muted-foreground px-2">{t('playground.ageGroup')}</Label>
                  <Select value={ageGroup} onValueChange={setAgeGroup}>
-                   <SelectTrigger className="rounded-[2rem] h-16 bg-muted/30 border-2 border-primary/5 font-black px-6 shadow-sm">
+                   <SelectTrigger className="rounded-[2rem] h-16 bg-muted/30 border-2 border-primary/5 font-black px-6 shadow-sm focus:ring-primary/40">
                      <SelectValue />
                    </SelectTrigger>
                    <SelectContent className="rounded-[2rem]">
@@ -412,13 +426,13 @@ export function PlaygroundInterface() {
               </div>
             </div>
 
-            <Button onClick={handleSaveProfile} className="w-full h-18 rounded-[2.5rem] font-black uppercase tracking-widest bg-primary shadow-xl flex justify-between px-10 border-b-4 border-primary/80 active:border-b-0 active:translate-y-1 transition-all">
+            <Button onClick={handleSaveProfile} className="w-full h-18 rounded-[2.5rem] font-black uppercase tracking-widest bg-primary shadow-xl flex justify-between px-10 border-b-4 border-primary/80 active:border-b-0 active:translate-y-1 transition-all mt-4">
               <span>{t('playground.syncPlayground')}</span>
               <ChevronRight className="w-6 h-6" />
             </Button>
           </div>
         ) : (
-          <div className="space-y-8">
+          <div className="space-y-8 pb-12">
             <div className="flex overflow-x-auto gap-3 pb-4 no-scrollbar -mx-8 px-8">
                 <CategoryButton active={selectedCategory === 'artistic'} onClick={() => setSelectedCategory('artistic')} icon={<Palette className="w-4 h-4" />} label={t('playground.art')} />
                 <CategoryButton active={selectedCategory === 'motor'} onClick={() => setSelectedCategory('motor')} icon={<Zap className="w-4 h-4" />} label={t('playground.motor')} />
@@ -456,7 +470,7 @@ export function PlaygroundInterface() {
 
                 <div className="pt-4">
                   {currentStep < activeChallenge.steps.length - 1 ? (
-                    <Button onClick={() => { setCurrentStep(prev => prev + 1); speak(activeChallenge.steps[currentStep + 1]); }} className="w-full h-16 rounded-[2.5rem] font-black uppercase bg-primary shadow-xl">{t('playground.nextStep')}</Button>
+                    <Button onClick={() => { setCurrentStep(prev => prev + 1); speak(activeChallenge.steps[currentStep + 1]); }} className="w-full h-16 rounded-[2.5rem] font-black uppercase bg-primary shadow-xl border-b-4 border-primary/80 active:border-b-0 active:translate-y-1 transition-all">{t('playground.nextStep')}</Button>
                   ) : (
                     <Button onClick={completeMission} className="w-full h-20 rounded-[3rem] font-black uppercase bg-accent shadow-xl border-b-6 border-accent/50 text-xl active:border-b-0 active:translate-y-1 transition-all">{t('playground.finishMission')}</Button>
                   )}
@@ -473,7 +487,7 @@ export function PlaygroundInterface() {
             <motion.div animate={{ rotate: [0, 10, -10, 0], scale: [1, 1.2, 1] }} transition={{ duration: 0.6, repeat: Infinity }}>
               <Trophy className="w-32 h-32 mb-8 text-accent drop-shadow-[0_0_40px_rgba(244,114,182,0.6)]" />
             </motion.div>
-            <h2 className="text-6xl font-black uppercase italic mb-6 tracking-tighter">Level Up!</h2>
+            <h2 className="text-6xl font-black uppercase italic mb-6 tracking-tighter">Vitória!</h2>
             <div className="bg-white/10 px-12 py-6 rounded-[3rem] border border-white/20 shadow-2xl">
                <span className="text-5xl font-black flex items-center gap-4">
                  <Coins className="w-10 h-10 text-yellow-400" />
