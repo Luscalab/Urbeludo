@@ -14,9 +14,10 @@ interface FurniturePieceProps {
   onRemove: (instanceId: string) => void;
   isEditing: boolean;
   auraColor: string;
+  worldSize: number;
 }
 
-export function FurniturePiece({ data, onUpdate, onRemove, isEditing, auraColor }: FurniturePieceProps) {
+export function FurniturePiece({ data, onUpdate, onRemove, isEditing, auraColor, worldSize }: FurniturePieceProps) {
   const itemInfo = STUDIO_CATALOG.find(i => i.id === data.itemId);
   
   if (!itemInfo) return null;
@@ -26,26 +27,30 @@ export function FurniturePiece({ data, onUpdate, onRemove, isEditing, auraColor 
       drag={isEditing}
       dragMomentum={false}
       onDragEnd={(_, info) => {
-        const container = document.getElementById('studio-grid');
-        if (container) {
-          const rect = container.getBoundingClientRect();
-          // Calcula posição relativa em porcentagem
-          const x = ((info.point.x - rect.left) / rect.width) * 100;
-          const y = ((info.point.y - rect.top) / rect.height) * 100;
-          onUpdate(data.instanceId, x, y);
+        const world = document.getElementById('studio-world');
+        if (world) {
+          const rect = world.getBoundingClientRect();
+          // Calcula posição absoluta em pixels dentro do mundo de 1200px
+          const x = info.point.x - rect.left;
+          const y = info.point.y - rect.top;
+          
+          // Converte de volta para porcentagem para manter a persistência compatível
+          const xPct = (x / worldSize) * 100;
+          const yPct = (y / worldSize) * 100;
+          
+          onUpdate(data.instanceId, xPct, yPct);
         }
       }}
-      initial={{ scale: 0, opacity: 0 }}
+      initial={false}
       animate={{ 
-        scale: isEditing ? 1.05 : 1, 
-        opacity: 1,
+        scale: isEditing ? 1.1 : 1, 
         left: `${data.position.x}%`,
         top: `${data.position.y}%`,
         zIndex: data.zIndex
       }}
       className={cn(
         "absolute cursor-grab active:cursor-grabbing select-none pointer-events-auto touch-none",
-        isEditing && "ring-2 ring-primary/40 ring-offset-2 rounded-xl"
+        isEditing && "ring-2 ring-primary/40 ring-offset-4 rounded-3xl"
       )}
       style={{ 
         transform: 'translate(-50%, -50%)',
@@ -53,18 +58,18 @@ export function FurniturePiece({ data, onUpdate, onRemove, isEditing, auraColor 
     >
       <div className="relative group">
         <div 
-          className="filter drop-shadow-xl flex items-center justify-center bg-white/10 rounded-3xl backdrop-blur-sm border border-white/20"
+          className="filter drop-shadow-2xl flex items-center justify-center bg-white/20 rounded-[2.5rem] backdrop-blur-md border-4 border-white shadow-xl"
           style={{ 
-            width: `${itemInfo.dimensions.width}px`, 
-            height: `${itemInfo.dimensions.height}px`,
-            fontSize: `${itemInfo.dimensions.width * 0.6}px`,
-            borderColor: itemInfo.category === 'Especial' ? auraColor : undefined 
+            width: `${itemInfo.dimensions.width * 1.5}px`, 
+            height: `${itemInfo.dimensions.height * 1.5}px`,
+            fontSize: `${itemInfo.dimensions.width}px`,
+            borderColor: itemInfo.category === 'Especial' ? auraColor : 'white' 
           }}
         >
           {itemInfo.assetPath}
           {itemInfo.category === 'Especial' && (
             <div 
-              className="absolute inset-0 rounded-3xl opacity-20 blur-xl animate-pulse"
+              className="absolute inset-0 rounded-[2rem] opacity-30 blur-2xl animate-pulse"
               style={{ backgroundColor: auraColor }}
             />
           )}
@@ -72,15 +77,15 @@ export function FurniturePiece({ data, onUpdate, onRemove, isEditing, auraColor 
 
         {isEditing && (
           <motion.button
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+            initial={{ opacity: 0, scale: 0 }}
+            animate={{ opacity: 1, scale: 1 }}
             onClick={(e) => {
               e.stopPropagation();
               onRemove(data.instanceId);
             }}
-            className="absolute -top-3 -right-3 bg-destructive text-white p-1.5 rounded-full shadow-lg z-50 pointer-events-auto"
+            className="absolute -top-4 -right-4 bg-destructive text-white p-3 rounded-full shadow-2xl z-50 pointer-events-auto border-4 border-white"
           >
-            <Trash2 className="w-3 h-3" />
+            <Trash2 className="w-4 h-4" />
           </motion.button>
         )}
       </div>
