@@ -2,17 +2,21 @@
 
 import { useState, useEffect } from 'react';
 import { LocalPersistence } from '@/lib/local-persistence';
-import { StudioFurniture, UserProgress } from '@/lib/types';
+import { PlacedItem, StudioState, UserProgress } from '@/lib/types';
 
 export function useStudio() {
-  const [furniture, setFurniture] = useState<StudioFurniture[]>([]);
+  const [studioState, setStudioState] = useState<StudioState>({
+    unlockedItemIds: ['zen-rug'],
+    placedItems: [],
+    backgroundId: 'default'
+  });
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const loadStudio = async () => {
       const profile = await LocalPersistence.getProgress();
-      if (profile?.studioFurniture) {
-        setFurniture(profile.studioFurniture);
+      if (profile?.studioState) {
+        setStudioState(profile.studioState);
       }
       setIsLoading(false);
     };
@@ -22,30 +26,51 @@ export function useStudio() {
     return () => window.removeEventListener('local-data-updated', loadStudio);
   }, []);
 
-  const updateFurniturePosition = async (id: string, x: number, y: number) => {
-    const updated = furniture.map(f => f.id === id ? { ...f, x, y } : f);
-    setFurniture(updated);
-    await LocalPersistence.saveProgress({ studioFurniture: updated });
+  const updateItemPosition = async (instanceId: string, x: number, y: number) => {
+    const updatedPlacedItems = studioState.placedItems.map(item => 
+      item.instanceId === instanceId 
+        ? { ...item, position: { x, y } } 
+        : item
+    );
+    
+    const newState = { ...studioState, placedItems: updatedPlacedItems };
+    setStudioState(newState);
+    await LocalPersistence.saveProgress({ studioState: newState });
   };
 
-  const addFurniture = async (itemId: string) => {
-    const newItem: StudioFurniture = {
-      id: `f-${Math.random().toString(36).substr(2, 9)}`,
+  const addItem = async (itemId: string) => {
+    const newItem: PlacedItem = {
+      instanceId: `inst-${Math.random().toString(36).substr(2, 9)}`,
       itemId,
-      x: 50,
-      y: 50,
+      position: { x: 50, y: 50 },
+      zIndex: studioState.placedItems.length + 1,
       rotation: 0
     };
-    const updated = [...furniture, newItem];
-    setFurniture(updated);
-    await LocalPersistence.saveProgress({ studioFurniture: updated });
+    
+    const newState = {
+      ...studioState,
+      unlockedItemIds: studioState.unlockedItemIds.includes(itemId) 
+        ? studioState.unlockedItemIds 
+        : [...studioState.unlockedItemIds, itemId],
+      placedItems: [...studioState.placedItems, newItem]
+    };
+    
+    setStudioState(newState);
+    await LocalPersistence.saveProgress({ studioState: newState });
   };
 
-  const removeFurniture = async (id: string) => {
-    const updated = furniture.filter(f => f.id !== id);
-    setFurniture(updated);
-    await LocalPersistence.saveProgress({ studioFurniture: updated });
+  const removeItem = async (instanceId: string) => {
+    const updatedPlacedItems = studioState.placedItems.filter(item => item.instanceId !== instanceId);
+    const newState = { ...studioState, placedItems: updatedPlacedItems };
+    setStudioState(newState);
+    await LocalPersistence.saveProgress({ studioState: newState });
   };
 
-  return { furniture, isLoading, updateFurniturePosition, addFurniture, removeFurniture };
+  return { 
+    studioState, 
+    isLoading, 
+    updateItemPosition, 
+    addItem, 
+    removeItem 
+  };
 }

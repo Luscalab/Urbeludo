@@ -9,7 +9,7 @@ export type MissionCategory = 'Arte' | 'Motor' | 'Mente' | 'Zen';
 export type MissionLevel = 1 | 2 | 3 | 4;
 
 /**
- * Interface rigorosa para os desafios gerados pelo Gemini 2.0 Flash.
+ * Interface rigorosa para os desafios.
  */
 export interface Challenge {
   id: string;
@@ -26,23 +26,47 @@ export interface Challenge {
 }
 
 /**
- * Configuração de móveis para o Estúdio.
+ * Definição de categorias para organização da loja e do inventário.
  */
-export interface StudioFurniture {
-  id: string;
-  itemId: string; // Referência ao ID do catálogo
-  x: number;
-  y: number;
-  rotation: number;
-}
+export type ItemCategory = 'Essencial' | 'Ativo' | 'Estético' | 'Especial';
 
-export interface CatalogItem {
+/**
+ * Representação de um item disponível no catálogo estático do APK.
+ */
+export interface StudioItem {
   id: string;
   name: string;
+  category: ItemCategory;
   price: number;
-  category: 'decoracao' | 'ativo' | 'sonoro' | 'aura';
   description: string;
-  icon: string;
+  assetPath: string; // Emoji ou Caminho para SVG
+  dimensions: {
+    width: number;
+    height: number;
+  };
+}
+
+/**
+ * Instância de um item já posicionado no estúdio pelo usuário.
+ */
+export interface PlacedItem {
+  instanceId: string;
+  itemId: string;
+  position: {
+    x: number;
+    y: number;
+  };
+  zIndex: number;
+  rotation: 0 | 90 | 180 | 270;
+}
+
+/**
+ * Estado completo do Estúdio para persistência no banco de dados local.
+ */
+export interface StudioState {
+  unlockedItemIds: string[];
+  placedItems: PlacedItem[];
+  backgroundId: string;
 }
 
 /**
@@ -63,7 +87,7 @@ export interface UserProgress {
     equippedItems: string[];
     studioLevel: number;
   };
-  studioFurniture: StudioFurniture[];
+  studioState: StudioState;
   dailyCycle: {
     homeMissionCompleted: boolean;
     streetMissionCompleted: boolean;
