@@ -27,7 +27,8 @@ import {
   Wind,
   Sun,
   ShieldAlert,
-  Sparkles
+  Sparkles,
+  User as UserIcon
 } from 'lucide-react';
 import { proposeDynamicChallenges, type ProposeDynamicChallengesOutput } from '@/ai/flows/propose-dynamic-challenges';
 import { identifyUrbanElements } from '@/ai/flows/identify-urban-elements-flow';
@@ -82,7 +83,6 @@ export function PlaygroundInterface() {
     }
   }, [profile]);
 
-  // Simulação de ações do rosto (piscar)
   useEffect(() => {
     const blinkInterval = setInterval(() => {
       setIsBlinking(true);
@@ -126,14 +126,20 @@ export function PlaygroundInterface() {
 
   useEffect(() => {
     if (!showGuide) {
-      startCamera(cameraMode);
+      // Se não houver avatar, sempre forçar câmera frontal para o scan
+      if (!safeAvatar) {
+        setCameraMode('user');
+        startCamera('user');
+      } else {
+        startCamera(cameraMode);
+      }
     }
     return () => {
       if (videoRef.current?.srcObject) {
         (videoRef.current.srcObject as MediaStream).getTracks().forEach(track => track.stop());
       }
     };
-  }, [cameraMode, showGuide]);
+  }, [cameraMode, showGuide, safeAvatar]);
 
   const speak = (text: string) => {
     if (isAudioEnabled && 'speechSynthesis' in window) {
@@ -205,8 +211,8 @@ export function PlaygroundInterface() {
       toast({ title: "Avatar Criado!", description: "Sua identidade está protegida." });
     } catch (e) {
       toast({ variant: 'destructive', title: "Erro no Scan", description: "Tentando novamente com avatar padrão." });
-      const fallback = {
-        hair: { style: 'curto' as any, color: '#333333', texture: 'Liso' },
+      const fallback: AvatarizeUserOutput = {
+        hair: { style: 'curto', color: '#333333', texture: 'Liso' },
         eyes: { shape: 'Amendoado', color: '#33993D', eyebrowShape: 'Natural' },
         face: { shape: 'Oval', tone: 'Médio', undertone: 'Neutro', noseShape: 'Natural', mouthShape: 'Natural' },
         accessories: [],
@@ -281,7 +287,6 @@ export function PlaygroundInterface() {
       if (ctx) {
         ctx.drawImage(video, 0, 0);
         
-        // Simulação de Blur e Overlay de Avatar Seguro
         const centerX = canvas.width / 2;
         const centerY = canvas.height * 0.4;
         const radius = Math.min(canvas.width, canvas.height) * 0.22;
@@ -297,7 +302,6 @@ export function PlaygroundInterface() {
         ctx.stroke();
         ctx.restore();
 
-        // Banner de Privacidade
         ctx.fillStyle = 'rgba(0,0,0,0.9)';
         ctx.fillRect(0, canvas.height - 100, canvas.width, 100);
         ctx.fillStyle = '#99E630';
@@ -388,49 +392,69 @@ export function PlaygroundInterface() {
           </div>
         )}
 
-        {/* Representação do Avatar Visual (LUDO PERSONA) */}
+        {/* Representação do Personagem (LUDO PERSONA) */}
         {safeAvatar && cameraMode === 'user' && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
              <div 
                className={cn(
-                 "relative w-64 h-64 rounded-[3.5rem] border-4 border-white/40 shadow-2xl flex flex-col items-center justify-center overflow-hidden transition-all duration-700",
+                 "relative w-64 h-72 flex flex-col items-center justify-center transition-all duration-700",
                  isBreathingActivity ? "animate-breathing-avatar" : "animate-float-libras"
                )}
-               style={{ backgroundColor: safeAvatar.dominantColor || '#33993D' }}
              >
-                {/* Camada de Estilo: Cabelo */}
+                {/* Formato do Rosto Dinâmico */}
                 <div 
                   className={cn(
-                    "absolute top-0 w-full h-2/5 opacity-90 transition-all",
-                    safeAvatar.hair?.style === 'cacheado' ? "rounded-b-[2rem]" : "rounded-none"
+                    "absolute w-48 h-56 border-4 border-white/30 shadow-2xl flex flex-col items-center justify-center overflow-hidden z-0",
+                    safeAvatar.face?.shape === 'Oval' ? "rounded-[5rem]" : 
+                    safeAvatar.face?.shape === 'Quadrado' ? "rounded-[2rem]" : "rounded-full"
+                  )}
+                  style={{ backgroundColor: safeAvatar.dominantColor || '#33993D' }}
+                >
+                    {/* Sombra Interna do Rosto */}
+                    <div className="absolute inset-0 bg-black/5" />
+                    
+                    {/* Nariz Simulado */}
+                    <div className="absolute top-[55%] w-2 h-4 bg-black/10 rounded-full" />
+                    
+                    {/* Boca Simulada */}
+                    <div className="absolute bottom-[20%] w-8 h-1 bg-white/20 rounded-full" />
+                </div>
+
+                {/* Camada de Estilo: Cabelo Detalhado */}
+                <div 
+                  className={cn(
+                    "absolute top-0 w-52 opacity-95 transition-all z-20",
+                    safeAvatar.hair?.style === 'liso' ? "h-20 rounded-t-full" : 
+                    safeAvatar.hair?.style === 'ondulado' ? "h-24 rounded-t-full rounded-b-xl" :
+                    safeAvatar.hair?.style === 'cacheado' ? "h-28 rounded-full border-4 border-dashed border-black/10" :
+                    safeAvatar.hair?.style === 'crespo' ? "h-32 rounded-t-[3rem]" : "h-10 rounded-t-full"
                   )}
                   style={{ backgroundColor: safeAvatar.hair?.color || '#333' }}
                 />
 
-                {/* Camada de Olhos / Visor */}
-                <div className="w-48 h-12 bg-black/30 backdrop-blur-xl border border-white/20 rounded-full flex items-center justify-around px-8 z-10 animate-pulse-glow">
+                {/* Camada de Olhos / Visor de Neon */}
+                <div className="w-40 h-10 bg-black/40 backdrop-blur-xl border border-white/30 rounded-full flex items-center justify-around px-6 z-30 animate-pulse-glow shadow-lg mt-4">
                    <div 
-                     className={cn("w-4 h-4 rounded-full transition-all", isBlinking && "scale-y-0")} 
+                     className={cn("w-3 h-3 rounded-full transition-all shadow-[0_0_10px_rgba(0,255,255,0.8)]", isBlinking && "scale-y-0")} 
                      style={{ backgroundColor: safeAvatar.eyes?.color || 'cyan' }} 
                    />
                    <div 
-                     className={cn("w-4 h-4 rounded-full transition-all", isBlinking && "scale-y-0")} 
+                     className={cn("w-3 h-3 rounded-full transition-all shadow-[0_0_10px_rgba(0,255,255,0.8)]", isBlinking && "scale-y-0")} 
                      style={{ backgroundColor: safeAvatar.eyes?.color || 'cyan' }} 
                    />
                 </div>
 
-                {/* Camada de Expressão / Boca */}
-                <div className="mt-8 w-12 h-1 bg-white/40 rounded-full" />
-
                 {/* Label de Identidade */}
-                <div className="absolute bottom-4 text-center">
-                   <div className="text-[10px] font-black text-white/80 uppercase italic leading-none">{safeAvatar.accessoryType}</div>
-                   <div className="text-[7px] font-bold text-white/30 uppercase tracking-widest mt-1">Identidade UrbeLudo</div>
+                <div className="absolute -bottom-10 text-center">
+                   <Badge className="bg-white/20 text-white backdrop-blur-md border-none text-[8px] font-black uppercase italic tracking-tighter">
+                     {safeAvatar.accessoryType}
+                   </Badge>
+                   <div className="text-[7px] font-bold text-white/50 uppercase tracking-widest mt-1">Identidade UrbeLudo</div>
                 </div>
              </div>
              
              {/* Efeito de Aura de Privacidade */}
-             <div className="absolute inset-0 bg-primary/10 backdrop-blur-[1px] pointer-events-none" />
+             <div className="absolute inset-0 bg-primary/5 backdrop-blur-[0.5px] pointer-events-none" />
           </div>
         )}
 
@@ -477,7 +501,11 @@ export function PlaygroundInterface() {
               <ProfileInput label="Idade" value={ageGroup} onValueChange={setAgeGroup} options={[
                 {v: 'preschool', l: '3-6 anos'}, {v: 'school_age', l: '7-12 anos'}, {v: 'adolescent_adult', l: '13+ anos'}
               ]} />
+              <ProfileInput label="Gênero" value={profile?.sex || 'prefer_not_to_say'} onValueChange={(v) => handleUpdateProfile('sex', v)} options={[
+                {v: 'male', l: 'Masculino'}, {v: 'female', l: 'Feminino'}, {v: 'other', l: 'Outro'}, {v: 'prefer_not_to_say', l: 'Prefiro não dizer'}
+              ]} />
               <Input placeholder="Neurodivergência (opcional)" value={neurodivergence} onChange={e => setNeurodivergence(e.target.value)} className="rounded-2xl h-14" />
+              <Input placeholder="Limitações Físicas (opcional)" value={profile?.physicalLimitations || ''} onChange={e => handleUpdateProfile('physicalLimitations', e.target.value)} className="rounded-2xl h-14" />
             </div>
             <Button onClick={handleSaveProfile} className="w-full h-16 rounded-[2.5rem] font-black uppercase tracking-widest bg-primary shadow-xl">Entrar no Playground</Button>
           </div>
@@ -555,6 +583,12 @@ export function PlaygroundInterface() {
       )}
     </div>
   );
+
+  function handleUpdateProfile(field: string, value: any) {
+    if (userProgressRef) {
+      updateDocumentNonBlocking(userProgressRef, { [field]: value });
+    }
+  }
 }
 
 function AcessibilityToggle({ active, onClick, icon, label, sub }: any) {
@@ -613,3 +647,4 @@ function ChallengeRow({ title, subtitle, icon, isCompleted, onClick, disabled }:
     </div>
   );
 }
+
