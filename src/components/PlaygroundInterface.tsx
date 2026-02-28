@@ -83,7 +83,6 @@ export function PlaygroundInterface() {
         videoRef.current.srcObject = stream;
         videoRef.current.onloadedmetadata = () => {
           videoRef.current?.play().catch(e => console.error("Erro ao reproduzir vídeo:", e));
-          // Pequeno delay para garantir estabilização do hardware antes de liberar o botão
           setTimeout(() => setIsInitializingCamera(false), 800);
         };
       }
@@ -110,7 +109,6 @@ export function PlaygroundInterface() {
     };
   }, [cameraMode, showGuide]);
 
-  // Audio Guide Logic
   useEffect(() => {
     if (isAudioEnabled && activeChallenge) {
       const stepText = activeChallenge.steps[currentStep];
@@ -147,11 +145,8 @@ export function PlaygroundInterface() {
       ctx.drawImage(video, 0, 0);
       const photo = canvas.toDataURL('image/jpeg', 0.8);
       
-      // O flow agora tem fallback interno, então sempre deve retornar um resultado
       const result = await avatarizeUser({ photoDataUri: photo });
       setSafeAvatar(result);
-      
-      // Troca para câmera traseira para a missão
       setCameraMode('environment');
       
       toast({ 
@@ -160,7 +155,6 @@ export function PlaygroundInterface() {
       });
     } catch (e) {
       console.error("Erro no scan:", e);
-      // Fallback local caso o servidor nem responda
       setSafeAvatar({
         avatarStyleDescription: "Explorador Cibernético Minimalista",
         dominantColor: "#33993D",
@@ -220,7 +214,6 @@ export function PlaygroundInterface() {
       if (ctx) {
         ctx.drawImage(video, 0, 0);
         
-        // Avatar Privacy Filter
         const centerX = canvas.width / 2;
         const centerY = canvas.height * 0.4;
         const radius = Math.min(canvas.width, canvas.height) * 0.22;
@@ -236,7 +229,6 @@ export function PlaygroundInterface() {
         ctx.stroke();
         ctx.restore();
 
-        // Safety Banner
         ctx.fillStyle = 'rgba(0,0,0,0.8)';
         ctx.fillRect(0, canvas.height - 60, canvas.width, 60);
         ctx.fillStyle = 'white';
@@ -293,6 +285,8 @@ export function PlaygroundInterface() {
     }, 4000);
   };
 
+  const isBreathingActivity = activeChallenge?.challengeType === 'breathing';
+
   if (showGuide) {
     return (
       <div className="min-h-full bg-background flex flex-col p-8 items-center justify-center text-center space-y-8 animate-in fade-in duration-500 overflow-y-auto">
@@ -344,6 +338,32 @@ export function PlaygroundInterface() {
           playsInline 
         />
         <canvas ref={canvasRef} className="hidden" />
+
+        {/* Breathing Biofeedback Avatar Overlay */}
+        {activeChallenge && safeAvatar && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
+             <div 
+               className={cn(
+                 "w-48 h-48 rounded-full border-4 border-white/50 shadow-2xl flex items-center justify-center overflow-hidden transition-all duration-1000",
+                 isBreathingActivity ? "animate-breathing-avatar" : "scale-75 opacity-20"
+               )}
+               style={{ backgroundColor: safeAvatar.dominantColor }}
+             >
+                <div className="text-white text-center p-4">
+                   <div className="text-[8px] font-black uppercase tracking-tighter mb-1">{safeAvatar.accessoryType}</div>
+                   <div className="text-[6px] font-bold uppercase opacity-60">Avatar de Privacidade</div>
+                </div>
+             </div>
+             {isBreathingActivity && (
+               <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-64 h-64 rounded-full border border-primary/30 animate-ping opacity-20" />
+                  <div className="absolute bottom-10 bg-black/60 px-6 py-2 rounded-full border border-primary/40 backdrop-blur-md">
+                     <span className="text-[10px] font-black text-primary uppercase tracking-widest">Acompanhe o Ritmo</span>
+                  </div>
+               </div>
+             )}
+          </div>
+        )}
         
         {isLibrasEnabled && activeChallenge && (
           <div className="absolute bottom-4 right-4 w-20 h-20 bg-black/60 backdrop-blur-md rounded-2xl border border-primary/40 flex flex-col items-center justify-center z-30 animate-pulse">
