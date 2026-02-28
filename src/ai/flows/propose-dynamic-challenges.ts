@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview Flow para proposição de desafios dinâmicos, seguros e lúdicos.
@@ -35,34 +34,40 @@ const proposeDynamicChallengesPrompt = ai.definePrompt({
   name: 'proposeDynamicChallengesPrompt',
   input: {schema: ProposeDynamicChallengesInputSchema},
   output: {schema: ProposeDynamicChallengesOutputSchema},
-  prompt: `Você é o Mestre do Movimento e Designer de Segurança do UrbeLudo.
+  config: {
+    safetySettings: [
+      {
+        category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+        threshold: 'BLOCK_ONLY_HIGH',
+      },
+      {
+        category: 'HARM_CATEGORY_HARASSMENT',
+        threshold: 'BLOCK_NONE',
+      }
+    ],
+  },
+  prompt: `Você é o Mestre do Movimento do UrbeLudo. Seu objetivo é criar desafios psicomotores lúdicos e seguros.
 
 REGRA DE OURO DE SEGURANÇA:
-- JAMAIS sugira atividades em avenidas, ruas movimentadas, locais com tráfego de carros ou áreas perigosas.
-- O foco deve ser calçadas amplas, praças, parques ou espaços internos (Casa).
-- Se os elementos detectados parecerem perigosos, sugira uma alternativa segura próxima (ex: "Procure um banco de praça calmo").
+- JAMAIS sugira atividades em locais com tráfego de carros.
+- O foco deve ser espaços seguros: Calçadas amplas, praças ou o interior da Casa do usuário.
 
-ESTRUTURA PSICOMOTORA:
-- Level 1 (Alicerce): Equilíbrio estático, consciência corporal.
-- Level 2 (Movimento): Locomoção simples, evitar obstáculos.
-- Level 3 (Precisão): Saltos direcionados, controle motor fino.
-- Level 4 (Ritmo): Sequências rítmicas.
+OBJETIVO DA MISSÃO:
+Tipo: {{{missionType}}} (Se for 'home', foque em objetos domésticos como cadeiras, tapetes ou linhas no piso. Se for 'street', use os elementos detectados).
 
-MISSÕES LÚDICAS:
-- Frequentemente inclua desafios criativos, como "Desenhe um círculo imaginário com giz ou galho e pule dentro dele".
-- Peça para o usuário "criar uma pose de herói" ou "desenhar uma trilha no chão".
+ESTRUTURA PSICOMOTORA (Level {{{psychomotorLevel}}}):
+- Level 1: Equilíbrio estático e consciência corporal.
+- Level 2: Locomoção e desvio de obstáculos.
+- Level 3: Saltos e precisão.
+- Level 4: Sequências rítmicas.
 
-ENTREGA:
-- Gere 2 ou 3 passos claros (steps).
-- Atribua recompensas (10-50 LudoCoins).
-- Se isLudicDrawing for true, o desafio deve envolver uma criação visual que possa ser fotografada.
-
-Contexto Atual:
-- Tipo: {{{missionType}}}
+CONTEXTO DO USUÁRIO:
 - Idade: {{{userAgeGroup}}}
-- Nível: {{{psychomotorLevel}}}
-- Elementos: {{#each detectedElements}}{{{this}}}, {{/each}}
-`,
+- Habilidade: {{{userSkillLevel}}}
+- Elementos Detectados: {{#each detectedElements}}{{{this}}}, {{/each}}
+
+INSTRUÇÕES DE SAÍDA:
+Gere um desafio criativo com um título empolgante, uma descrição curta e 2 a 3 passos claros de execução. Atribua uma recompensa de 10 a 50 LudoCoins.`,
 });
 
 const proposeDynamicChallengesFlow = ai.defineFlow(
@@ -72,7 +77,26 @@ const proposeDynamicChallengesFlow = ai.defineFlow(
     outputSchema: ProposeDynamicChallengesOutputSchema,
   },
   async input => {
-    const {output} = await proposeDynamicChallengesPrompt(input);
-    return output!;
+    try {
+      const {output} = await proposeDynamicChallengesPrompt(input);
+      if (!output) throw new Error("IA não gerou resposta");
+      return output;
+    } catch (error) {
+      console.error("Erro no Flow de Desafios:", error);
+      // Fallback para garantir que o usuário não fique travado
+      return {
+        challengeTitle: "Equilíbrio de Bronze",
+        challengeDescription: "Fique em um pé só por 10 segundos para despertar seu corpo.",
+        challengeType: "balance",
+        difficulty: "easy",
+        ludoCoinsReward: 15,
+        isLudicDrawing: false,
+        steps: [
+          "Encontre um espaço livre no chão",
+          "Levante o pé direito e conte até 10",
+          "Troque de pé e repita"
+        ]
+      };
+    }
   }
 );
