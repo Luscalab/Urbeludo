@@ -1,3 +1,4 @@
+
 /**
  * Catálogo de Avatares do UrbeLudo.
  * Mapeia todos os personagens disponíveis na pasta public/assets/avatars/

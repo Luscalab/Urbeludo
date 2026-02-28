@@ -1,8 +1,10 @@
+
 import { StudioItem } from './types';
 
 /**
  * Catálogo Central de Ativos da Studio Update.
  * Aponta para os arquivos PNG transparentes na pasta public/assets/studio/studio update/
+ * Espaços em URLs devem ser substituídos por %20.
  */
 export const STUDIO_CATALOG: StudioItem[] = [
   {
