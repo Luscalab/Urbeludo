@@ -1,0 +1,22 @@
+{
+  "name": "UrbeLudo | Playground Urbano",
+  "short_name": "UrbeLudo",
+  "description": "Transforme sua cidade em um playground psicomotor com IA.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f7faf8",
+  "theme_color": "#33993D",
+  "icons": [
+    {
+      "src": "https://picsum.photos/seed/ludoicon/192/192",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://picsum.photos/seed/ludoicon/512/512",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
