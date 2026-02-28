@@ -1,6 +1,7 @@
+
 'use server';
 /**
- * @fileOverview Flow para proposição de desafios dinâmicos, seguros e lúdicos, agora categorizados.
+ * @fileOverview Flow para proposição de desafios dinâmicos com fallback offline para APK.
  */
 
 import {ai} from '@/ai/genkit';
@@ -22,84 +23,79 @@ const ProposeDynamicChallengesOutputSchema = z.object({
   challengeType: z.enum(['balance', 'jump', 'crawl', 'lateral_movement', 'spatial_awareness', 'strength', 'rhythm', 'creative', 'memory_game', 'breathing']),
   difficulty: z.enum(['easy', 'medium', 'hard']),
   ludoCoinsReward: z.number(),
-  isLudicDrawing: z.boolean().describe('Se o desafio envolve desenhar algo no chão ou criar arte urbana temporária.'),
-  steps: z.tuple([z.string(), z.string(), z.string()]).describe('Exatamente 3 passos para garantir a execução da atividade.'),
+  isLudicDrawing: z.boolean().describe('Se o desafio envolve desenhar algo no chão.'),
+  steps: z.tuple([z.string(), z.string(), z.string()]).describe('Exatamente 3 passos.'),
 });
 export type ProposeDynamicChallengesOutput = z.infer<typeof ProposeDynamicChallengesOutputSchema>;
 
+/**
+ * Catálogo de desafios estáticos para o "Modo de Emergência Pedagógico" (Offline).
+ */
+const OFFLINE_CHALLENGES: Record<string, ProposeDynamicChallengesOutput[]> = {
+  'Motor': [
+    {
+      challengeTitle: "Equilíbrio na Fita",
+      challengeDescription: "Crie uma linha reta no chão e caminhe sobre ela.",
+      challengeType: "balance",
+      difficulty: "easy",
+      ludoCoinsReward: 20,
+      isLudicDrawing: false,
+      steps: ["Encontre uma linha ou use fita crepe", "Caminhe pé ante pé", "Mantenha os braços abertos"]
+    }
+  ],
+  'Arte': [
+    {
+      challengeTitle: "Grafite Espacial",
+      challengeDescription: "Desenhe um círculo perfeito com o seu corpo.",
+      challengeType: "creative",
+      difficulty: "medium",
+      ludoCoinsReward: 30,
+      isLudicDrawing: true,
+      steps: ["Estique os braços para os lados", "Gire lentamente no mesmo lugar", "Visualize o rastro roxo no visor"]
+    }
+  ],
+  'Zen': [
+    {
+      challengeTitle: "Postura da Árvore",
+      challengeDescription: "Mantenha o equilíbrio estático por 10 segundos.",
+      challengeType: "breathing",
+      difficulty: "easy",
+      ludoCoinsReward: 15,
+      isLudicDrawing: false,
+      steps: ["Fique em um pé só", "Junte as mãos no peito", "Respire fundo três vezes"]
+    }
+  ],
+  'Mente': [
+    {
+      challengeTitle: "Sequência de Toques",
+      challengeDescription: "Toque em três objetos de cores diferentes.",
+      challengeType: "memory_game",
+      difficulty: "easy",
+      ludoCoinsReward: 25,
+      isLudicDrawing: false,
+      steps: ["Identifique algo Azul, Verde e Vermelho", "Toque neles nessa ordem", "Volte para a base dando um pulo"]
+    }
+  ]
+};
+
 export async function proposeDynamicChallenges(input: ProposeDynamicChallengesInput): Promise<ProposeDynamicChallengesOutput> {
-  return proposeDynamicChallengesFlow(input);
+  try {
+    const {output} = await proposeDynamicChallengesPrompt(input);
+    return output!;
+  } catch (error) {
+    // Modo de Emergência Pedagógico: Retorna desafio estático se a IA falhar (Offline)
+    const categoryChallenges = OFFLINE_CHALLENGES[input.category] || OFFLINE_CHALLENGES['Motor'];
+    return categoryChallenges[Math.floor(Math.random() * categoryChallenges.length)];
+  }
 }
 
 const proposeDynamicChallengesPrompt = ai.definePrompt({
   name: 'proposeDynamicChallengesPrompt',
   input: {schema: ProposeDynamicChallengesInputSchema},
   output: {schema: ProposeDynamicChallengesOutputSchema},
-  config: {
-    safetySettings: [
-      {
-        category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
-        threshold: 'BLOCK_ONLY_HIGH',
-      },
-      {
-        category: 'HARM_CATEGORY_HARASSMENT',
-        threshold: 'BLOCK_NONE',
-      }
-    ],
-  },
-  prompt: `Você é o Mestre do Movimento do UrbeLudo. Seu objetivo é criar desafios psicomotores lúdicos, seguros e categorizados.
-
-CATEGORIA DA MISSÃO: {{{category}}}
-- Arte: Foco em desenho lúdico, formas e cores no ambiente.
-- Motor: Foco em equilíbrio, saltos, locomoção e força.
-- Mente: Desafios de memorização espacial (ex: toque em 3 elementos na ordem X).
-- Zen: Alongamentos, respiração consciente e posturas estáticas.
-
-REGRA DE OURO DE SEGURANÇA:
-- JAMAIS sugira atividades em locais com tráfego de carros, avenidas ou calçadas estreitas.
-- O foco deve ser espaços seguros e controlados: Calçadas amplas, praças, parques ou o interior da Casa do usuário.
-
-ESTRUTURA PSICOMOTORA (Level {{{psychomotorLevel}}}):
-- Level 1: Equilíbrio estático e consciência corporal.
-- Level 2: Locomoção e desvio de obstáculos.
-- Level 3: Saltos e precisão.
-- Level 4: Sequências rítmicas.
-
-CONTEXTO:
-- Tipo: {{{missionType}}}
-- Idade: {{{userAgeGroup}}}
-- Habilidade: {{{userSkillLevel}}}
-- Elementos Detectados: {{#each detectedElements}}{{{this}}}, {{/each}}
-
-Gere um desafio criativo alinhado à categoria selecionada com passos claros. Atribua uma recompensa de 10 a 50 LudoCoins.`,
+  prompt: `Você é o Mestre do Movimento do UrbeLudo. Crie um desafio psicomotores lúdico e seguro.
+Categoria: {{{category}}}
+Level: {{{psychomotorLevel}}}
+Contexto: {{{missionType}}} na faixa {{{userAgeGroup}}}.
+Retorne 3 passos claros e criativos.`,
 });
-
-const proposeDynamicChallengesFlow = ai.defineFlow(
-  {
-    name: 'proposeDynamicChallengesFlow',
-    inputSchema: ProposeDynamicChallengesInputSchema,
-    outputSchema: ProposeDynamicChallengesOutputSchema,
-  },
-  async input => {
-    try {
-      const {output} = await proposeDynamicChallengesPrompt(input);
-      if (!output) throw new Error("IA não gerou resposta");
-      return output;
-    } catch (error) {
-      console.error("Erro no Flow de Desafios:", error);
-      return {
-        challengeTitle: "Respiro de Bronze",
-        challengeDescription: "Feche os olhos e respire fundo 3 vezes.",
-        challengeType: "breathing",
-        difficulty: "easy",
-        ludoCoinsReward: 15,
-        isLudicDrawing: false,
-        steps: [
-          "Encontre um lugar calmo e seguro",
-          "Respire pelo nariz por 4 segundos",
-          "Solte o ar pela boca lentamente"
-        ]
-      };
-    }
-  }
-);

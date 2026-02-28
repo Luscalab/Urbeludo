@@ -1,3 +1,4 @@
+
 'use client';
     
 import {
@@ -10,80 +11,72 @@ import {
   SetOptions,
 } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
-import {FirestorePermissionError} from '@/firebase/errors';
+import { FirestorePermissionError } from '@/firebase/errors';
+import { LocalPersistence } from '@/lib/local-persistence';
 
 /**
- * Initiates a setDoc operation for a document reference.
- * Does NOT await the write operation internally.
+ * Wrapper de atualização que prioriza a persistência local (Local-First).
+ * Realiza escrita imediata no armazenamento do dispositivo e sincroniza em background.
  */
 export function setDocumentNonBlocking(docRef: DocumentReference, data: any, options: SetOptions) {
+  // Persistência local imediata para resiliência do APK
+  if (docRef.path.includes('user_progress')) {
+    LocalPersistence.saveProgress(data);
+  }
+
   setDoc(docRef, data, options).catch(error => {
     errorEmitter.emit(
       'permission-error',
       new FirestorePermissionError({
         path: docRef.path,
-        operation: 'write', // or 'create'/'update' based on options
+        operation: 'write',
         requestResourceData: data,
       })
     )
   })
-  // Execution continues immediately
 }
 
-
-/**
- * Initiates an addDoc operation for a collection reference.
- * Does NOT await the write operation internally.
- * Returns the Promise for the new doc ref, but typically not awaited by caller.
- */
 export function addDocumentNonBlocking(colRef: CollectionReference, data: any) {
-  const promise = addDoc(colRef, data)
-    .catch(error => {
-      errorEmitter.emit(
-        'permission-error',
-        new FirestorePermissionError({
-          path: colRef.path,
-          operation: 'create',
-          requestResourceData: data,
-        })
-      )
-    });
-  return promise;
+  return addDoc(colRef, data).catch(error => {
+    errorEmitter.emit(
+      'permission-error',
+      new FirestorePermissionError({
+        path: colRef.path,
+        operation: 'create',
+        requestResourceData: data,
+      })
+    )
+  });
 }
 
-
-/**
- * Initiates an updateDoc operation for a document reference.
- * Does NOT await the write operation internally.
- */
 export function updateDocumentNonBlocking(docRef: DocumentReference, data: any) {
-  updateDoc(docRef, data)
-    .catch(error => {
-      errorEmitter.emit(
-        'permission-error',
-        new FirestorePermissionError({
-          path: docRef.path,
-          operation: 'update',
-          requestResourceData: data,
-        })
-      )
+  // Escrita local síncrona/imediata antes do Firebase
+  if (docRef.path.includes('user_progress')) {
+    LocalPersistence.getProgress().then(existing => {
+      LocalPersistence.saveProgress({ ...existing, ...data });
     });
+  }
+
+  updateDoc(docRef, data).catch(error => {
+    errorEmitter.emit(
+      'permission-error',
+      new FirestorePermissionError({
+        path: docRef.path,
+        operation: 'update',
+        requestResourceData: data,
+      })
+    )
+  });
 }
 
-
-/**
- * Initiates a deleteDoc operation for a document reference.
- * Does NOT await the write operation internally.
- */
 export function deleteDocumentNonBlocking(docRef: DocumentReference) {
-  deleteDoc(docRef)
-    .catch(error => {
-      errorEmitter.emit(
-        'permission-error',
-        new FirestorePermissionError({
-          path: docRef.path,
-          operation: 'delete',
-        })
-      )
-    });
+  deleteDoc(docRef).catch(error => {
+    errorEmitter.emit(
+      'permission-error',
+      new FirestorePermissionError({
+        path: docRef.path,
+        operation: 'delete',
+      })
+    )
+  });
 }
