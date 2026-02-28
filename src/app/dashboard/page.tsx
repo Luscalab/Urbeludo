@@ -1,18 +1,26 @@
+
 "use client";
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { UrbeLudoLogo } from '@/components/UrbeLudoLogo';
-import { ArrowLeft, Brain, Move, Activity, Crosshair } from 'lucide-react';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy } from 'firebase/firestore';
+import { ArrowLeft, Brain, Move, Activity, Crosshair, Settings } from 'lucide-react';
+import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
+import { collection, query, orderBy, doc } from 'firebase/firestore';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart, Bar, XAxis, Cell } from 'recharts';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { useToast } from '@/hooks/use-toast';
 
 export default function DashboardPage() {
   const { user } = useUser();
   const db = useFirestore();
+  const { toast } = useToast();
+
+  const userProgressRef = useMemoFirebase(() => user ? doc(db, 'user_progress', user.uid) : null, [db, user]);
+  const { data: userProfile } = useDoc(userProgressRef);
 
   const activitiesQuery = useMemoFirebase(() => {
     if (!user) return null;
@@ -42,6 +50,16 @@ export default function DashboardPage() {
     },
   };
 
+  const handleSkillChange = (value: string) => {
+    if (userProgressRef) {
+      updateDocumentNonBlocking(userProgressRef, { skillLevel: value });
+      toast({
+        title: "Perfil Atualizado",
+        description: `Nível de habilidade definido como ${value === 'beginner' ? 'Iniciante' : value === 'intermediate' ? 'Intermediário' : 'Avançado'}.`,
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <header className="px-6 h-20 flex items-center border-b bg-background/80 backdrop-blur-md sticky top-0 z-50">
@@ -50,79 +68,112 @@ export default function DashboardPage() {
         </Link>
         <div className="flex items-center gap-2">
           <UrbeLudoLogo className="w-8 h-8 text-primary" />
-          <span className="text-lg font-headline font-bold tracking-tight">Personal Dashboard</span>
+          <span className="text-lg font-headline font-bold tracking-tight">Painel de Controle</span>
         </div>
       </header>
 
       <main className="flex-1 p-6 container mx-auto max-w-4xl">
         <div className="grid md:grid-cols-3 gap-6 mb-10">
-          <StatMiniCard icon={<Brain className="w-4 h-4" />} label="Spatial Awareness" value={`${Math.min(100, (typeDistribution['spatial_awareness'] || 0) * 10)}%`} />
-          <StatMiniCard icon={<Move className="w-4 h-4" />} label="Balance & Tone" value={`${Math.min(100, (typeDistribution['balance'] || 0) * 10)}%`} />
-          <StatMiniCard icon={<Crosshair className="w-4 h-4" />} label="Precision" value={`${Math.min(100, (typeDistribution['jump'] || 0) * 10)}%`} />
+          <StatMiniCard icon={<Brain className="w-4 h-4" />} label="Consciência Espacial" value={`${Math.min(100, (typeDistribution['spatial_awareness'] || 0) * 10)}%`} />
+          <StatMiniCard icon={<Move className="w-4 h-4" />} label="Equilíbrio e Tônus" value={`${Math.min(100, (typeDistribution['balance'] || 0) * 10)}%`} />
+          <StatMiniCard icon={<Crosshair className="w-4 h-4" />} label="Precisão Motora" value={`${Math.min(100, (typeDistribution['jump'] || 0) * 10)}%`} />
         </div>
 
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="text-lg font-bold">Focus Distribution</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {chartData.length > 0 ? (
-              <div className="h-[300px] w-full">
-                <ChartContainer config={chartConfig}>
-                  <BarChart data={chartData}>
-                    <XAxis 
-                      dataKey="name" 
-                      stroke="#888888" 
-                      fontSize={12} 
-                      tickLine={false} 
-                      axisLine={false} 
-                      tickFormatter={(val) => val.split(' ')[0]}
-                    />
-                    <ChartTooltip content={<ChartTooltipContent hideLabel />} />
-                    <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                      {chartData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={index % 2 === 0 ? "hsl(var(--primary))" : "hsl(var(--accent))"} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ChartContainer>
+        <div className="grid lg:grid-cols-3 gap-6 mb-8">
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle className="text-lg font-bold">Distribuição de Foco</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {chartData.length > 0 ? (
+                <div className="h-[300px] w-full">
+                  <ChartContainer config={chartConfig}>
+                    <BarChart data={chartData}>
+                      <XAxis 
+                        dataKey="name" 
+                        stroke="#888888" 
+                        fontSize={12} 
+                        tickLine={false} 
+                        axisLine={false} 
+                        tickFormatter={(val) => val.split(' ')[0]}
+                      />
+                      <ChartTooltip content={<ChartTooltipContent hideLabel />} />
+                      <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                        {chartData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={index % 2 === 0 ? "hsl(var(--primary))" : "hsl(var(--accent))"} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ChartContainer>
+                </div>
+              ) : (
+                <div className="h-[200px] flex items-center justify-center text-muted-foreground italic">
+                  {isLoading ? "Carregando seus dados..." : "Complete desafios para ver sua evolução."}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg font-bold flex items-center gap-2">
+                <Settings className="w-4 h-4" /> Preferências
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase text-muted-foreground">Nível de Dificuldade</label>
+                <Select onValueChange={handleSkillChange} value={userProfile?.skillLevel || 'intermediate'}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione seu nível" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="beginner">Iniciante</SelectItem>
+                    <SelectItem value="intermediate">Intermediário</SelectItem>
+                    <SelectItem value="advanced">Avançado</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-[10px] text-muted-foreground leading-relaxed mt-2">
+                  Isso ajusta como a IA gera os desafios para você no Playground.
+                </p>
               </div>
-            ) : (
-              <div className="h-[200px] flex items-center justify-center text-muted-foreground italic">
-                {isLoading ? "Loading your data..." : "Complete challenges to see your progress data."}
+
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <div className="text-xs font-bold uppercase text-muted-foreground mb-1">ID Anônimo</div>
+                <div className="text-[10px] font-mono break-all opacity-60">{user?.uid}</div>
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
 
         <div className="grid md:grid-cols-2 gap-6">
           <Card className="p-6 bg-muted/50 border-none">
             <h3 className="font-bold mb-4 flex items-center gap-2">
-              <Activity className="w-4 h-4 text-primary" /> Why Psychomotricity?
+              <Activity className="w-4 h-4 text-primary" /> Por que Psicomotricidade?
             </h3>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Every challenge you complete strengthens the connection between your cognitive processes and physical movements. Urban play develops:
+              Cada desafio concluído fortalece a conexão entre seus processos cognitivos e movimentos físicos. O brincar urbano desenvolve:
             </p>
             <ul className="mt-4 space-y-2 text-sm">
               <li className="flex gap-2">
-                <span className="text-primary font-bold">●</span> Laterality (Dominance)
+                <span className="text-primary font-bold">●</span> Lateralidade e Dominância
               </li>
               <li className="flex gap-2">
-                <span className="text-primary font-bold">●</span> Body Schema Awareness
+                <span className="text-primary font-bold">●</span> Consciência do Esquema Corporal
               </li>
               <li className="flex gap-2">
-                <span className="text-primary font-bold">●</span> Rhythm & Coordination
+                <span className="text-primary font-bold">●</span> Ritmo e Coordenação Global
               </li>
             </ul>
           </Card>
           
           <Card className="p-6 bg-primary/5 border-primary/20 flex flex-col justify-between">
             <div>
-              <h3 className="font-bold mb-2">Ready for more?</h3>
-              <p className="text-sm text-muted-foreground">Find a new urban element and scan it to get a unique challenge tailored to your skill level.</p>
+              <h3 className="font-bold mb-2">Pronto para mais?</h3>
+              <p className="text-sm text-muted-foreground">Encontre um novo elemento urbano e faça o scan para receber um desafio único personalizado para seu nível.</p>
             </div>
             <Button asChild className="w-full mt-6">
-              <Link href="/playground">Open Camera</Link>
+              <Link href="/playground">Abrir Câmera</Link>
             </Button>
           </Card>
         </div>

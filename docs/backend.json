@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "UserProgress": {
@@ -30,6 +31,11 @@
         "totalTimeSpentSeconds": {
           "type": "number",
           "description": "Total cumulative time, in seconds, the user has spent engaging in challenges."
+        },
+        "skillLevel": {
+          "type": "string",
+          "enum": ["beginner", "intermediate", "advanced"],
+          "description": "The user's self-reported skill level for challenge tailoring."
         }
       },
       "required": [
@@ -244,6 +250,6 @@
         }
       }
     ],
-    "reasoning": "The Firestore structure for UrbeLudo is designed with a strong emphasis on authorization independence, structural segregation, and adherence to the privacy-first principle using Firebase anonymous authentication. \n\n**Authorization Independence:**\n*   For `UserProgress` and `ChallengeActivity`, authorization is strictly path-based. The collection `/user_progress/{userId}` places the user's aggregated progress directly under their unique ID (`request.auth.uid`). This means rules can authorize access by simply checking if `request.auth.uid == userId` in the path, eliminating the need for `get()` operations on parent documents. The `ChallengeActivity` subcollection at `/user_progress/{userId}/challenge_activities/{challengeActivityId}` continues this pattern, where the parent `userId` in the path directly confers ownership and authorization to all child activities. The `userProgressId` field within `ChallengeActivity` acts as an invariant, ensuring consistency with the path-based `userId`, and further reinforcing authorization without requiring costly lookups.\n*   For `UrbanElement` and `ChallengeDefinition`, these are globally accessible, read-only collections. Their authorization is independent because they do not rely on any user-specific or hierarchical permissions; they are public data managed by the application.\n\n**Querying for Authorization Purposes (QAPs - Rules are not Filters):**\n*   **Structural Segregation:** Publicly accessible entity definitions (`/urban_elements`, `/challenge_definitions`) are separated from user-specific data (`/user_progress/{userId}`, `/user_progress/{userId}/challenge_activities`). This ensures that `list` queries on public collections are inherently secure, as all documents within them have the same access posture (public read). \n*   **User-Owned Data:** For `UserProgress` and `ChallengeActivity`, all `list` queries must be scoped to the authenticated user's path, e.g., `/user_progress/${request.auth.uid}/challenge_activities`. This ensures that a user can only query their own data, and Firestore rules can enforce `request.auth.uid == userId` for any read operation on these paths, guaranteeing that results are not filtered by rules but rather inherently secure by the query itself.\n\nThis design avoids `get()` calls in security rules, supports atomic operations, simplifies rule logic by moving authorization complexity into the data structure, and ensures efficient, secure list operations by segregating data based on its security requirements."
+    "reasoning": "The Firestore structure for UrbeLudo is designed with a strong emphasis on authorization independence, structural segregation, and adherence to the privacy-first principle using Firebase anonymous authentication."
   }
 }
