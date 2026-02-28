@@ -1,11 +1,11 @@
 'use server';
 /**
- * @fileOverview Motor de Arquitetura Ludo (Offline).
- * Gera itens de estúdio de forma determinística baseada em palavras-chave, 
- * simulando o comportamento de uma IA sem exigir chaves de API.
+ * @fileOverview Motor de Arquitetura Ludo Online.
+ * Utiliza Gemini para planejar o item e Imagen para gerar o asset visual.
  */
 
-import { z } from 'zod';
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
 import { StudioItem } from '@/lib/types';
 
 const GenerateItemInputSchema = z.object({
@@ -19,48 +19,48 @@ const GenerateItemOutputSchema = z.object({
 });
 export type GenerateItemOutput = z.infer<typeof GenerateItemOutputSchema>;
 
-// Banco de dados de estilos visuais para a "IA" offline
-const STYLE_VARIANTS: Record<string, { prefix: string, suffix: string, color: string, imgId: string }> = {
-  'neon': { prefix: 'Neon', suffix: 'Fluorescente', color: '#ff00ff', imgId: '1' },
-  'madeira': { prefix: 'Rústico', suffix: 'de Carvalho', color: '#8B4513', imgId: '2' },
-  'vidro': { prefix: 'Cristal', suffix: 'Líquido', color: '#00ffff', imgId: '3' },
-  'espacial': { prefix: 'Galáctico', suffix: 'Sideral', color: '#000033', imgId: '4' },
-  'padrão': { prefix: 'Moderno', suffix: 'UrbeLudo', color: '#9333ea', imgId: '5' }
-};
-
 /**
- * Simula a geração de um item através de análise de palavras-chave.
- * Utiliza o picsum.photos com sementes baseadas no prompt para "gerar" a imagem.
+ * Gera um item de estúdio completo usando IA Online.
  */
 export async function generateStudioItem(input: GenerateItemInput): Promise<GenerateItemOutput> {
-  const promptLower = input.prompt.toLowerCase();
-  
-  // Identifica o estilo baseado no prompt usando lógica de "IA de Borda"
-  let styleKey = 'padrão';
-  if (promptLower.includes('neon') || promptLower.includes('luz') || promptLower.includes('brilhante')) styleKey = 'neon';
-  else if (promptLower.includes('madeira') || promptLower.includes('tronco') || promptLower.includes('árvore')) styleKey = 'madeira';
-  else if (promptLower.includes('vidro') || promptLower.includes('cristal') || promptLower.includes('transparente')) styleKey = 'vidro';
-  else if (promptLower.includes('espaço') || promptLower.includes('estrela') || promptLower.includes('alien')) styleKey = 'espacial';
+  // 1. Usar Gemini para "arquitetar" os metadados do item
+  const architectPrompt = ai.definePrompt({
+    name: 'itemArchitect',
+    input: { schema: GenerateItemInputSchema },
+    output: {
+      schema: z.object({
+        name: z.string(),
+        description: z.string(),
+        suggestedVisualPrompt: z.string(),
+      })
+    },
+    prompt: `Você é o Arquiteto Chefe do UrbeLudo. 
+Com base no desejo do usuário: "{{{prompt}}}", crie um nome futurista e uma descrição poética.
+Também crie um prompt técnico em INGLÊS para um gerador de imagens focado em "isometric 2.5D game furniture, clean white background, high quality digital art, cyberpunk aesthetic".`
+  });
 
-  const style = STYLE_VARIANTS[styleKey];
-  // Gera uma semente determinística baseada na string do prompt
-  const seed = input.prompt.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const randomId = Math.floor(Math.random() * 1000000);
-  
+  const { output: meta } = await architectPrompt(input);
+  if (!meta) throw new Error("Falha na arquitetura do item.");
+
+  // 2. Usar Imagen para gerar o asset visual
+  const { media } = await ai.generate({
+    model: 'googleai/imagen-3.0-generate-001',
+    prompt: meta.suggestedVisualPrompt,
+  });
+
+  const assetPath = media?.url || `https://picsum.photos/seed/${Date.now()}/400/300`;
+
   const generatedItem: StudioItem = {
-    id: `ai-${Date.now()}-${randomId}`,
-    name: `${style.prefix} ${input.prompt.split(' ')[0].toUpperCase()} ${style.suffix}`,
-    description: `Uma criação única do Arquiteto Ludo baseada no seu desejo: "${input.prompt}"`,
+    id: `ai-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+    name: meta.name,
+    description: meta.description,
     category: input.category,
-    price: 0, // Itens gerados por IA são recompensas criativas
-    assetPath: `https://picsum.photos/seed/${seed + randomId}/400/300`,
+    price: 0,
+    assetPath: assetPath,
     dimensions: { width: 140, height: 120 },
     gridSize: { w: 2, h: 2 },
     isAiGenerated: true,
   };
-
-  // Simula latência de "processamento neural" para imersão
-  await new Promise(resolve => setTimeout(resolve, 1800));
 
   return { item: generatedItem };
 }
