@@ -1,7 +1,6 @@
-
 'use client';
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -16,7 +15,6 @@ import {
   MapPin, 
   Coins, 
   Trophy,
-  Scan,
   Volume2,
   Hand,
   Info,
@@ -26,11 +24,11 @@ import {
   Wind,
   Sun,
   Sparkles,
-  ChevronRight
+  ChevronRight,
+  User as UserIcon
 } from 'lucide-react';
 import { proposeDynamicChallenges, type ProposeDynamicChallengesOutput } from '@/ai/flows/propose-dynamic-challenges';
 import { identifyUrbanElements } from '@/ai/flows/identify-urban-elements-flow';
-import { avatarizeUser, type AvatarizeUserOutput } from '@/ai/flows/avatarize-user-flow';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, collection } from 'firebase/firestore';
 import { setDocumentNonBlocking, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
@@ -39,223 +37,70 @@ import { cn } from '@/lib/utils';
 
 type CategoryType = 'artistic' | 'motor' | 'memory' | 'relaxation';
 
-// Helper to ensure colors are valid HEX
-function ensureHexColor(color: string | undefined, fallback: string): string {
-  if (!color) return fallback;
-  if (color.startsWith('#') && (color.length === 4 || color.length === 7)) return color;
-  
-  const map: Record<string, string> = {
-    'claro': '#f5d1b0',
-    'medio': '#e0ac69',
-    'médio': '#e0ac69',
-    'escuro': '#8d5524',
-    'pardo': '#b58150',
-    'preto': '#333333',
-    'branco': '#ffffff',
-    'rosa': '#ffc0cb',
-    'loiro': '#ffd700',
-    'castanho': '#8b4513',
-    'ruivo': '#d2691e',
-    'azul': '#0000ff',
-    'verde': '#00ff00',
-  };
-
-  const normalized = color.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  return map[normalized] || fallback;
-}
-
-function adjustColor(colorStr: string, amt: number): string {
-  const hex = ensureHexColor(colorStr, '#000000').replace('#', '');
-  const num = parseInt(hex, 16);
-  if (isNaN(num)) return colorStr;
-
-  let r = (num >> 16) + amt;
-  if (r > 255) r = 255; else if (r < 0) r = 0;
-  let b = ((num >> 8) & 0x00FF) + amt;
-  if (b > 255) b = 255; else if (b < 0) b = 0;
-  let g = (num & 0x0000FF) + amt;
-  if (g > 255) g = 255; else if (g < 0) g = 0;
-  return "#" + (g | (b << 8) | (r << 16)).toString(16).padStart(6, '0');
-}
-
-// --- ENGINE DE RENDERIZAÇÃO PROCEDURAL URBELUDO 2026 OTIMIZADA ---
-const ProceduralLudoAvatar = ({ traits, motionData, isBreathing }: { traits: AvatarizeUserOutput, motionData: { x: number, y: number }, isBreathing: boolean }) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const animationRef = useRef<number>(0);
-  
-  // Refs para dados que mudam com frequência para evitar reinicialização do loop do Canvas
-  const motionRef = useRef(motionData);
-  const breathingRef = useRef(isBreathing);
-  const traitsRef = useRef(traits);
-
-  useEffect(() => {
-    motionRef.current = motionData;
-    breathingRef.current = isBreathing;
-    traitsRef.current = traits;
-  }, [motionData, isBreathing, traits]);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d', { alpha: true });
-    if (!ctx) return;
-
-    const draw = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+// --- COMPONENTE DE AVATAR 2D MODERNO (REATIVO) ---
+const Modern2DAvatar = ({ motionData, color, isBreathing }: { motionData: { x: number, y: number }, color: string, isBreathing: boolean }) => {
+  return (
+    <motion.div 
+      className="relative w-48 h-48 flex items-center justify-center"
+      animate={{ 
+        x: motionData.x * 50, 
+        y: motionData.y * 30,
+        rotate: motionData.x * 10
+      }}
+      transition={{ type: 'spring', stiffness: 100, damping: 20 }}
+    >
+      {/* Aura de Dados */}
+      <motion.div 
+        className="absolute inset-0 rounded-full border-2 border-dashed opacity-20"
+        style={{ borderColor: color }}
+        animate={{ rotate: 360 }}
+        transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+      />
       
-      const { x, y } = motionRef.current;
-      const breathing = breathingRef.current;
-      const currentTraits = traitsRef.current;
-      
-      const tilt = x * 20; 
-      const breathScale = breathing ? Math.sin(Date.now() / 500) * 5 : 0;
-      
-      const skinTone = ensureHexColor(currentTraits.face?.tone, '#e0ac69');
-      const hairColor = ensureHexColor(currentTraits.hair?.color, '#333333');
-      const eyeColor = ensureHexColor(currentTraits.eyes?.color, '#00FFFF');
-      const accentColor = ensureHexColor(currentTraits.dominantColor, '#33993D');
-
-      // --- TRONCO ---
-      ctx.save();
-      ctx.translate(canvas.width / 2, canvas.height + 20);
-      const bodyGrad = ctx.createLinearGradient(0, -100, 0, 0);
-      bodyGrad.addColorStop(0, accentColor);
-      bodyGrad.addColorStop(1, '#000000');
-      
-      ctx.beginPath();
-      ctx.moveTo(-60, 0);
-      ctx.bezierCurveTo(-70, -80 - breathScale, 70, -80 - breathScale, 60, 0);
-      ctx.fillStyle = bodyGrad;
-      ctx.fill();
-      ctx.restore();
-
-      // --- CABEÇA E PESCOÇO ---
-      ctx.save();
-      ctx.translate(canvas.width / 2 + tilt, canvas.height / 2 + y * 20);
-      ctx.rotate(tilt * Math.PI / 180 * 0.2);
-
-      // Pescoço
-      ctx.beginPath();
-      ctx.moveTo(-15, 40);
-      ctx.quadraticCurveTo(0, 55, 15, 40);
-      ctx.strokeStyle = skinTone;
-      ctx.lineWidth = 20;
-      ctx.lineCap = 'round';
-      ctx.stroke();
-
-      // Rosto
-      const faceGrad = ctx.createRadialGradient(0, 0, 10, 0, 0, 50);
-      faceGrad.addColorStop(0, skinTone);
-      faceGrad.addColorStop(1, adjustColor(skinTone, -20));
-
-      ctx.beginPath();
-      ctx.moveTo(-40, -10);
-      ctx.bezierCurveTo(-45, 45, 45, 45, 40, -10);
-      ctx.bezierCurveTo(40, -50, -40, -50, -40, -10);
-      ctx.fillStyle = faceGrad;
-      ctx.shadowBlur = 15;
-      ctx.shadowColor = 'rgba(0,0,0,0.2)';
-      ctx.fill();
-
-      // Olhos
-      const drawEye = (eyeX: number) => {
-        ctx.save();
-        ctx.translate(eyeX, -5);
-        ctx.beginPath();
-        ctx.ellipse(0, 0, 10, 6, 0, 0, Math.PI * 2);
-        ctx.fillStyle = '#FFFFFF';
-        ctx.fill();
-
-        const irisGrad = ctx.createRadialGradient(0, 0, 1, 0, 0, 5);
-        irisGrad.addColorStop(0, '#000000');
-        irisGrad.addColorStop(0.6, eyeColor);
-        irisGrad.addColorStop(1, adjustColor(eyeColor, -40));
+      {/* Corpo do Avatar (SVG Procedural) */}
+      <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-2xl">
+        <defs>
+          <radialGradient id="grad1" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+            <stop offset="0%" style={{ stopColor: color, stopOpacity: 1 }} />
+            <stop offset="100%" style={{ stopColor: 'black', stopOpacity: 1 }} />
+          </radialGradient>
+        </defs>
         
-        ctx.beginPath();
-        ctx.arc(x * 5, y * 3, 4, 0, Math.PI * 2);
-        ctx.fillStyle = irisGrad;
-        ctx.fill();
-        ctx.restore();
-      };
-      drawEye(-18);
-      drawEye(18);
-
-      // Cabelo
-      ctx.save();
-      ctx.beginPath();
-      ctx.fillStyle = hairColor;
-      if (currentTraits.hair?.style === 'curto') {
-        ctx.moveTo(-45, -20);
-        ctx.bezierCurveTo(-50, -60, 50, -60, 45, -20);
-        ctx.lineTo(40, -10);
-        ctx.bezierCurveTo(0, -25, -40, -10, -40, -10);
-      } else {
-        ctx.moveTo(-45, -10);
-        ctx.bezierCurveTo(-60, 40, -30, 60, -20, 40);
-        ctx.bezierCurveTo(0, 50, 30, 60, 45, -10);
-        ctx.bezierCurveTo(50, -70, -50, -70, -45, -10);
-      }
-      ctx.fill();
-      ctx.restore();
-
-      // Visor Neon
-      ctx.save();
-      ctx.globalCompositeOperation = 'screen';
-      ctx.beginPath();
-      ctx.rect(-35, -12, 70, 12);
-      const visorGrad = ctx.createLinearGradient(-35, 0, 35, 0);
-      visorGrad.addColorStop(0, 'transparent');
-      visorGrad.addColorStop(0.5, accentColor);
-      visorGrad.addColorStop(1, 'transparent');
-      ctx.fillStyle = visorGrad;
-      ctx.shadowBlur = 20;
-      ctx.shadowColor = accentColor;
-      ctx.fill();
-      ctx.restore();
-
-      // Boca
-      ctx.beginPath();
-      const mouthY = 20 + (breathing ? Math.sin(Date.now() / 500) * 3 : 0);
-      ctx.moveTo(-10, mouthY);
-      ctx.quadraticCurveTo(0, mouthY + 5, 10, mouthY);
-      ctx.strokeStyle = 'rgba(0,0,0,0.4)';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-
-      ctx.restore();
-
-      // Aura
-      drawAura(ctx, canvas.width, canvas.height, accentColor);
-
-      animationRef.current = requestAnimationFrame(draw);
-    };
-
-    draw();
-    return () => cancelAnimationFrame(animationRef.current);
-  }, []); // Executa uma vez no mount
-
-  return <canvas ref={canvasRef} width={400} height={400} className="w-full h-full" />;
+        {/* Tronco */}
+        <path d="M20,90 Q50,70 80,90 L80,100 L20,100 Z" fill="rgba(0,0,0,0.8)" />
+        
+        {/* Cabeça */}
+        <motion.g
+          animate={isBreathing ? { scale: [1, 1.05, 1] } : {}}
+          transition={{ duration: 2, repeat: Infinity }}
+        >
+          <circle cx="50" cy="45" r="30" fill="url(#grad1)" />
+          <path d="M25,40 Q50,20 75,40" fill="none" stroke="white" strokeWidth="0.5" opacity="0.3" />
+          
+          {/* Visor */}
+          <rect x="30" y="38" width="40" height="8" rx="4" fill="rgba(255,255,255,0.1)" stroke={color} strokeWidth="1" />
+          <motion.rect 
+            x="35" y="41" width="30" height="2" rx="1" 
+            fill={color}
+            animate={{ opacity: [0.3, 1, 0.3] }}
+            transition={{ duration: 1.5, repeat: Infinity }}
+          />
+          
+          {/* Olhos (Pupilas Reativas) */}
+          <circle cx={42 + motionData.x * 5} cy={42 + motionData.y * 3} r="1.5" fill="white" />
+          <circle cx={58 + motionData.x * 5} cy={42 + motionData.y * 3} r="1.5" fill="white" />
+        </motion.g>
+      </svg>
+      
+      {/* Efeito de Brilho */}
+      <div 
+        className="absolute inset-4 rounded-full blur-2xl opacity-20 pointer-events-none"
+        style={{ backgroundColor: color }}
+      />
+    </motion.div>
+  );
 };
 
-function drawAura(ctx: CanvasRenderingContext2D, w: number, h: number, color: string) {
-  ctx.save();
-  const time = Date.now() / 1000;
-  for (let i = 0; i < 8; i++) {
-    const angle = time + i * (Math.PI / 4);
-    const px = w / 2 + Math.cos(angle) * 120;
-    const py = h / 2 + Math.sin(angle * 0.5) * 120;
-    ctx.beginPath();
-    ctx.arc(px, py, 2, 0, Math.PI * 2);
-    ctx.fillStyle = color;
-    ctx.globalAlpha = 0.3;
-    ctx.shadowBlur = 10;
-    ctx.shadowColor = color;
-    ctx.fill();
-  }
-  ctx.restore();
-}
-
-// --- INTERFACE PRINCIPAL ---
 export function PlaygroundInterface() {
   const { user } = useUser();
   const db = useFirestore();
@@ -273,8 +118,6 @@ export function PlaygroundInterface() {
   const [celebrating, setCelebrating] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<CategoryType>('motor');
   
-  const [isAvatarizing, setIsAvatarizing] = useState(false);
-  const [safeAvatar, setSafeAvatar] = useState<AvatarizeUserOutput | null>(null);
   const [cameraMode, setCameraMode] = useState<'user' | 'environment'>('user');
   const [isAudioEnabled, setIsAudioEnabled] = useState(false);
   const [isLibrasEnabled, setIsLibrasEnabled] = useState(false);
@@ -282,6 +125,7 @@ export function PlaygroundInterface() {
 
   const [ageGroup, setAgeGroup] = useState('adolescent_adult');
   const [neurodivergence, setNeurodivergence] = useState('');
+  const [avatarColor, setAvatarColor] = useState('#33993D');
 
   const userProgressRef = useMemoFirebase(() => user ? doc(db, 'user_progress', user.uid) : null, [db, user]);
   const { data: profile } = useDoc(userProgressRef);
@@ -290,9 +134,7 @@ export function PlaygroundInterface() {
     if (profile) {
       setAgeGroup(profile.ageGroup || 'adolescent_adult');
       setNeurodivergence(profile.neurodivergence || '');
-      if (profile.avatar?.traits) {
-        setSafeAvatar(profile.avatar.traits as any);
-      }
+      setAvatarColor(profile.dominantColor || '#33993D');
     }
   }, [profile]);
 
@@ -323,7 +165,7 @@ export function PlaygroundInterface() {
             const b = pixels[i+2];
             const brightness = (r + g + b) / 3;
             
-            if (brightness > 90 && r > g) { 
+            if (brightness > 120) { 
               const x = (i / 4) % 40;
               const y = Math.floor((i / 4) / 40);
               totalX += x;
@@ -332,11 +174,11 @@ export function PlaygroundInterface() {
             }
           }
 
-          if (weight > 10) {
+          if (weight > 5) {
             const avgX = (totalX / weight) / 40 - 0.5;
             const avgY = (totalY / weight) / 30 - 0.5;
-            lastX = lastX * 0.9 + avgX * 0.1;
-            lastY = lastY * 0.9 + avgY * 0.1;
+            lastX = lastX * 0.8 + avgX * 0.2;
+            lastY = lastY * 0.8 + avgY * 0.2;
             setMotionData({ x: -lastX, y: lastY });
             setIsLowLight(false);
           } else {
@@ -403,38 +245,9 @@ export function PlaygroundInterface() {
     }
   };
 
-  const handleFaceScan = async () => {
-    if (!videoRef.current || isInitializingCamera) return;
-    
-    setIsAvatarizing(true);
-    try {
-      const video = videoRef.current;
-      const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error("Context failure");
-      ctx.drawImage(video, 0, 0);
-      const photo = canvas.toDataURL('image/jpeg', 0.8);
-      
-      const result = await avatarizeUser({ photoDataUri: photo });
-      setSafeAvatar(result);
-
-      if (userProgressRef) {
-        updateDocumentNonBlocking(userProgressRef, { "avatar.traits": result });
-      }
-      toast({ title: "Identidade Procedural Gerada!", description: "Seu Bio-Puppet 2026 está pronto." });
-    } catch (e) {
-      console.error("Scan error:", e);
-      toast({ title: "Aviso de IA", description: "Usando visual padrão." });
-    } finally {
-      setIsAvatarizing(false);
-    }
-  };
-
   const handleSaveProfile = async () => {
     if (userProgressRef) {
-      updateDocumentNonBlocking(userProgressRef, { ageGroup, neurodivergence });
+      updateDocumentNonBlocking(userProgressRef, { ageGroup, neurodivergence, dominantColor: avatarColor });
     }
     setShowGuide(false);
   };
@@ -511,25 +324,28 @@ export function PlaygroundInterface() {
 
   return (
     <div className="flex flex-col h-full bg-background relative overflow-hidden">
+      {/* Câmera e Avatar Layer */}
       <div className="relative w-full aspect-[3/4] bg-slate-900 overflow-hidden shadow-inner z-0">
         <video 
           ref={videoRef} 
-          className="w-full h-full object-cover opacity-60 grayscale-[0.3]" 
+          className="w-full h-full object-cover opacity-50 grayscale-[0.2]" 
           autoPlay 
           muted 
           playsInline 
         />
         
-        {safeAvatar && cameraMode === 'user' && (
+        {/* Avatar 2D Moderno (Renderizado via Código) */}
+        {!showGuide && cameraMode === 'user' && (
           <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none p-4">
-            <ProceduralLudoAvatar 
-              traits={safeAvatar} 
-              isBreathing={activeChallenge?.challengeType === 'breathing' || selectedCategory === 'relaxation'} 
-              motionData={motionData}
+            <Modern2DAvatar 
+              motionData={motionData} 
+              color={avatarColor}
+              isBreathing={selectedCategory === 'relaxation' || activeChallenge?.challengeType === 'breathing'}
             />
           </div>
         )}
 
+        {/* Low Light Alert */}
         <AnimatePresence>
           {isLowLight && !showGuide && (
             <motion.div 
@@ -539,21 +355,10 @@ export function PlaygroundInterface() {
               className="absolute top-8 left-1/2 -translate-x-1/2 z-[60] bg-destructive/90 text-white px-6 py-2 rounded-full flex items-center gap-2 shadow-lg border border-white/20"
             >
               <Sun className="w-4 h-4" />
-              <span className="text-[10px] font-black uppercase tracking-widest">Sensor: Luz Insuficiente</span>
+              <span className="text-[10px] font-black uppercase tracking-widest">Sensor: Luz Baixa</span>
             </motion.div>
           )}
         </AnimatePresence>
-
-        {isLibrasEnabled && (
-          <motion.div 
-            drag
-            className="absolute bottom-12 right-8 z-[45] w-24 h-24 bg-primary/20 backdrop-blur-2xl rounded-[3rem] border border-white/30 flex items-center justify-center shadow-2xl cursor-grab active:cursor-grabbing"
-            animate={{ y: [0, -10, 0] }}
-            transition={{ duration: 3, repeat: Infinity }}
-          >
-             <Hand className="w-10 h-10 text-primary drop-shadow-lg" />
-          </motion.div>
-        )}
 
         {isInitializingCamera && (
           <div className="absolute inset-0 z-50 bg-slate-950 flex flex-col items-center justify-center gap-4">
@@ -561,51 +366,59 @@ export function PlaygroundInterface() {
                 <Loader2 className="w-16 h-16 animate-spin text-primary" />
                 <Sparkles className="absolute top-0 right-0 w-6 h-6 text-accent animate-pulse" />
              </div>
-             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/70">Syncing Bio-Data...</span>
+             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/70">Syncing...</span>
           </div>
         )}
       </div>
 
+      {/* Interface Inferior (Painel de Controle) */}
       <div className="flex-1 -mt-16 bg-background rounded-t-[4rem] p-8 shadow-[0_-20px_50px_rgba(0,0,0,0.1)] z-20 border-t border-primary/10 overflow-y-auto">
         
         {showGuide ? (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
             <div className="flex flex-col items-center text-center space-y-4">
-               <div className="w-24 h-24 bg-primary/10 rounded-[3rem] flex items-center justify-center text-primary border border-primary/20 shadow-inner">
-                 <Info className="w-10 h-10" />
+               <div className="w-20 h-20 bg-primary/10 rounded-[2.5rem] flex items-center justify-center text-primary border border-primary/20 shadow-inner">
+                 <UserIcon className="w-10 h-10" />
                </div>
-               <h2 className="text-3xl font-black uppercase italic tracking-tighter leading-none">Estúdio de Imersão</h2>
-               <p className="text-[11px] font-medium text-muted-foreground max-w-[280px] leading-relaxed">Personalize as diretrizes de acessibilidade e os sensores biométricos da sua jornada.</p>
+               <h2 className="text-3xl font-black uppercase italic tracking-tighter leading-none">Configuração de Borda</h2>
+               <p className="text-[11px] font-medium text-muted-foreground max-w-[280px] leading-relaxed">Personalize seu avatar e sensores de acessibilidade sem processamento pesado.</p>
             </div>
             
             <div className="grid gap-4">
+              <div className="space-y-3 px-4">
+                 <Label className="text-[11px] font-black uppercase text-muted-foreground tracking-widest">Cor da Identidade</Label>
+                 <div className="flex gap-3">
+                   {['#33993D', '#3B82F6', '#EAB308', '#EF4444', '#A855F7'].map(color => (
+                     <button 
+                       key={color} 
+                       onClick={() => setAvatarColor(color)}
+                       className={cn(
+                         "w-10 h-10 rounded-full border-4 transition-all",
+                         avatarColor === color ? "border-primary scale-110" : "border-transparent opacity-50"
+                       )}
+                       style={{ backgroundColor: color }}
+                     />
+                   ))}
+                 </div>
+              </div>
+
               <AcessibilityToggle active={isAudioEnabled} onClick={() => { setIsAudioEnabled(!isAudioEnabled); speak("Áudio guia ativado"); }} icon={<Volume2 />} label="Áudio Guia" sub="Instruções Narradas" />
               <AcessibilityToggle active={isLibrasEnabled} onClick={() => setIsLibrasEnabled(!isLibrasEnabled)} icon={<Hand />} label="Puppet Libras" sub="Tradução Visual" />
             </div>
 
             <div className="space-y-6 pt-4">
               <div className="space-y-3">
-                 <Label className="text-[11px] font-black uppercase text-muted-foreground px-4 tracking-widest">Categoria Motora</Label>
+                 <Label className="text-[11px] font-black uppercase text-muted-foreground px-4 tracking-widest">Nível de Exploração</Label>
                  <Select value={ageGroup} onValueChange={setAgeGroup}>
                    <SelectTrigger className="rounded-[2rem] h-16 bg-muted/30 border-transparent font-black px-6 shadow-sm">
                      <SelectValue />
                    </SelectTrigger>
                    <SelectContent className="rounded-3xl border-none shadow-2xl">
-                     <SelectItem value="preschool" className="rounded-2xl font-black uppercase text-[10px] py-3">Nível Infantil (3-6)</SelectItem>
-                     <SelectItem value="school_age" className="rounded-2xl font-black uppercase text-[10px] py-3">Nível Escolar (7-12)</SelectItem>
-                     <SelectItem value="adolescent_adult" className="rounded-2xl font-black uppercase text-[10px] py-3">Nível Avançado (13+)</SelectItem>
+                     <SelectItem value="preschool" className="rounded-2xl font-black uppercase text-[10px] py-3">Iniciante (Infantil)</SelectItem>
+                     <SelectItem value="school_age" className="rounded-2xl font-black uppercase text-[10px] py-3">Explorador (Escolar)</SelectItem>
+                     <SelectItem value="adolescent_adult" className="rounded-2xl font-black uppercase text-[10px] py-3">Mestre (Adulto)</SelectItem>
                    </SelectContent>
                  </Select>
-              </div>
-              
-              <div className="space-y-3">
-                <Label className="text-[11px] font-black uppercase text-muted-foreground px-4 tracking-widest">Neurodivergência</Label>
-                <Input 
-                  placeholder="Ex: TDAH, Autismo (Ajusta o ritmo)" 
-                  value={neurodivergence} 
-                  onChange={e => setNeurodivergence(e.target.value)} 
-                  className="rounded-[2rem] h-16 bg-muted/30 border-transparent px-6 font-bold focus:bg-white transition-all shadow-sm" 
-                />
               </div>
             </div>
 
@@ -613,24 +426,6 @@ export function PlaygroundInterface() {
               <span>Carregar Playground</span>
               <ChevronRight className="w-6 h-6" />
             </Button>
-          </div>
-        ) : !safeAvatar ? (
-          <div className="p-10 bg-primary/5 rounded-[4rem] border-2 border-dashed border-primary/20 text-center space-y-8 animate-in zoom-in-95 duration-500">
-             <div className="relative w-28 h-28 mx-auto">
-                <div className="absolute inset-0 bg-primary/20 rounded-[3rem] animate-ping" />
-                <div className="relative w-full h-full bg-primary/10 rounded-[3rem] flex items-center justify-center text-primary border border-primary/30">
-                  <Scan className="w-12 h-12" />
-                </div>
-             </div>
-             <div className="space-y-3">
-                <h3 className="text-2xl font-black uppercase italic tracking-tighter">Sync Bio-Puppet</h3>
-                <p className="text-[11px] font-medium text-muted-foreground max-w-[260px] mx-auto leading-relaxed">
-                  Gere sua representação procedural avançada. Seus dados biométricos são processados e descartados localmente.
-                </p>
-             </div>
-             <Button onClick={handleFaceScan} disabled={isAvatarizing || isInitializingCamera} className="w-full h-18 rounded-[3rem] font-black uppercase bg-primary shadow-2xl border-b-4 border-primary/70 text-lg">
-               {isAvatarizing ? <Loader2 className="animate-spin" /> : "Iniciar Bio-Scan"}
-             </Button>
           </div>
         ) : (
           <div className="space-y-8">
@@ -649,7 +444,7 @@ export function PlaygroundInterface() {
             ) : (
               <div className="bg-primary/5 rounded-[4rem] p-8 space-y-8 border border-primary/10 shadow-inner animate-in fade-in slide-in-from-right-8 duration-500">
                 <div className="flex justify-between items-center px-2">
-                  <Badge className="bg-accent text-accent-foreground font-black text-[10px] uppercase px-4 py-1.5 rounded-full">Dificuldade: {activeChallenge.difficulty}</Badge>
+                  <Badge className="bg-accent text-accent-foreground font-black text-[10px] uppercase px-4 py-1.5 rounded-full">Nível: {activeChallenge.difficulty}</Badge>
                   <div className="flex items-center gap-2 font-black text-primary text-2xl"><Coins className="w-6 h-6" /> {activeChallenge.ludoCoinsReward}</div>
                 </div>
                 
@@ -697,6 +492,7 @@ export function PlaygroundInterface() {
         )}
       </div>
 
+      {/* Tela de Celebração */}
       <AnimatePresence>
         {celebrating && (
           <motion.div 
@@ -736,7 +532,7 @@ function AcessibilityToggle({ active, onClick, icon, label, sub }: any) {
     >
       <div className={cn(
         "w-12 h-12 rounded-2xl flex items-center justify-center transition-all", 
-        active ? "text-primary bg-primary/10 rotate-12" : "text-muted-foreground bg-muted"
+        active ? "text-primary bg-primary/10" : "text-muted-foreground bg-muted"
       )}>
         {React.cloneElement(icon, { className: "w-6 h-6" })}
       </div>
@@ -744,7 +540,6 @@ function AcessibilityToggle({ active, onClick, icon, label, sub }: any) {
         <span className="text-[11px] font-black uppercase block leading-none tracking-widest">{label}</span>
         <span className="text-[9px] font-bold text-muted-foreground uppercase opacity-70">{sub}</span>
       </div>
-      <div className={cn("w-3 h-3 rounded-full", active ? "bg-primary animate-pulse" : "bg-muted")} />
     </button>
   );
 }

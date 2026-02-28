@@ -1,8 +1,6 @@
-
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
-  // Removido output: 'export' pois conflita com Server Actions (Genkit)
   typescript: {
     ignoreBuildErrors: true,
   },
