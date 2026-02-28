@@ -1,5 +1,4 @@
-
-"use client";
+'use client';
 
 import React, { useState } from 'react';
 import Link from 'next/link';
@@ -7,16 +6,13 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { UrbeLudoLogo } from '@/components/UrbeLudoLogo';
 import { 
   ArrowLeft, 
   Coins, 
-  Shirt, 
   Home as HomeIcon, 
   Zap,
   Gamepad2,
   Lock,
-  Eye,
   Check,
   ShoppingBag
 } from 'lucide-react';
@@ -26,67 +22,6 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/components/I18nProvider';
 import { STUDIO_CATALOG } from '@/lib/studio-catalog';
-
-interface ShopItem {
-  id: string;
-  name: string;
-  price: number;
-  category: 'vestiario' | 'decoracao' | 'aura';
-  rarity: 'common' | 'rare' | 'epic' | 'legendary';
-  description: string;
-  levelGate?: number;
-  challengeGate?: number;
-  image: string;
-}
-
-const LUDO_SHOP_ITEMS: ShopItem[] = [
-  { 
-    id: 'cama-01', 
-    name: 'Cama Minimalista', 
-    price: 100, 
-    category: 'decoracao', 
-    rarity: 'common',
-    description: 'Uma cama confortável para recarregar energias.',
-    image: '/assets/studio/cama_minimalista.png'
-  },
-  { 
-    id: 'tapete-01', 
-    name: 'Tapete de Treino Zen', 
-    price: 150, 
-    category: 'decoracao', 
-    rarity: 'common',
-    description: 'Um tapete minimalista para suas missões de casa.',
-    image: '/assets/studio/tapete_psicomotor.png'
-  },
-  { 
-    id: 'espaldar-01', 
-    name: 'Espaldar de Madeira', 
-    price: 300, 
-    category: 'decoracao', 
-    rarity: 'rare',
-    description: 'Equipamento de postura clássico.',
-    image: '/assets/studio/espaldar_madeira.png'
-  },
-  { 
-    id: 'vaso-01', 
-    name: 'Vaso de Hortelã', 
-    price: 50, 
-    category: 'decoracao', 
-    rarity: 'common',
-    description: 'Um toque de natureza.',
-    image: '/assets/studio/vaso_hortela.png'
-  },
-  { 
-    id: 'blue-precision-aura', 
-    name: 'Aura de Precisão Azul', 
-    price: 2500, 
-    category: 'aura', 
-    rarity: 'legendary',
-    description: 'Um rastro de luz azul.',
-    levelGate: 3,
-    image: '/assets/studio/espaldar_madeira.png'
-  }
-];
 
 export default function ShopPage() {
   const { user } = useUser();
@@ -99,10 +34,9 @@ export default function ShopPage() {
   const ludoCoins = profile?.ludoCoins || 0;
   const unlockedItems = profile?.avatar?.unlockedItems || [];
   const currentLevel = profile?.psychomotorLevel || 1;
-  const totalCompleted = profile?.totalChallengesCompleted || 0;
   const isSapient = profile?.displayName?.toLowerCase() === 'sapient';
 
-  const handleBuy = (item: ShopItem) => {
+  const handleBuy = (item: any) => {
     if (!isSapient && ludoCoins < item.price) {
       toast({ variant: 'destructive', title: t('shop.balance'), description: t('shop.balanceDesc') });
       return;
@@ -134,20 +68,19 @@ export default function ShopPage() {
       </header>
 
       <main className="flex-1 p-6 space-y-6 container max-w-lg mx-auto">
-        <Tabs defaultValue="decoracao" className="space-y-6">
+        <Tabs defaultValue="Essencial" className="space-y-6">
           <TabsList className="w-full bg-muted/30 rounded-2xl p-1 h-auto flex gap-1">
-            <TabsTrigger value="decoracao" className="flex-1 py-3 rounded-xl gap-2 font-black uppercase text-[9px]">
-              <HomeIcon className="w-4 h-4" /> {t('shop.decoracao')}
+            <TabsTrigger value="Essencial" className="flex-1 py-3 rounded-xl gap-2 font-black uppercase text-[9px]">
+              <HomeIcon className="w-4 h-4" /> Essenciais
             </TabsTrigger>
-            <TabsTrigger value="aura" className="flex-1 py-3 rounded-xl gap-2 font-black uppercase text-[9px]">
-              <Zap className="w-4 h-4" /> {t('shop.auras')}
+            <TabsTrigger value="Ativo" className="flex-1 py-3 rounded-xl gap-2 font-black uppercase text-[9px]">
+              <Zap className="w-4 h-4" /> Ativos
             </TabsTrigger>
           </TabsList>
 
-          {['decoracao', 'aura'].map(cat => (
+          {['Essencial', 'Ativo', 'Estético'].map(cat => (
             <TabsContent key={cat} value={cat} className="grid grid-cols-1 gap-4">
-              {LUDO_SHOP_ITEMS.filter(i => i.category === cat).map(item => {
-                const isLocked = !isSapient && ((item.levelGate && currentLevel < item.levelGate));
+              {STUDIO_CATALOG.filter(i => i.category === cat).map(item => {
                 const isUnlocked = isSapient || unlockedItems.includes(item.id);
 
                 return (
@@ -157,8 +90,7 @@ export default function ShopPage() {
                   )}>
                     <div className="flex p-4 gap-4">
                       <div className="w-20 h-20 rounded-2xl overflow-hidden bg-muted shrink-0 relative">
-                        <img src={item.image} alt={item.name} className={cn("w-full h-full object-contain", isLocked && "grayscale")} />
-                        {isLocked && <div className="absolute inset-0 bg-black/40 flex items-center justify-center"><Lock className="w-5 h-5 text-white" /></div>}
+                        <img src={item.assetPath} alt={item.name} className="w-full h-full object-contain" />
                       </div>
                       <div className="flex-1 flex flex-col justify-center min-w-0">
                         <div className="flex justify-between items-start">
@@ -172,7 +104,7 @@ export default function ShopPage() {
                            {isUnlocked ? (
                              <Badge variant="secondary" className="bg-primary/20 text-primary border-none text-[8px] uppercase font-black"><Check className="w-2 h-2 mr-1" /> {t('shop.acquired')}</Badge>
                            ) : (
-                             <Button size="sm" className="h-8 rounded-xl text-[8px] font-black uppercase px-4" disabled={isLocked} onClick={() => handleBuy(item)}>{isLocked ? t('shop.locked') : t('shop.buy')}</Button>
+                             <Button size="sm" className="h-8 rounded-xl text-[8px] font-black uppercase px-4" onClick={() => handleBuy(item)}>{t('shop.buy')}</Button>
                            )}
                         </div>
                       </div>

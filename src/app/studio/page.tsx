@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -119,7 +118,6 @@ export default function StudioPage() {
           className="w-[1200px] h-[1200px] relative bg-white flex flex-col shadow-[0_0_100px_rgba(0,0,0,0.5)]"
           initial={{ x: -400, y: -200 }} 
         >
-          {/* PAREDE COM PERSPECTIVA DE CANTO (V-SHAPE) */}
           <div className="relative w-full h-[40%] flex" style={{ 
             background: `linear-gradient(to bottom, ${auraColor}20, ${auraColor}40)` 
           }}>
@@ -131,13 +129,11 @@ export default function StudioPage() {
             </div>
           </div>
 
-          {/* RODAPÉ */}
           <div className="relative z-10 w-full h-8 flex -mt-4">
              <div className="flex-1 bg-white shadow-lg border-b-4 border-zinc-200" style={{ clipPath: 'polygon(0 0, 100% 100%, 100% 100%, 0 100%)' }} />
              <div className="flex-1 bg-white shadow-lg border-b-4 border-zinc-200" style={{ clipPath: 'polygon(0 100%, 0 100%, 100% 0, 100% 100%)' }} />
           </div>
 
-          {/* CHÃO COM GRID DIAMANTE */}
           <div className="relative w-full h-[60%] bg-[#F5F2EC] overflow-hidden">
             <div className="absolute inset-0 opacity-15" style={{ 
                backgroundImage: `linear-gradient(45deg, #000 1px, transparent 1px), linear-gradient(-45deg, #000 1px, transparent 1px)`,
