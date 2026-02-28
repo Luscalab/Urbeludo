@@ -24,10 +24,17 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 export default function StudioPage() {
   const { user } = useUser();
-  const { studioState, updateItemPosition, updateAvatarPosition, addItem, removeItem, sellItem } = useStudio();
+  const { 
+    studioState, 
+    updateItemPosition, 
+    updateAvatarPosition, 
+    buyItem, 
+    placeItem, 
+    storeItem, 
+    sellItem 
+  } = useStudio();
   
   const viewportRef = useRef<HTMLDivElement>(null);
-  
   const [mode, setMode] = useState<'explore' | 'edit'>('explore');
   const [isShopOpen, setIsShopOpen] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
@@ -50,27 +57,28 @@ export default function StudioPage() {
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
       
+      // Avatar só anda no chão
       if (y > 480) {
         updateAvatarPosition(x, y);
       }
     }
   };
 
-  const handleBuy = (itemId: string, price: number) => {
-    if (userProgressRef && profile) {
-      const isSapient = profile.displayName?.toLowerCase() === 'sapient';
-      addItem(itemId);
-      if (!isSapient) {
-        updateDocumentNonBlocking(userProgressRef, {
-          ludoCoins: profile.ludoCoins - price
-        });
-      }
-    }
+  const handleBuy = async (itemId: string, price: number) => {
+    await buyItem(itemId, price, profile?.displayName);
   };
 
-  const handleSell = (instanceId: string) => {
+  const handlePlace = async (itemId: string) => {
+    await placeItem(itemId);
+  };
+
+  const handleStore = async (instanceId: string) => {
+    await storeItem(instanceId);
+  };
+
+  const handleSell = async (instanceId: string) => {
     if (profile) {
-      sellItem(instanceId, profile.displayName);
+      await sellItem(instanceId, profile.displayName);
     }
   };
 
@@ -129,19 +137,22 @@ export default function StudioPage() {
           className="w-[1200px] h-[1200px] relative bg-white flex flex-col shadow-[0_0_100px_rgba(0,0,0,0.5)]"
           initial={{ x: -400, y: -200 }} 
         >
+          {/* Parede */}
           <div className="relative w-full h-[40%] overflow-hidden" style={{ 
             background: `linear-gradient(to bottom, ${auraColor}15, ${auraColor}30)` 
           }}>
             <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:20px_20px]" />
-            <div className="absolute top-20 left-1/2 -translate-x-1/2 w-48 h-60 bg-blue-50 rounded-t-full border-8 border-white shadow-2xl overflow-hidden flex flex-col justify-end">
+            <div className="absolute top-20 left-1/2 -translate-x-1/2 w-28 h-40 bg-blue-50 rounded-t-full border-8 border-white shadow-2xl overflow-hidden flex flex-col justify-end">
                 <div className="absolute inset-0 bg-gradient-to-t from-blue-200/50 to-transparent"></div>
                 <div className="w-full h-2 bg-white absolute top-1/2"></div>
                 <div className="w-2 h-full bg-white absolute left-1/2"></div>
             </div>
           </div>
 
+          {/* Rodapé */}
           <div className="relative z-10 w-full h-6 bg-white border-b border-gray-200 shadow-lg"></div>
 
+          {/* Chão */}
           <div className="relative w-full h-[60%] bg-[#F4F1EA]">
             <div className="absolute inset-0 opacity-30 flex flex-col justify-evenly">
                 {[...Array(30)].map((_, i) => (
@@ -151,13 +162,14 @@ export default function StudioPage() {
             <div className="absolute inset-0 opacity-5 bg-[linear-gradient(to_right,#000_1px,transparent_1px),linear-gradient(to_bottom,#000_1px,transparent_1px)] [background-size:40px_40px]"></div>
           </div>
 
+          {/* Itens Posicionados */}
           <div className="absolute inset-0 z-20 pointer-events-none">
             {studioState.placedItems.map(item => (
               <StudioItem 
                 key={item.instanceId} 
                 data={item} 
                 onUpdate={updateItemPosition}
-                onRemove={removeItem}
+                onStore={handleStore}
                 onSell={handleSell}
                 isEditing={mode === 'edit'}
                 auraColor={auraColor}
@@ -165,6 +177,7 @@ export default function StudioPage() {
             ))}
           </div>
 
+          {/* Avatar */}
           <motion.div 
             id="studio-avatar"
             animate={{ 
@@ -194,6 +207,7 @@ export default function StudioPage() {
           </motion.div>
         </motion.div>
 
+        {/* HUD de Orientação */}
         <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-[110] pointer-events-none">
           <AnimatePresence mode="wait">
             <motion.div 
@@ -206,13 +220,14 @@ export default function StudioPage() {
               {mode === 'explore' ? (
                 <><Navigation className="w-4 h-4 text-accent rotate-45" /> Toque no chão para andar</>
               ) : (
-                <><Smartphone className="w-4 h-4 text-primary animate-bounce" /> Arraste itens para o grid</>
+                <><Smartphone className="w-4 h-4 text-primary animate-bounce" /> Clique no item para gerenciar</>
               )}
             </motion.div>
           </AnimatePresence>
         </div>
       </main>
 
+      {/* Botões Flutuantes */}
       <div className="fixed bottom-8 right-8 flex flex-col gap-4 z-[120]">
         <Button id="btn-play" asChild className="rounded-full h-16 w-16 shadow-2xl bg-accent hover:scale-110 transition-transform border-b-4 border-accent/80">
           <Link href="/playground">
@@ -234,6 +249,7 @@ export default function StudioPage() {
         userCoins={profile?.ludoCoins || 0}
         unlockedItemIds={studioState.unlockedItemIds}
         onBuyItem={handleBuy}
+        onPlaceItem={handlePlace}
         userName={profile?.displayName}
       />
     </div>

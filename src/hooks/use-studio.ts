@@ -10,7 +10,7 @@ const WORLD_SIZE = 1200;
 
 export function useStudio() {
   const [studioState, setStudioState] = useState<StudioState>({
-    unlockedItemIds: ['foundation-sneakers'],
+    unlockedItemIds: [],
     placedItems: [],
     backgroundId: 'default',
     worldConfig: {
@@ -69,8 +69,40 @@ export function useStudio() {
     });
   };
 
-  const addItem = async (itemId: string) => {
+  // COMPRAR: Adiciona ao inventário (mochila)
+  const buyItem = async (itemId: string, price: number, userName?: string) => {
+    const isSapient = userName?.toLowerCase() === 'sapient';
+    const profile = await LocalPersistence.getProgress();
+    const currentCoins = profile?.ludoCoins || 0;
+
+    if (!isSapient && currentCoins < price) return false;
+
     setStudioState(prev => {
+      const newState = {
+        ...prev,
+        unlockedItemIds: [...prev.unlockedItemIds, itemId]
+      };
+      
+      if (!isSapient) {
+        LocalPersistence.saveProgress({ 
+          ludoCoins: currentCoins - price,
+          studioState: newState 
+        });
+      } else {
+        saveState(newState);
+      }
+      return newState;
+    });
+    return true;
+  };
+
+  // POSICIONAR: Tira da mochila e coloca no estúdio
+  const placeItem = async (itemId: string) => {
+    setStudioState(prev => {
+      // Verifica se tem no inventário
+      const index = prev.unlockedItemIds.indexOf(itemId);
+      if (index === -1) return prev;
+
       const newItem: PlacedItem = {
         instanceId: `inst-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
         itemId,
@@ -78,12 +110,13 @@ export function useStudio() {
         zIndex: prev.placedItems.length + 10,
         rotation: 0
       };
-      
+
+      const newUnlocked = [...prev.unlockedItemIds];
+      newUnlocked.splice(index, 1);
+
       const newState = {
         ...prev,
-        unlockedItemIds: prev.unlockedItemIds.includes(itemId) 
-          ? prev.unlockedItemIds 
-          : [...prev.unlockedItemIds, itemId],
+        unlockedItemIds: newUnlocked,
         placedItems: [...prev.placedItems, newItem]
       };
       
@@ -92,16 +125,25 @@ export function useStudio() {
     });
   };
 
-  const removeItem = async (instanceId: string) => {
+  // GUARDAR: Tira do cenário e devolve para a mochila
+  const storeItem = async (instanceId: string) => {
     setStudioState(prev => {
+      const itemToStore = prev.placedItems.find(i => i.instanceId === instanceId);
+      if (!itemToStore) return prev;
+
       const updatedPlacedItems = prev.placedItems.filter(item => item.instanceId !== instanceId);
-      const newState = { ...prev, placedItems: updatedPlacedItems };
+      const newState = {
+        ...prev,
+        placedItems: updatedPlacedItems,
+        unlockedItemIds: [...prev.unlockedItemIds, itemToStore.itemId]
+      };
       saveState(newState);
       return newState;
     });
   };
 
-  const sellItem = async (instanceId: string, userName: string) => {
+  // VENDER: Deleta do jogo e reembolsa moedas
+  const sellItem = async (instanceId: string, userName?: string) => {
     const itemToSell = studioState.placedItems.find(i => i.instanceId === instanceId);
     if (!itemToSell) return;
 
@@ -110,19 +152,12 @@ export function useStudio() {
     
     const profile = await LocalPersistence.getProgress();
     const currentCoins = profile?.ludoCoins || 0;
-    const refund = catalogItem ? catalogItem.price : 0;
+    const refund = catalogItem ? Math.floor(catalogItem.price * 0.5) : 0;
 
     setStudioState(prev => {
       const updatedPlacedItems = prev.placedItems.filter(item => item.instanceId !== instanceId);
-      // Remove do inventário também se for a última instância
-      const remainingInstances = updatedPlacedItems.filter(i => i.itemId === itemToSell.itemId);
-      const updatedUnlocked = remainingInstances.length === 0 
-        ? prev.unlockedItemIds.filter(id => id !== itemToSell.itemId)
-        : prev.unlockedItemIds;
-
-      const newState = { ...prev, placedItems: updatedPlacedItems, unlockedItemIds: updatedUnlocked };
+      const newState = { ...prev, placedItems: updatedPlacedItems };
       
-      // Reembolsa moedas (exceto sapient que tem infinitas)
       if (!isSapient) {
         LocalPersistence.saveProgress({ 
           ludoCoins: currentCoins + refund,
@@ -141,8 +176,9 @@ export function useStudio() {
     isLoading, 
     updateItemPosition, 
     updateAvatarPosition,
-    addItem, 
-    removeItem,
+    buyItem,
+    placeItem,
+    storeItem, 
     sellItem
   };
 }

@@ -1,22 +1,23 @@
 'use client';
 
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { PlacedItem } from '@/lib/types';
 import { STUDIO_CATALOG } from '@/lib/studio-catalog';
-import { Trash2, ShoppingBag } from 'lucide-react';
+import { Package, Trash2, Coins } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface StudioItemProps {
   data: PlacedItem;
   onUpdate: (instanceId: string, x: number, y: number) => void;
-  onRemove: (instanceId: string) => void;
+  onStore: (instanceId: string) => void;
   onSell: (instanceId: string) => void;
   isEditing: boolean;
   auraColor: string;
 }
 
-export function StudioItem({ data, onUpdate, onRemove, onSell, isEditing, auraColor }: StudioItemProps) {
+export function StudioItem({ data, onUpdate, onStore, onSell, isEditing, auraColor }: StudioItemProps) {
+  const [isSelected, setIsSelected] = useState(false);
   const itemInfo = STUDIO_CATALOG.find(i => i.id === data.itemId);
   
   if (!itemInfo) return null;
@@ -40,6 +41,7 @@ export function StudioItem({ data, onUpdate, onRemove, onSell, isEditing, auraCo
           onUpdate(data.instanceId, snappedX, snappedY);
         }
       }}
+      onClick={() => isEditing && setIsSelected(!isSelected)}
       initial={false}
       animate={{ 
         x: data.position.x,
@@ -54,7 +56,7 @@ export function StudioItem({ data, onUpdate, onRemove, onSell, isEditing, auraCo
       transition={{ type: "spring", stiffness: 300, damping: 25 }}
       className={cn(
         "absolute cursor-grab active:cursor-grabbing select-none pointer-events-auto touch-none",
-        isEditing && "ring-2 ring-primary/30 ring-offset-4 rounded-2xl"
+        isEditing && isSelected && "ring-4 ring-primary ring-offset-4 rounded-3xl"
       )}
       style={{ 
         transform: 'translate(-50%, -50%)',
@@ -73,7 +75,7 @@ export function StudioItem({ data, onUpdate, onRemove, onSell, isEditing, auraCo
           <img 
             src={itemInfo.assetPath} 
             alt={itemInfo.name}
-            className="w-full h-full object-contain pointer-events-none"
+            className="w-full h-full object-contain pointer-events-none drop-shadow-md"
             onError={(e) => {
               e.currentTarget.style.display = 'none';
               const span = e.currentTarget.parentElement?.querySelector('.fallback-emoji');
@@ -84,43 +86,36 @@ export function StudioItem({ data, onUpdate, onRemove, onSell, isEditing, auraCo
           <span className="fallback-emoji hidden text-4xl drop-shadow-md select-none">
             {itemInfo.category === 'Ativo' ? '🧘' : itemInfo.category === 'Essencial' ? '🛏️' : '🌿'}
           </span>
-          
-          {itemInfo.category === 'Especial' && (
-            <div 
-              className="absolute inset-0 opacity-20 blur-2xl animate-pulse pointer-events-none rounded-full"
-              style={{ backgroundColor: auraColor }}
-            />
-          )}
         </div>
 
-        {isEditing && (
-          <div className="absolute -top-12 inset-x-0 flex justify-center gap-2 pointer-events-auto">
-            <motion.button
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              onClick={(e) => {
-                e.stopPropagation();
-                onRemove(data.instanceId);
-              }}
-              className="bg-white text-muted-foreground p-2 rounded-xl shadow-xl border border-muted"
-              title="Guardar no Inventário"
+        {/* Menu de Ações (Guardar / Vender) */}
+        <AnimatePresence>
+          {isEditing && isSelected && (
+            <motion.div 
+              initial={{ opacity: 0, y: 10, scale: 0.8 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.8 }}
+              className="absolute -top-16 left-1/2 -translate-x-1/2 flex gap-2 bg-white p-2 rounded-2xl shadow-2xl z-[2100] border-2 border-primary/20"
             >
-              <Trash2 className="w-4 h-4" />
-            </motion.button>
-            <motion.button
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              onClick={(e) => {
-                e.stopPropagation();
-                onSell(data.instanceId);
-              }}
-              className="bg-destructive text-white p-2 rounded-xl shadow-xl border-4 border-white"
-              title="Vender Item"
-            >
-              <ShoppingBag className="w-4 h-4" />
-            </motion.button>
-          </div>
-        )}
+              <button 
+                onClick={(e) => { e.stopPropagation(); onStore(data.instanceId); }}
+                className="bg-blue-50 text-blue-600 p-2 rounded-xl flex items-center gap-1.5 hover:bg-blue-100 transition-colors"
+                title="Guardar no Inventário"
+              >
+                <Package className="w-4 h-4" />
+                <span className="text-[9px] font-black uppercase">Guardar</span>
+              </button>
+              <button 
+                onClick={(e) => { e.stopPropagation(); onSell(data.instanceId); }}
+                className="bg-red-50 text-red-600 p-2 rounded-xl flex items-center gap-1.5 hover:bg-red-100 transition-colors"
+                title="Vender Item"
+              >
+                <Coins className="w-4 h-4" />
+                <span className="text-[9px] font-black uppercase">Vender</span>
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </motion.div>
   );

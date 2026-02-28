@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Lock, CheckCircle2, Coins, Sparkles } from 'lucide-react';
+import { X, Lock, CheckCircle2, Coins, Sparkles, Package } from 'lucide-react';
 import { STUDIO_CATALOG } from '@/lib/studio-catalog';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -13,10 +13,11 @@ interface ShopDrawerProps {
   userCoins: number;
   unlockedItemIds: string[];
   onBuyItem: (itemId: string, price: number) => void;
+  onPlaceItem: (itemId: string) => void;
   userName?: string;
 }
 
-export function ShopDrawer({ isOpen, onClose, userCoins, unlockedItemIds, onBuyItem, userName }: ShopDrawerProps) {
+export function ShopDrawer({ isOpen, onClose, userCoins, unlockedItemIds, onBuyItem, onPlaceItem, userName }: ShopDrawerProps) {
   const [activeTab, setActiveTab] = useState<string>("Todos");
 
   const categories = ["Todos", "Ativo", "Estético", "Essencial", "Especial"];
@@ -43,7 +44,7 @@ export function ShopDrawer({ isOpen, onClose, userCoins, unlockedItemIds, onBuyI
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 h-[75vh] bg-background rounded-t-[3.5rem] z-[210] flex flex-col shadow-2xl border-t-8 border-primary"
+            className="fixed bottom-0 left-0 right-0 h-[80vh] bg-background rounded-t-[3.5rem] z-[210] flex flex-col shadow-2xl border-t-8 border-primary"
           >
             <div className="p-8 border-b border-muted flex justify-between items-start bg-primary/5 rounded-t-[3.5rem]">
               <div className="space-y-1">
@@ -80,7 +81,7 @@ export function ShopDrawer({ isOpen, onClose, userCoins, unlockedItemIds, onBuyI
 
             <div className="flex-1 overflow-y-auto p-6 grid grid-cols-2 gap-4 pb-24 no-scrollbar">
               {filteredCatalog.map((item) => {
-                const isUnlocked = isSapient || unlockedItemIds.includes(item.id);
+                const countInInventory = unlockedItemIds.filter(id => id === item.id).length;
                 const canAfford = isSapient || userCoins >= item.price;
                 const isSpecial = item.category === 'Especial';
 
@@ -93,27 +94,18 @@ export function ShopDrawer({ isOpen, onClose, userCoins, unlockedItemIds, onBuyI
                       isSpecial ? "border-accent/20 bg-accent/5" : "border-muted/20 hover:border-primary/20"
                     )}
                   >
-                    {isSpecial && (
-                      <div className="absolute top-3 right-3 text-accent">
-                        <Sparkles className="w-4 h-4 animate-pulse" />
+                    {countInInventory > 0 && (
+                      <div className="absolute top-3 left-3 flex items-center gap-1 bg-blue-500 text-white px-2 py-1 rounded-full text-[8px] font-black">
+                        <Package className="w-3 h-3" /> {countInInventory}
                       </div>
                     )}
-                    
+
                     <div className="w-24 h-24 mb-4 flex items-center justify-center bg-muted/30 rounded-3xl shadow-inner border border-white relative overflow-hidden p-2">
                        <img 
                         src={item.assetPath} 
                         alt={item.name} 
                         className="max-w-full max-h-full object-contain drop-shadow-md group-hover:scale-110 transition-transform duration-300"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                          const span = e.currentTarget.parentElement?.querySelector('.fallback-emoji-shop');
-                          if (span) (span as HTMLElement).style.display = 'block';
-                        }}
                        />
-                       <span className="fallback-emoji-shop hidden text-4xl">🎁</span>
-                       {item.category === 'Ativo' && (
-                         <Badge className="absolute bottom-1 right-1 bg-green-500 text-[7px] font-black px-1.5">+MOD</Badge>
-                       )}
                     </div>
 
                     <div className="text-center mb-4 space-y-1">
@@ -121,25 +113,30 @@ export function ShopDrawer({ isOpen, onClose, userCoins, unlockedItemIds, onBuyI
                       <p className="text-[8px] text-muted-foreground font-bold leading-tight px-2">{item.description}</p>
                     </div>
                     
-                    {isUnlocked && !isSapient ? (
-                       <div className="mt-auto w-full py-3 bg-green-100 text-green-700 rounded-2xl text-[9px] font-black uppercase flex items-center justify-center gap-2">
-                         <CheckCircle2 className="w-4 h-4" /> No Inventário
-                       </div>
-                    ) : (
+                    <div className="mt-auto w-full space-y-2">
+                      {countInInventory > 0 && (
+                        <button 
+                          onClick={() => onPlaceItem(item.id)}
+                          className="w-full py-2.5 bg-green-500 text-white rounded-2xl text-[10px] font-black uppercase flex items-center justify-center gap-2 shadow-lg shadow-green-500/20 active:scale-95"
+                        >
+                          <Package className="w-3.5 h-3.5" /> Posicionar
+                        </button>
+                      )}
+                      
                       <button 
                         disabled={!canAfford && !isSapient}
                         onClick={() => onBuyItem(item.id, isSapient ? 0 : item.price)}
                         className={cn(
-                          "mt-auto w-full py-3 rounded-2xl text-[10px] font-black uppercase flex items-center justify-center gap-2 transition-all active:scale-95 shadow-md",
+                          "w-full py-2.5 rounded-2xl text-[10px] font-black uppercase flex items-center justify-center gap-2 transition-all active:scale-95",
                           (canAfford || isSapient) 
-                            ? "bg-primary text-white hover:bg-primary/90 shadow-primary/20" 
+                            ? "bg-primary text-white hover:bg-primary/90 shadow-md shadow-primary/20" 
                             : "bg-muted text-muted-foreground opacity-50 cursor-not-allowed"
                         )}
                       >
                         {!canAfford && !isSapient && <Lock className="w-3.5 h-3.5" />}
                         <Coins className="w-3.5 h-3.5" /> {isSapient ? 'GRÁTIS' : item.price}
                       </button>
-                    )}
+                    </div>
                   </motion.div>
                 );
               })}
