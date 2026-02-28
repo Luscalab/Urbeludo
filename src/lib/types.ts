@@ -67,6 +67,14 @@ export interface StudioState {
   unlockedItemIds: string[];
   placedItems: PlacedItem[];
   backgroundId: string;
+  worldConfig: {
+    width: number;
+    height: number;
+    theme: string;
+  };
+  avatar: {
+    lastPosition: { x: number; y: number };
+  };
 }
 
 /**
@@ -81,6 +89,7 @@ export interface UserProgress {
   currentStreak: number;
   ageGroup: string;
   dominantColor: string;
+  hasSeenTutorial: boolean;
   avatar: {
     energy: number;
     unlockedItems: string[];

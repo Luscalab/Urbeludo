@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -34,18 +33,15 @@ export function FurniturePiece({ data, onUpdate, onRemove, isEditing, auraColor,
           const x = info.point.x - rect.left;
           const y = info.point.y - rect.top;
           
-          // Converte de volta para porcentagem para manter a persistência compatível
-          const xPct = (x / worldSize) * 100;
-          const yPct = (y / worldSize) * 100;
-          
-          onUpdate(data.instanceId, xPct, yPct);
+          // O hook useStudio cuidará do Snap-to-Grid
+          onUpdate(data.instanceId, x, y);
         }
       }}
       initial={false}
       animate={{ 
         scale: isEditing ? 1.1 : 1, 
-        left: `${data.position.x}%`,
-        top: `${data.position.y}%`,
+        x: data.position.x,
+        y: data.position.y,
         zIndex: data.zIndex
       }}
       className={cn(
@@ -54,6 +50,8 @@ export function FurniturePiece({ data, onUpdate, onRemove, isEditing, auraColor,
       )}
       style={{ 
         transform: 'translate(-50%, -50%)',
+        left: 0, // Posicionamento via animate.x/y para evitar conflitos de estilo
+        top: 0
       }}
     >
       <div className="relative group">

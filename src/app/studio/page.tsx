@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
@@ -14,31 +13,24 @@ import {
   Edit3, 
   Check, 
   Smartphone,
-  Sparkles,
   Zap,
   Coins,
-  Map as MapIcon,
   Navigation
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { UrbeLudoLogo } from '@/components/UrbeLudoLogo';
 import { STUDIO_CATALOG } from '@/lib/studio-catalog';
-import { cn } from '@/lib/utils';
 
 export default function StudioPage() {
   const { user } = useUser();
-  const { studioState, updateItemPosition, addItem, removeItem } = useStudio();
+  const { studioState, updateItemPosition, updateAvatarPosition, addItem, removeItem } = useStudio();
   
-  // Referência para a janela do celular
   const viewportRef = useRef<HTMLDivElement>(null);
   
-  // Estados de Jogo
   const [mode, setMode] = useState<'explore' | 'edit'>('explore');
   const [showTutorial, setShowTutorial] = useState(false);
-  const [avatarPos, setAvatarPos] = useState({ x: 600, y: 800 });
   
   const userProgressRef = useMemoFirebase(() => user ? { id: user.uid, path: `user_progress/${user.uid}` } : null, [user]);
-  const { data: profile, isLoading } = useDoc(userProgressRef);
+  const { data: profile } = useDoc(userProgressRef);
 
   useEffect(() => {
     if (profile && profile.hasSeenTutorial === false) {
@@ -46,20 +38,18 @@ export default function StudioPage() {
     }
   }, [profile]);
 
-  // Função de Movimento do Avatar (Apenas no Modo Explorar)
   const handleFloorClick = (e: React.MouseEvent) => {
     if (mode === 'edit') return;
     
     const world = document.getElementById('studio-world');
     if (world) {
       const rect = world.getBoundingClientRect();
-      // Calcula posição absoluta dentro do mundo de 1200px
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
       
-      // Limita o movimento para não subir nas paredes (área de chão)
+      // Limita o movimento para a área de chão
       if (y > 480) {
-        setAvatarPos({ x, y });
+        updateAvatarPosition(x, y);
       }
     }
   };
@@ -73,6 +63,7 @@ export default function StudioPage() {
 
   const avatarUrl = profile?.avatar?.equippedItems?.[0] || 'https://picsum.photos/seed/ludo/400';
   const auraColor = profile?.dominantColor || '#9333ea';
+  const avatarPos = studioState.avatar.lastPosition;
 
   return (
     <div className="h-screen bg-zinc-950 overflow-hidden flex flex-col relative">
@@ -86,7 +77,6 @@ export default function StudioPage() {
         )}
       </AnimatePresence>
 
-      {/* HUD SUPERIOR */}
       <header className="px-6 h-20 flex items-center justify-between bg-background/60 backdrop-blur-xl z-[100] border-b border-white/5">
         <Link href="/dashboard" className="p-2 bg-white rounded-full shadow-sm shrink-0">
           <ArrowLeft className="w-5 h-5 text-primary" />
@@ -108,12 +98,10 @@ export default function StudioPage() {
         </div>
       </header>
 
-      {/* VIEWPORT (A Câmera do Celular) */}
       <main 
         ref={viewportRef}
         className="flex-1 relative overflow-hidden bg-zinc-900 cursor-crosshair"
       >
-        {/* WORLD (O Estúdio Gigante Arrastável) */}
         <motion.div
           id="studio-world"
           drag={mode === 'explore'}
@@ -122,9 +110,9 @@ export default function StudioPage() {
           dragTransition={{ bounceStiffness: 600, bounceDamping: 20 }}
           onTap={handleFloorClick}
           className="w-[1200px] h-[1200px] relative bg-white flex flex-col shadow-[0_0_100px_rgba(0,0,0,0.5)]"
-          initial={{ x: -400, y: -200 }} // Começa centralizado
+          initial={{ x: -400, y: -200 }} 
         >
-          {/* 1. PAREDE (40% do mundo) */}
+          {/* 1. PAREDE */}
           <div className="relative w-full h-[40%] overflow-hidden" style={{ 
             background: `linear-gradient(to bottom, ${auraColor}10, ${auraColor}25)` 
           }}>
@@ -133,7 +121,6 @@ export default function StudioPage() {
               backgroundSize: '40px 40px' 
             }} />
             
-            {/* Janela Principal */}
             <div className="absolute top-20 left-1/2 -translate-x-1/2 w-48 h-60 bg-blue-50 rounded-t-full border-8 border-white shadow-2xl overflow-hidden flex flex-col justify-end">
                 <div className="absolute inset-0 bg-gradient-to-t from-blue-200/50 to-transparent"></div>
                 <div className="w-full h-2 bg-white absolute top-1/2"></div>
@@ -141,22 +128,20 @@ export default function StudioPage() {
             </div>
           </div>
 
-          {/* 2. RODAPÉ */}
           <div className="relative z-10 w-full h-6 bg-white border-b border-gray-200 shadow-lg"></div>
 
-          {/* 3. CHÃO (60% do mundo) */}
+          {/* 2. CHÃO */}
           <div className="relative w-full h-[60%] bg-[#F4F1EA]">
-            {/* Tábua Corrida de Alta Resolução */}
             <div className="absolute inset-0 opacity-30 flex flex-col justify-evenly">
-                {[...Array(12)].map((_, i) => (
+                {[...Array(30)].map((_, i) => (
                   <div key={i} className="w-full h-[1px] bg-gray-400"></div>
                 ))}
             </div>
-            {/* Grid Visual de Suporte */}
-            <div className="absolute inset-0 opacity-5 bg-[linear-gradient(to_right,#000_1px,transparent_1px)] [background-size:100px_100px]"></div>
+            {/* Grid Visual - Snapping indicator */}
+            <div className="absolute inset-0 opacity-5 bg-[linear-gradient(to_right,#000_1px,transparent_1px),linear-gradient(to_bottom,#000_1px,transparent_1px)] [background-size:40px_40px]"></div>
           </div>
 
-          {/* MÓVEIS POSICIONADOS */}
+          {/* ITENS POSICIONADOS */}
           <div className="absolute inset-0 z-20 pointer-events-none">
             {studioState.placedItems.map(item => (
               <FurniturePiece 
@@ -171,7 +156,7 @@ export default function StudioPage() {
             ))}
           </div>
 
-          {/* AVATAR DINÂMICO (Boneco que anda) */}
+          {/* AVATAR */}
           <motion.div 
             id="studio-avatar"
             animate={{ 
@@ -182,7 +167,7 @@ export default function StudioPage() {
             className="absolute z-[90] pointer-events-none"
           >
             <div className="relative">
-              <div className="w-32 h-32 rounded-[3.5rem] overflow-hidden border-4 border-primary shadow-2xl bg-muted bg-white">
+              <div className="w-32 h-32 rounded-[3.5rem] overflow-hidden border-4 border-primary shadow-2xl bg-white">
                 <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
               </div>
               {activeItemsCount > 0 && mode === 'explore' && (
@@ -203,7 +188,6 @@ export default function StudioPage() {
           </motion.div>
         </motion.div>
 
-        {/* FEEDBACK DE MODO */}
         <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-[110] pointer-events-none">
           <AnimatePresence mode="wait">
             <motion.div 
@@ -216,14 +200,13 @@ export default function StudioPage() {
               {mode === 'explore' ? (
                 <><Navigation className="w-4 h-4 text-accent rotate-45" /> Toque no chão para andar</>
               ) : (
-                <><Smartphone className="w-4 h-4 text-primary animate-bounce" /> Arraste os itens para decorar</>
+                <><Smartphone className="w-4 h-4 text-primary animate-bounce" /> Arraste os itens para alinhar ao grid</>
               )}
             </motion.div>
           </AnimatePresence>
         </div>
       </main>
 
-      {/* BOTÕES DE AÇÃO FIXOS (HUD) */}
       <div className="fixed bottom-8 right-8 flex flex-col gap-4 z-[120]">
         <Button id="btn-play" asChild className="rounded-full h-16 w-16 shadow-2xl bg-accent hover:scale-110 transition-transform border-b-4 border-accent/80">
           <Link href="/playground">
