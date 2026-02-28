@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { FurniturePiece } from '@/components/studio/FurniturePiece';
+import { StudioItem } from '@/components/studio/StudioItem';
 import { ShopDrawer } from '@/components/studio/ShopDrawer';
 import { TutorialOverlay } from '@/components/studio/TutorialOverlay';
 import { useStudio } from '@/hooks/use-studio';
@@ -19,7 +19,6 @@ import {
   Sparkles
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { STUDIO_CATALOG } from '@/lib/studio-catalog';
 
 export default function StudioPage() {
   const { user } = useUser();
@@ -45,11 +44,10 @@ export default function StudioPage() {
     const world = document.getElementById('studio-world');
     if (world) {
       const rect = world.getBoundingClientRect();
-      // Calcula posição absoluta no mundo de 1200x1200px
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
       
-      // Limita o movimento para a área de chão (parte inferior do mundo)
+      // Limita o movimento para a área de chão (abaixo da linha do rodapé)
       if (y > 480) {
         updateAvatarPosition(x, y);
       }
@@ -108,13 +106,12 @@ export default function StudioPage() {
           className="w-[1200px] h-[1200px] relative bg-white flex flex-col shadow-[0_0_100px_rgba(0,0,0,0.5)]"
           initial={{ x: -400, y: -200 }} 
         >
-          {/* 1. PAREDE (60% do espaço superior) */}
+          {/* 1. PAREDE (Área Superior) */}
           <div className="relative w-full h-[40%] overflow-hidden" style={{ 
-            background: `linear-gradient(to bottom, ${auraColor}10, ${auraColor}25)` 
+            background: `linear-gradient(to bottom, ${auraColor}15, ${auraColor}30)` 
           }}>
             <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:20px_20px]" />
             
-            {/* Janela Minimalista */}
             <div className="absolute top-20 left-1/2 -translate-x-1/2 w-48 h-60 bg-blue-50 rounded-t-full border-8 border-white shadow-2xl overflow-hidden flex flex-col justify-end">
                 <div className="absolute inset-0 bg-gradient-to-t from-blue-200/50 to-transparent"></div>
                 <div className="w-full h-2 bg-white absolute top-1/2"></div>
@@ -125,28 +122,26 @@ export default function StudioPage() {
           {/* Rodapé separador */}
           <div className="relative z-10 w-full h-6 bg-white border-b border-gray-200 shadow-lg"></div>
 
-          {/* 2. CHÃO (60% do espaço inferior) */}
+          {/* 2. CHÃO (Área de Movimento) */}
           <div className="relative w-full h-[60%] bg-[#F4F1EA]">
             <div className="absolute inset-0 opacity-30 flex flex-col justify-evenly">
                 {[...Array(30)].map((_, i) => (
                   <div key={i} className="w-full h-[1px] bg-gray-400"></div>
                 ))}
             </div>
-            {/* Grid Visual de alinhamento */}
             <div className="absolute inset-0 opacity-5 bg-[linear-gradient(to_right,#000_1px,transparent_1px),linear-gradient(to_bottom,#000_1px,transparent_1px)] [background-size:40px_40px]"></div>
           </div>
 
-          {/* ITENS POSICIONADOS NO MUNDO */}
+          {/* MÓVEIS POSICIONADOS */}
           <div className="absolute inset-0 z-20 pointer-events-none">
             {studioState.placedItems.map(item => (
-              <FurniturePiece 
+              <StudioItem 
                 key={item.instanceId} 
                 data={item} 
                 onUpdate={updateItemPosition}
                 onRemove={removeItem}
                 isEditing={mode === 'edit'}
                 auraColor={auraColor}
-                worldSize={1200}
               />
             ))}
           </div>
