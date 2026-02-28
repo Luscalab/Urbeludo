@@ -1,15 +1,15 @@
 'use server';
 /**
- * @fileOverview Master Architect Flow - Geração avançada de itens de estúdio.
- * Utiliza Gemini 2.0 para expandir o prompt criativo e Imagen 4.0 para materialização visual.
+ * @fileOverview Motor de Arquitetura Ludo (Offline).
+ * Gera itens de estúdio de forma determinística baseada em palavras-chave, 
+ * simulando o comportamento de uma IA sem exigir chaves de API.
  */
 
-import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { z } from 'zod';
 import { StudioItem } from '@/lib/types';
 
 const GenerateItemInputSchema = z.object({
-  prompt: z.string().describe("Descrição criativa do item (ex: 'Uma cama de nuvens neon')"),
+  prompt: z.string().describe("Descrição criativa do item"),
   category: z.enum(['Essencial', 'Ativo', 'Estético', 'Especial']).default('Estético'),
 });
 export type GenerateItemInput = z.infer<typeof GenerateItemInputSchema>;
@@ -19,76 +19,45 @@ const GenerateItemOutputSchema = z.object({
 });
 export type GenerateItemOutput = z.infer<typeof GenerateItemOutputSchema>;
 
-/**
- * Prompt para o "Diretor de Arte" da IA que expande o pedido do usuário.
- */
-const artDirectorPrompt = ai.definePrompt({
-  name: 'artDirectorPrompt',
-  input: { schema: GenerateItemInputSchema },
-  output: {
-    schema: z.object({
-      name: z.string(),
-      description: z.string(),
-      technicalPrompt: z.string().describe("Prompt ultra-detalhado para o gerador de imagens"),
-      price: z.number(),
-      gridSize: z.object({ w: z.number(), h: z.number() }),
-      rarity: z.enum(['Comum', 'Raro', 'Épico', 'Lendário']),
-    })
-  },
-  prompt: `Você é o Arquiteto Chefe do UrbeLudo. 
-Sua tarefa é transformar o pedido do usuário "{{prompt}}" em uma peça de design de alta fidelidade para um simulador estilo The Sims.
-
-1. Crie um Nome e uma Descrição poética.
-2. Escreva um 'technicalPrompt' em INGLÊS para o Imagen 4. Deve incluir termos como: 
-   "High-quality 2D isometric sprite", "isolated on white background", "professional studio lighting", 
-   "PBR textures", "4k detail", "consistent perspective".
-3. Defina o tamanho no grid (1x1, 2x2, etc) e uma raridade baseada no conceito.`,
-});
+// Banco de dados de estilos visuais para a "IA" offline
+const STYLE_VARIANTS: Record<string, { prefix: string, suffix: string, color: string, imgId: string }> = {
+  'neon': { prefix: 'Neon', suffix: 'Fluorescente', color: '#ff00ff', imgId: '1' },
+  'madeira': { prefix: 'Rústico', suffix: 'de Carvalho', color: '#8B4513', imgId: '2' },
+  'vidro': { prefix: 'Cristal', suffix: 'Líquido', color: '#00ffff', imgId: '3' },
+  'espacial': { prefix: 'Galáctico', suffix: 'Sideral', color: '#000033', imgId: '4' },
+  'padrão': { prefix: 'Moderno', suffix: 'UrbeLudo', color: '#9333ea', imgId: '5' }
+};
 
 /**
- * Fluxo principal de geração avançada.
+ * Simula a geração de um item através de análise de palavras-chave.
  */
 export async function generateStudioItem(input: GenerateItemInput): Promise<GenerateItemOutput> {
-  return generateStudioItemFlow(input);
+  const promptLower = input.prompt.toLowerCase();
+  
+  // Identifica o estilo baseado no prompt
+  let styleKey = 'padrão';
+  if (promptLower.includes('neon') || promptLower.includes('luz')) styleKey = 'neon';
+  else if (promptLower.includes('madeira') || promptLower.includes('tronco')) styleKey = 'madeira';
+  else if (promptLower.includes('vidro') || promptLower.includes('transparente')) styleKey = 'vidro';
+  else if (promptLower.includes('espaço') || promptLower.includes('alien')) styleKey = 'espacial';
+
+  const style = STYLE_VARIANTS[styleKey];
+  const randomSeed = Math.floor(Math.random() * 1000);
+  
+  const generatedItem: StudioItem = {
+    id: `ai-${Date.now()}-${randomSeed}`,
+    name: `${style.prefix} ${input.prompt.split(' ')[0]} ${style.suffix}`,
+    description: `Uma criação única do Arquiteto Ludo baseada no seu desejo: "${input.prompt}"`,
+    category: input.category,
+    price: 0, // Itens de IA são recompensas criativas
+    assetPath: `https://picsum.photos/seed/${randomSeed}/400/300`,
+    dimensions: { width: 140, height: 120 },
+    gridSize: { w: 2, h: 2 },
+    isAiGenerated: true,
+  };
+
+  // Simula latência de processamento da "IA"
+  await new Promise(resolve => setTimeout(resolve, 1500));
+
+  return { item: generatedItem };
 }
-
-const generateStudioItemFlow = ai.defineFlow(
-  {
-    name: 'generateStudioItemFlow',
-    inputSchema: GenerateItemInputSchema,
-    outputSchema: GenerateItemOutputSchema,
-  },
-  async (input) => {
-    // 1. O Gemini atua como Diretor de Arte para refinar o conceito
-    const { output: artDirection } = await artDirectorPrompt(input);
-    if (!artDirection) throw new Error("O Diretor de Arte da IA falhou em conceber o item.");
-
-    // 2. O Imagen 4.0 materializa a visão com o prompt técnico expandido
-    const { media } = await ai.generate({
-      model: 'googleai/imagen-4.0-fast-generate-001',
-      prompt: artDirection.technicalPrompt,
-    });
-
-    if (!media || !media.url) {
-      throw new Error("Falha na materialização visual do item.");
-    }
-
-    // 3. Montar o StudioItem avançado
-    const generatedItem: StudioItem = {
-      id: `ai-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
-      name: artDirection.name,
-      description: artDirection.description,
-      category: input.category,
-      price: artDirection.price || 500,
-      assetPath: media.url,
-      dimensions: { 
-        width: artDirection.gridSize.w * 80, 
-        height: artDirection.gridSize.h * 60 + 40 
-      },
-      gridSize: artDirection.gridSize,
-      isAiGenerated: true,
-    };
-
-    return { item: generatedItem };
-  }
-);
