@@ -30,34 +30,37 @@ const STYLE_VARIANTS: Record<string, { prefix: string, suffix: string, color: st
 
 /**
  * Simula a geração de um item através de análise de palavras-chave.
+ * Utiliza o picsum.photos com sementes baseadas no prompt para "gerar" a imagem.
  */
 export async function generateStudioItem(input: GenerateItemInput): Promise<GenerateItemOutput> {
   const promptLower = input.prompt.toLowerCase();
   
-  // Identifica o estilo baseado no prompt
+  // Identifica o estilo baseado no prompt usando lógica de "IA de Borda"
   let styleKey = 'padrão';
-  if (promptLower.includes('neon') || promptLower.includes('luz')) styleKey = 'neon';
-  else if (promptLower.includes('madeira') || promptLower.includes('tronco')) styleKey = 'madeira';
-  else if (promptLower.includes('vidro') || promptLower.includes('transparente')) styleKey = 'vidro';
-  else if (promptLower.includes('espaço') || promptLower.includes('alien')) styleKey = 'espacial';
+  if (promptLower.includes('neon') || promptLower.includes('luz') || promptLower.includes('brilhante')) styleKey = 'neon';
+  else if (promptLower.includes('madeira') || promptLower.includes('tronco') || promptLower.includes('árvore')) styleKey = 'madeira';
+  else if (promptLower.includes('vidro') || promptLower.includes('cristal') || promptLower.includes('transparente')) styleKey = 'vidro';
+  else if (promptLower.includes('espaço') || promptLower.includes('estrela') || promptLower.includes('alien')) styleKey = 'espacial';
 
   const style = STYLE_VARIANTS[styleKey];
-  const randomSeed = Math.floor(Math.random() * 1000);
+  // Gera uma semente determinística baseada na string do prompt
+  const seed = input.prompt.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const randomId = Math.floor(Math.random() * 1000000);
   
   const generatedItem: StudioItem = {
-    id: `ai-${Date.now()}-${randomSeed}`,
-    name: `${style.prefix} ${input.prompt.split(' ')[0]} ${style.suffix}`,
+    id: `ai-${Date.now()}-${randomId}`,
+    name: `${style.prefix} ${input.prompt.split(' ')[0].toUpperCase()} ${style.suffix}`,
     description: `Uma criação única do Arquiteto Ludo baseada no seu desejo: "${input.prompt}"`,
     category: input.category,
-    price: 0, // Itens de IA são recompensas criativas
-    assetPath: `https://picsum.photos/seed/${randomSeed}/400/300`,
+    price: 0, // Itens gerados por IA são recompensas criativas
+    assetPath: `https://picsum.photos/seed/${seed + randomId}/400/300`,
     dimensions: { width: 140, height: 120 },
     gridSize: { w: 2, h: 2 },
     isAiGenerated: true,
   };
 
-  // Simula latência de processamento da "IA"
-  await new Promise(resolve => setTimeout(resolve, 1500));
+  // Simula latência de "processamento neural" para imersão
+  await new Promise(resolve => setTimeout(resolve, 1800));
 
   return { item: generatedItem };
 }
