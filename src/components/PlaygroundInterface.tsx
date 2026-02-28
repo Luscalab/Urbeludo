@@ -21,7 +21,9 @@ import {
   ChevronRight,
   User as UserIcon,
   ZapOff,
-  Sparkles
+  Sparkles,
+  Palette,
+  ChevronLeft
 } from 'lucide-react';
 import { proposeDynamicChallenges, type ProposeDynamicChallengesOutput } from '@/ai/flows/propose-dynamic-challenges';
 import { identifyUrbanElements } from '@/ai/flows/identify-urban-elements-flow';
@@ -34,102 +36,6 @@ import { useI18n } from '@/components/I18nProvider';
 
 type CategoryType = 'artistic' | 'motor' | 'memory' | 'relaxation';
 
-// --- ENGINE DE RENDERIZAÇÃO PROCEDURAL 2D 2026 ---
-const ProceduralLudoAvatar = ({ motionData, color, isBreathing }: { motionData: { x: number, y: number }, color: string, isBreathing: boolean }) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    let frameId: number;
-
-    const draw = () => {
-      ctx.clearRect(0, 0, 400, 400);
-      ctx.save();
-      
-      // Suavização do movimento (Interpolação)
-      const targetX = 200 + motionData.x * 30;
-      const targetY = 200 + motionData.y * 15;
-      ctx.translate(targetX, targetY);
-
-      const breatheScale = isBreathing ? 1 + Math.sin(Date.now() / 600) * 0.04 : 1;
-      ctx.scale(breatheScale, 1 / (breatheScale * 0.98));
-
-      // Sombra Dinâmica
-      ctx.beginPath();
-      ctx.ellipse(0, 160, 70, 15, 0, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(0,0,0,0.08)';
-      ctx.fill();
-
-      // Aura de Partículas (Criação via código)
-      for (let i = 0; i < 6; i++) {
-        const time = Date.now() / 800 + i;
-        const px = Math.cos(time) * 110;
-        const py = Math.sin(time) * 110;
-        ctx.beginPath();
-        ctx.arc(px, py, 1.5, 0, Math.PI * 2);
-        ctx.fillStyle = color;
-        ctx.globalAlpha = 0.4;
-        ctx.fill();
-        ctx.globalAlpha = 1.0;
-      }
-
-      // Corpo (Curvas de Bézier Orgânicas)
-      ctx.beginPath();
-      ctx.moveTo(-45, 140);
-      ctx.bezierCurveTo(-65, 80, -35, 40, 0, 40);
-      ctx.bezierCurveTo(35, 40, 65, 80, 45, 140);
-      ctx.closePath();
-      ctx.fillStyle = '#0f172a'; // Deep Navy Slate
-      ctx.fill();
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 3;
-      ctx.stroke();
-
-      // Rosto (Gradientes de Profundidade)
-      const faceGrad = ctx.createRadialGradient(0, -15, 5, 0, -15, 65);
-      faceGrad.addColorStop(0, color);
-      faceGrad.addColorStop(1, '#020617');
-      
-      ctx.beginPath();
-      ctx.moveTo(-38, -15);
-      ctx.bezierCurveTo(-38, -65, 38, -65, 38, -15);
-      ctx.bezierCurveTo(38, 35, -38, 35, -38, -15);
-      ctx.fillStyle = faceGrad;
-      ctx.fill();
-
-      // Visor Estilizado
-      ctx.beginPath();
-      ctx.roundRect(-28, -22, 56, 12, 6);
-      ctx.fillStyle = 'rgba(255,255,255,0.15)';
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(255,255,255,0.4)';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-
-      // Olhos Reativos
-      ctx.fillStyle = 'white';
-      ctx.beginPath();
-      const eyeX = motionData.x * 8;
-      const eyeY = motionData.y * 3;
-      ctx.arc(-12 + eyeX, -16 + eyeY, 1.8, 0, Math.PI * 2);
-      ctx.arc(12 + eyeX, -16 + eyeY, 1.8, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.restore();
-      frameId = requestAnimationFrame(draw);
-    };
-
-    draw();
-    return () => cancelAnimationFrame(frameId);
-  }, [motionData, color, isBreathing]);
-
-  return <canvas ref={canvasRef} width={400} height={400} className="w-full h-full drop-shadow-[0_15px_35px_rgba(0,0,0,0.4)]" />;
-};
-
 export function PlaygroundInterface() {
   const { user } = useUser();
   const db = useFirestore();
@@ -137,7 +43,6 @@ export function PlaygroundInterface() {
   const { t } = useI18n();
   const videoRef = useRef<HTMLVideoElement>(null);
   
-  const [motionData, setMotionData] = useState({ x: 0, y: 0 });
   const [showGuide, setShowGuide] = useState(true);
   const [isInitializingCamera, setIsInitializingCamera] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
@@ -165,13 +70,12 @@ export function PlaygroundInterface() {
     }
   }, [profile]);
 
+  // Monitoramento de iluminação básico
   useEffect(() => {
     let animationId: number;
-    let lastX = 0;
-    let lastY = 0;
 
-    const analyzeMotion = () => {
-      if (videoRef.current && videoRef.current.readyState === 4 && cameraMode === 'user') {
+    const checkLighting = () => {
+      if (videoRef.current && videoRef.current.readyState === 4) {
         const video = videoRef.current;
         const tempCanvas = document.createElement('canvas');
         tempCanvas.width = 40; 
@@ -181,47 +85,25 @@ export function PlaygroundInterface() {
         if (ctx) {
           ctx.drawImage(video, 0, 0, 40, 30);
           const pixels = ctx.getImageData(0, 0, 40, 30).data;
-          
-          let totalX = 0;
-          let totalY = 0;
-          let weight = 0;
+          let brightnessSum = 0;
 
           for (let i = 0; i < pixels.length; i += 4) {
-            const r = pixels[i];
-            const g = pixels[i+1];
-            const b = pixels[i+2];
-            const brightness = (r + g + b) / 3;
-            
-            if (brightness > 145) { 
-              const x = (i / 4) % 40;
-              const y = Math.floor((i / 4) / 40);
-              totalX += x;
-              totalY += y;
-              weight++;
-            }
+            brightnessSum += (pixels[i] + pixels[i+1] + pixels[i+2]) / 3;
           }
 
-          if (weight > 3) {
-            const avgX = (totalX / weight) / 40 - 0.5;
-            const avgY = (totalY / weight) / 30 - 0.5;
-            lastX = lastX * 0.9 + avgX * 0.1;
-            lastY = lastY * 0.9 + avgY * 0.1;
-            setMotionData({ x: -lastX, y: lastY });
-            setIsLowLight(false);
-          } else {
-            setIsLowLight(true);
-          }
+          const avgBrightness = brightnessSum / (pixels.length / 4);
+          setIsLowLight(avgBrightness < 40);
         }
       }
-      animationId = requestAnimationFrame(analyzeMotion);
+      animationId = requestAnimationFrame(checkLighting);
     };
 
     if (!showGuide) {
-      analyzeMotion();
+      checkLighting();
     }
 
     return () => cancelAnimationFrame(animationId);
-  }, [showGuide, cameraMode]);
+  }, [showGuide]);
 
   const startCamera = async (mode: 'user' | 'environment') => {
     setIsInitializingCamera(true);
@@ -350,17 +232,28 @@ export function PlaygroundInterface() {
     <div className="flex flex-col h-full bg-background relative overflow-hidden">
       {/* Viewport Mobile 2026 */}
       <div className="relative w-full aspect-[3/4] bg-zinc-950 overflow-hidden shadow-inner z-0 border-b border-primary/10">
-        <video ref={videoRef} className="w-full h-full object-cover opacity-60 grayscale-[0.2]" autoPlay muted playsInline />
+        <video ref={videoRef} className="w-full h-full object-cover opacity-80" autoPlay muted playsInline />
         
-        {!showGuide && cameraMode === 'user' && (
-          <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none p-4">
-            <ProceduralLudoAvatar 
-              motionData={motionData} 
-              color={avatarColor}
-              isBreathing={selectedCategory === 'relaxation' || activeChallenge?.challengeType === 'breathing'}
-            />
-          </div>
-        )}
+        {/* HUD de Scan Ativo */}
+        <AnimatePresence>
+          {isScanning && (
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 z-40 bg-primary/20 backdrop-blur-[2px] flex flex-col items-center justify-center"
+            >
+              <div className="w-64 h-64 border-2 border-white/50 rounded-[3rem] relative overflow-hidden">
+                <motion.div 
+                  animate={{ y: [0, 256, 0] }} 
+                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                  className="w-full h-1 bg-primary shadow-[0_0_15px_rgba(147,51,234,0.8)]"
+                />
+              </div>
+              <span className="mt-6 text-[10px] font-black uppercase tracking-[0.3em] text-white drop-shadow-md">Analisando Ambiente...</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <AnimatePresence>
           {isLowLight && !showGuide && (
@@ -377,7 +270,7 @@ export function PlaygroundInterface() {
                 <Loader2 className="w-16 h-16 animate-spin text-primary" />
                 <Sparkles className="absolute top-0 right-0 w-6 h-6 text-accent animate-pulse" />
              </div>
-             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/70">Iniciando Estúdio Ludo...</span>
+             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/70">Iniciando Lente Urbe...</span>
           </div>
         )}
       </div>
@@ -468,12 +361,15 @@ export function PlaygroundInterface() {
                    ))}
                 </div>
 
-                <div className="pt-4">
+                <div className="pt-4 flex flex-col gap-3">
                   {currentStep < activeChallenge.steps.length - 1 ? (
                     <Button onClick={() => { setCurrentStep(prev => prev + 1); speak(activeChallenge.steps[currentStep + 1]); }} className="w-full h-16 rounded-[2.5rem] font-black uppercase bg-primary shadow-xl border-b-4 border-primary/80 active:border-b-0 active:translate-y-1 transition-all">{t('playground.nextStep')}</Button>
                   ) : (
                     <Button onClick={completeMission} className="w-full h-20 rounded-[3rem] font-black uppercase bg-accent shadow-xl border-b-6 border-accent/50 text-xl active:border-b-0 active:translate-y-1 transition-all">{t('playground.finishMission')}</Button>
                   )}
+                  <Button variant="ghost" className="rounded-full text-[10px] font-black uppercase text-muted-foreground" onClick={() => setActiveChallenge(null)}>
+                    Abandonar Missão
+                  </Button>
                 </div>
               </div>
             )}
@@ -534,5 +430,3 @@ function ChallengeRow({ title, subtitle, icon, isCompleted, onClick, disabled }:
     </button>
   );
 }
-
-function Palette(props: any) { return <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.9 0 1.6-.7 1.6-1.6 0-.4-.2-.8-.5-1.1-.3-.3-.5-.7-.5-1.1 0-.9.7-1.6 1.6-1.6H17c2.8 0 5-2.2 5-5 0-4.4-4.5-8-10-8Z"/></svg>; }
