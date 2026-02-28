@@ -1,7 +1,7 @@
 
 'use server';
 /**
- * @fileOverview A Genkit flow for proposing psychomotor challenges following the 4-level hierarchy.
+ * @fileOverview Flow para proposição de desafios dinâmicos, seguros e lúdicos.
  */
 
 import {ai} from '@/ai/genkit';
@@ -17,11 +17,13 @@ const ProposeDynamicChallengesInputSchema = z.object({
 export type ProposeDynamicChallengesInput = z.infer<typeof ProposeDynamicChallengesInputSchema>;
 
 const ProposeDynamicChallengesOutputSchema = z.object({
-  challengeDescription: z.string(),
   challengeTitle: z.string(),
-  challengeType: z.enum(['balance', 'jump', 'crawl', 'lateral_movement', 'spatial_awareness', 'strength', 'rhythm']),
+  challengeDescription: z.string(),
+  challengeType: z.enum(['balance', 'jump', 'crawl', 'lateral_movement', 'spatial_awareness', 'strength', 'rhythm', 'creative']),
   difficulty: z.enum(['easy', 'medium', 'hard']),
   ludoCoinsReward: z.number(),
+  isLudicDrawing: z.boolean().describe('Se o desafio envolve desenhar algo no chão ou criar arte urbana temporária.'),
+  steps: z.array(z.string()).describe('Lista de 2 a 3 passos para garantir a execução da atividade.'),
 });
 export type ProposeDynamicChallengesOutput = z.infer<typeof ProposeDynamicChallengesOutputSchema>;
 
@@ -33,28 +35,33 @@ const proposeDynamicChallengesPrompt = ai.definePrompt({
   name: 'proposeDynamicChallengesPrompt',
   input: {schema: ProposeDynamicChallengesInputSchema},
   output: {schema: ProposeDynamicChallengesOutputSchema},
-  prompt: `You are the Master of Movement for UrbeLudo.
-CONTEXT:
-- Mission Type: {{{missionType}}} (Home = indoor/warmup, Street = urban elements)
-- Psychomotor Level: Level {{{psychomotorLevel}}} 
-  - Level 1 (Alicerce): Balance, static poses, body awareness.
-  - Level 2 (Movimento): Locomotion, walking lines, avoiding obstacles.
-  - Level 3 (Precisão): Jumps, targeting, fine motor control.
-  - Level 4 (Ritmo): Sequential movements, rhythmic patterns.
+  prompt: `Você é o Mestre do Movimento e Designer de Segurança do UrbeLudo.
 
-- Age Group: {{{userAgeGroup}}}
-- Skill: {{{userSkillLevel}}}
+REGRA DE OURO DE SEGURANÇA:
+- JAMAIS sugira atividades em avenidas, ruas movimentadas, locais com tráfego de carros ou áreas perigosas.
+- O foco deve ser calçadas amplas, praças, parques ou espaços internos (Casa).
+- Se os elementos detectados parecerem perigosos, sugira uma alternativa segura próxima (ex: "Procure um banco de praça calmo").
 
-{{#if detectedElements}}
-Detected urban elements (only for Street missions):
-{{#each detectedElements}}- {{{this}}}
-{{/each}}
-{{else}}
-For Home missions, suggest activities using common furniture (chairs, floor lines, cushions).
-{{/if}}
+ESTRUTURA PSICOMOTORA:
+- Level 1 (Alicerce): Equilíbrio estático, consciência corporal.
+- Level 2 (Movimento): Locomoção simples, evitar obstáculos.
+- Level 3 (Precisão): Saltos direcionados, controle motor fino.
+- Level 4 (Ritmo): Sequências rítmicas.
 
-Propose ONE challenge that follows the Level hierarchy. 
-LudoCoins Reward should be between 10-50 based on difficulty.
+MISSÕES LÚDICAS:
+- Frequentemente inclua desafios criativos, como "Desenhe um círculo imaginário com giz ou galho e pule dentro dele".
+- Peça para o usuário "criar uma pose de herói" ou "desenhar uma trilha no chão".
+
+ENTREGA:
+- Gere 2 ou 3 passos claros (steps).
+- Atribua recompensas (10-50 LudoCoins).
+- Se isLudicDrawing for true, o desafio deve envolver uma criação visual que possa ser fotografada.
+
+Contexto Atual:
+- Tipo: {{{missionType}}}
+- Idade: {{{userAgeGroup}}}
+- Nível: {{{psychomotorLevel}}}
+- Elementos: {{#each detectedElements}}{{{this}}}, {{/each}}
 `,
 });
 

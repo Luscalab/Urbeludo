@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -20,22 +21,25 @@ export function AuthInitializer({ children }: { children: React.ReactNode }) {
     }
   }, [user, isUserLoading, auth, initStarted]);
 
-  // Initial Data Seed for New Users
   useEffect(() => {
     if (user && db) {
       const checkProfile = async () => {
         const userRef = doc(db, 'user_progress', user.uid);
         const snapshot = await getDoc(userRef);
         if (!snapshot.exists()) {
-          // New User Initial Item: Foundation Sneakers
           setDocumentNonBlocking(userRef, {
             id: user.uid,
-            ludoCoins: 0,
+            displayName: `Explorador_${user.uid.slice(0, 4)}`,
+            bio: "Novo no UrbeLudo! 🌍",
+            ludoCoins: 50, // Welcome bonus
             psychomotorLevel: 1,
             totalChallengesCompleted: 0,
             currentStreak: 0,
+            totalLikesReceived: 0,
             ageGroup: 'adolescent_adult',
             skillLevel: 'intermediate',
+            badges: [],
+            equippedBadges: [],
             dailyCycle: {
               homeMissionCompleted: false,
               streetMissionCompleted: false,
@@ -59,7 +63,7 @@ export function AuthInitializer({ children }: { children: React.ReactNode }) {
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          <p className="text-sm font-medium text-muted-foreground">Initializing Playground...</p>
+          <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Sincronizando Playground...</p>
         </div>
       </div>
     );

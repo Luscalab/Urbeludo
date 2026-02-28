@@ -1,36 +1,37 @@
+
 {
   "entities": {
     "UserProgress": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "UserProgress",
       "type": "object",
-      "description": "Tracks the overall progress, streaks, and aggregated performance for a local, anonymous user, including gamification and psychomotor levels.",
+      "description": "Tracks progress, streaks, and profile data for an anonymous user.",
       "properties": {
         "id": { "type": "string" },
-        "lastActiveDate": { "type": "string", "format": "date-time" },
-        "totalChallengesCompleted": { "type": "number" },
-        "currentStreak": { "type": "number" },
-        "longestStreak": { "type": "number" },
-        "totalTimeSpentSeconds": { "type": "number" },
-        "skillLevel": { "type": "string", "enum": ["beginner", "intermediate", "advanced"] },
+        "displayName": { "type": "string" },
+        "bio": { "type": "string" },
+        "ludoCoins": { "type": "number" },
+        "psychomotorLevel": { "type": "number", "enum": [1, 2, 3, 4] },
         "ageGroup": { "type": "string", "enum": ["preschool", "school_age", "adolescent_adult"] },
-        "ludoCoins": { "type": "number", "description": "Virtual currency earned through movement." },
-        "psychomotorLevel": { "type": "number", "enum": [1, 2, 3, 4], "description": "1: Alicerce, 2: Movimento, 3: Precisão, 4: Ritmo" },
+        "skillLevel": { "type": "string", "enum": ["beginner", "intermediate", "advanced"] },
+        "badges": { "type": "array", "items": { "type": "string" } },
+        "equippedBadges": { "type": "array", "items": { "type": "string" } },
+        "totalLikesReceived": { "type": "number", "default": 0 },
+        "avatar": {
+          "type": "object",
+          "properties": {
+            "energy": { "type": "number" },
+            "unlockedItems": { "type": "array", "items": { "type": "string" } },
+            "equippedItems": { "type": "array", "items": { "type": "string" } },
+            "studioLevel": { "type": "number" }
+          }
+        },
         "dailyCycle": {
           "type": "object",
           "properties": {
             "homeMissionCompleted": { "type": "boolean" },
             "streetMissionCompleted": { "type": "boolean" },
             "lastResetDate": { "type": "string" }
-          }
-        },
-        "avatar": {
-          "type": "object",
-          "properties": {
-            "energy": { "type": "number", "description": "Stamina from 0 to 100." },
-            "unlockedItems": { "type": "array", "items": { "type": "string" } },
-            "equippedItems": { "type": "array", "items": { "type": "string" } },
-            "studioLevel": { "type": "number", "default": 1 }
           }
         }
       },
@@ -43,12 +44,16 @@
       "properties": {
         "id": { "type": "string" },
         "userProgressId": { "type": "string" },
-        "challengeDefinitionId": { "type": "string" },
+        "userName": { "type": "string" },
         "startTime": { "type": "string", "format": "date-time" },
         "isCompleted": { "type": "boolean" },
         "ludoCoinsEarned": { "type": "number" },
         "missionType": { "type": "string", "enum": ["home", "street"] },
-        "psychomotorLevelAtTime": { "type": "number" }
+        "challengeTitle": { "type": "string" },
+        "challengeDescription": { "type": "string" },
+        "photoUrl": { "type": "string", "description": "URL or DataURI of the proof photo." },
+        "likes": { "type": "number", "default": 0 },
+        "isPublic": { "type": "boolean", "default": false }
       },
       "required": ["id", "userProgressId", "startTime", "isCompleted"]
     }
@@ -63,7 +68,7 @@
         "definition": {
           "entityName": "UserProgress",
           "schema": { "$ref": "#/backend/entities/UserProgress" },
-          "description": "User profile with gamification and psychomotor progression."
+          "description": "Public and private user profile data."
         }
       },
       {
@@ -71,7 +76,15 @@
         "definition": {
           "entityName": "ChallengeActivity",
           "schema": { "$ref": "#/backend/entities/ChallengeActivity" },
-          "description": "History of activities."
+          "description": "History of user activities."
+        }
+      },
+      {
+        "path": "/public_gallery/{activityId}",
+        "definition": {
+          "entityName": "ChallengeActivity",
+          "schema": { "$ref": "#/backend/entities/ChallengeActivity" },
+          "description": "Shared public activities for the community feed."
         }
       }
     ]
