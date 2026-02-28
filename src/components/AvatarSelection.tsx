@@ -58,7 +58,9 @@ export function AvatarSelection({ initialAvatarId, onSelect, debugMode = false }
 
   const scroll = (direction: 'left' | 'right') => {
     if (scrollContainerRef.current) {
-      const scrollAmount = 300; 
+      // Tamanho de um item (w-64 = 256px) + gap-10 (40px) = 296px
+      // 3 itens = 296 * 3 = 888px
+      const scrollAmount = 888; 
       scrollContainerRef.current.scrollBy({
         left: direction === 'left' ? -scrollAmount : scrollAmount,
         behavior: 'smooth'
@@ -68,62 +70,62 @@ export function AvatarSelection({ initialAvatarId, onSelect, debugMode = false }
 
   if (isLoading) {
     return (
-      <div className="w-full h-48 flex items-center justify-center bg-muted/10 rounded-[3rem] border-2 border-dashed border-primary/20">
+      <div className="w-full h-64 flex items-center justify-center bg-muted/10 rounded-[3rem] border-2 border-dashed border-primary/20">
         <div className="flex flex-col items-center gap-3">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          <span className="text-[10px] font-black uppercase tracking-widest text-primary/60">Sincronizando Galeria...</span>
+          <Loader2 className="w-10 h-10 animate-spin text-primary" />
+          <span className="text-[12px] font-black uppercase tracking-widest text-primary/60">Sincronizando Galeria...</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="w-full space-y-6 relative">
-      <div className="flex items-center justify-between px-2">
+    <div className="w-full space-y-8 relative">
+      <div className="flex items-center justify-between px-4">
         <div className="flex flex-col">
-          <h3 className="text-[12px] font-black uppercase text-foreground tracking-[0.2em] italic flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-accent" /> Escolha seu Herói
+          <h3 className="text-[16px] font-black uppercase text-foreground tracking-[0.2em] italic flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-accent" /> Selecione seu Avatar
           </h3>
-          <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">Ativos detectados: {avatars.length}</p>
+          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Total na pasta: {avatars.length} fotos</p>
         </div>
         {debugMode && (
-          <Badge variant="outline" className="text-[8px] font-black uppercase bg-accent/10 border-accent/30 text-accent animate-pulse">
-            Scanner em Tempo Real
+          <Badge variant="outline" className="text-[10px] font-black uppercase bg-accent/10 border-accent/30 text-accent animate-pulse">
+            Inspetor Ativo
           </Badge>
         )}
       </div>
       
-      <div className="relative group/nav">
-        {/* Setas de Navegação - Agora sempre visíveis se houver muitos itens */}
-        {avatars.length > 2 && (
+      <div className="relative group/nav px-2">
+        {/* Setas Gigantes de Navegação */}
+        {avatars.length > 3 && (
           <>
             <button 
               onClick={() => scroll('left')}
-              className="absolute -left-2 top-1/2 -translate-y-1/2 z-40 bg-white/95 backdrop-blur-md p-3 rounded-full shadow-2xl border border-primary/20 text-primary hover:scale-110 active:scale-95 transition-all flex items-center justify-center"
-              aria-label="Anterior"
+              className="absolute -left-4 top-1/2 -translate-y-1/2 z-40 bg-white/95 backdrop-blur-md p-5 rounded-full shadow-2xl border-4 border-primary/20 text-primary hover:scale-110 active:scale-90 transition-all flex items-center justify-center"
+              aria-label="Página Anterior"
             >
-              <ChevronLeft className="w-6 h-6 stroke-[3]" />
+              <ChevronLeft className="w-10 h-10 stroke-[4]" />
             </button>
 
             <button 
               onClick={() => scroll('right')}
-              className="absolute -right-2 top-1/2 -translate-y-1/2 z-40 bg-white/95 backdrop-blur-md p-3 rounded-full shadow-2xl border border-primary/20 text-primary hover:scale-110 active:scale-95 transition-all flex items-center justify-center"
-              aria-label="Próximo"
+              className="absolute -right-4 top-1/2 -translate-y-1/2 z-40 bg-white/95 backdrop-blur-md p-5 rounded-full shadow-2xl border-4 border-primary/20 text-primary hover:scale-110 active:scale-90 transition-all flex items-center justify-center"
+              aria-label="Próxima Página"
             >
-              <ChevronRight className="w-6 h-6 stroke-[3]" />
+              <ChevronRight className="w-10 h-10 stroke-[4]" />
             </button>
           </>
         )}
 
-        {/* Container de Scroll */}
+        {/* Container de Scroll por Blocos */}
         <div 
           ref={scrollContainerRef}
-          className="flex gap-8 overflow-x-auto pb-10 px-8 snap-x no-scrollbar -mx-8"
+          className="flex gap-10 overflow-x-auto pb-12 px-12 snap-x no-scrollbar -mx-10"
         >
           {avatars.length === 0 ? (
-            <div className="w-full py-16 text-center border-4 border-dashed rounded-[3rem] border-muted-foreground/10 bg-muted/5">
-              <Search className="w-10 h-10 mx-auto text-muted-foreground/30 mb-4" />
-              <p className="text-[10px] font-black uppercase text-muted-foreground">Pasta /assets/avatars vazia</p>
+            <div className="w-full py-24 text-center border-4 border-dashed rounded-[4rem] border-muted-foreground/10 bg-muted/5">
+              <Search className="w-16 h-16 mx-auto text-muted-foreground/30 mb-6" />
+              <p className="text-[12px] font-black uppercase text-muted-foreground">Adicione fotos em public/assets/avatars</p>
             </div>
           ) : (
             avatars.map((filename) => {
@@ -136,13 +138,13 @@ export function AvatarSelection({ initialAvatarId, onSelect, debugMode = false }
                   key={filename}
                   onClick={() => handleSelect(filename)}
                   className={cn(
-                    "relative flex-shrink-0 w-44 h-44 rounded-[3.5rem] border-4 cursor-pointer snap-center flex flex-col items-center justify-center transition-all bg-white shadow-xl overflow-hidden",
+                    "relative flex-shrink-0 w-64 h-64 rounded-[4rem] border-8 cursor-pointer snap-center flex flex-col items-center justify-center transition-all bg-white shadow-2xl overflow-hidden",
                     isSelected 
-                      ? "border-primary bg-primary/5 ring-8 ring-primary/10 scale-105 z-10" 
-                      : "border-muted/20 opacity-80 hover:opacity-100 hover:border-primary/40"
+                      ? "border-primary bg-primary/5 ring-12 ring-primary/10 scale-105 z-10" 
+                      : "border-muted/10 opacity-70 hover:opacity-100 hover:border-primary/30"
                   )}
-                  whileHover={{ scale: 1.02, y: -5 }}
-                  whileTap={{ scale: 0.98 }}
+                  whileHover={{ scale: 1.05, y: -10 }}
+                  whileTap={{ scale: 0.95 }}
                 >
                   {!hasError ? (
                     <img 
@@ -150,20 +152,20 @@ export function AvatarSelection({ initialAvatarId, onSelect, debugMode = false }
                       alt={filename} 
                       onError={() => handleImageError(filename)}
                       className={cn(
-                        "w-36 h-36 object-contain drop-shadow-2xl transition-all duration-500",
-                        isSelected ? "scale-110" : "scale-100"
+                        "w-56 h-56 object-contain drop-shadow-2xl transition-all duration-500",
+                        isSelected ? "scale-110 rotate-2" : "scale-100"
                       )} 
                     />
                   ) : (
-                    <div className="flex flex-col items-center justify-center text-destructive text-center p-4">
-                      <AlertCircle className="w-8 h-8 mb-2" />
-                      <span className="text-[8px] font-black uppercase">Erro de Asset</span>
-                      {debugMode && <span className="text-[6px] font-mono mt-1 opacity-70">{filename}</span>}
+                    <div className="flex flex-col items-center justify-center text-destructive text-center p-6">
+                      <AlertCircle className="w-12 h-12 mb-3" />
+                      <span className="text-[10px] font-black uppercase">Asset Errado</span>
+                      <span className="text-[8px] font-mono mt-2 opacity-70">{filename}</span>
                     </div>
                   )}
                   
                   {debugMode && (
-                    <div className="absolute bottom-2 bg-black/80 text-white text-[7px] px-3 py-1 rounded-full font-mono max-w-[85%] truncate border border-white/20">
+                    <div className="absolute bottom-4 bg-black/80 text-white text-[8px] px-4 py-2 rounded-full font-mono max-w-[90%] truncate border border-white/20">
                       {filename}
                     </div>
                   )}
@@ -171,12 +173,12 @@ export function AvatarSelection({ initialAvatarId, onSelect, debugMode = false }
                   <AnimatePresence>
                     {isSelected && (
                       <motion.div 
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        exit={{ scale: 0 }}
-                        className="absolute -top-1 -right-1 bg-primary text-white rounded-full w-10 h-10 flex items-center justify-center border-4 border-white shadow-2xl z-30"
+                        initial={{ scale: 0, rotate: -45 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        exit={{ scale: 0, rotate: 45 }}
+                        className="absolute top-4 right-4 bg-primary text-white rounded-full w-14 h-14 flex items-center justify-center border-6 border-white shadow-2xl z-30"
                       >
-                        <Check className="w-5 h-5 stroke-[4]" />
+                        <Check className="w-8 h-8 stroke-[5]" />
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -185,6 +187,12 @@ export function AvatarSelection({ initialAvatarId, onSelect, debugMode = false }
             })
           )}
         </div>
+      </div>
+      
+      <div className="text-center">
+        <p className="text-[10px] font-black uppercase text-muted-foreground/60 tracking-widest">
+          Arraste para o lado ou use as setas laterais
+        </p>
       </div>
     </div>
   );
