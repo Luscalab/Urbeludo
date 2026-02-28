@@ -1,54 +1,47 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 120 40% 97%; /* #F2FAF2 */
+    --background: 120 40% 97%;
     --foreground: 120 20% 10%;
     --card: 0 0% 100%;
     --card-foreground: 120 20% 10%;
     --popover: 0 0% 100%;
     --popover-foreground: 120 20% 10%;
-    --primary: 126 50% 40%; /* #33993D */
+    --primary: 126 50% 40%;
     --primary-foreground: 120 40% 98%;
     --secondary: 120 30% 90%;
     --secondary-foreground: 126 50% 20%;
     --muted: 120 20% 94%;
     --muted-foreground: 120 10% 40%;
-    --accent: 85 80% 55%; /* #99E630 */
+    --accent: 85 80% 55%;
     --accent-foreground: 120 50% 10%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
     --border: 120 20% 90%;
     --input: 120 20% 90%;
     --ring: 126 50% 40%;
-    --radius: 0.75rem;
+    --radius: 1rem;
     --chart-1: 126 50% 40%;
     --chart-2: 85 80% 55%;
-    --chart-3: 120 30% 30%;
-    --chart-4: 120 20% 60%;
-    --chart-5: 85 60% 70%;
   }
 
   .dark {
     --background: 120 20% 5%;
     --foreground: 120 10% 95%;
-    --card: 120 20% 8%;
-    --card-foreground: 120 10% 95%;
-    --popover: 120 20% 8%;
-    --popover-foreground: 120 10% 95%;
-    --primary: 126 50% 50%;
-    --primary-foreground: 120 20% 5%;
-    --secondary: 120 20% 15%;
-    --secondary-foreground: 120 10% 95%;
-    --muted: 120 20% 15%;
-    --muted-foreground: 120 10% 70%;
-    --accent: 85 80% 55%;
-    --accent-foreground: 120 20% 5%;
-    --border: 120 20% 15%;
-    --input: 120 20% 15%;
-    --ring: 126 50% 50%;
+  }
+}
+
+@layer utilities {
+  @keyframes progress-indefinite {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(300%); }
+  }
+  .animate-progress-indefinite {
+    animation: progress-indefinite 2s infinite linear;
   }
 }
 
@@ -57,6 +50,6 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-body;
   }
 }

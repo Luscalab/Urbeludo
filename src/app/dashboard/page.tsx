@@ -5,14 +5,13 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { UrbeLudoLogo } from '@/components/UrbeLudoLogo';
-import { ArrowLeft, Brain, Move, Activity, Crosshair, Settings, UserCircle } from 'lucide-react';
-import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, doc } from 'firebase/firestore';
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { BarChart, Bar, XAxis, Cell } from 'recharts';
+import { ArrowLeft, Brain, Move, Activity, Settings, UserCircle, Coins, Sparkles, Home as HomeIcon } from 'lucide-react';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
+import { Progress } from '@/components/ui/progress';
 
 export default function DashboardPage() {
   const { user } = useUser();
@@ -20,45 +19,18 @@ export default function DashboardPage() {
   const { toast } = useToast();
 
   const userProgressRef = useMemoFirebase(() => user ? doc(db, 'user_progress', user.uid) : null, [db, user]);
-  const { data: userProfile } = useDoc(userProgressRef);
+  const { data: profile } = useDoc(userProgressRef);
 
-  const activitiesQuery = useMemoFirebase(() => {
-    if (!user) return null;
-    return query(
-      collection(db, 'user_progress', user.uid, 'challenge_activities'),
-      orderBy('startTime', 'desc')
-    );
-  }, [db, user]);
-
-  const { data: history, isLoading } = useCollection(activitiesQuery);
-  
-  const typeDistribution = (history || []).reduce((acc: Record<string, number>, item) => {
-    const type = item.challengeType || 'other';
-    acc[type] = (acc[type] || 0) + 1;
-    return acc;
-  }, {});
-
-  const chartData = Object.entries(typeDistribution).map(([name, value]) => ({
-    name: name.replace('_', ' '),
-    value
-  }));
-
-  const chartConfig = {
-    value: {
-      label: "Challenges",
-      color: "hsl(var(--primary))",
-    },
-  };
-
-  const handleUpdateProfile = (field: string, value: string) => {
+  const handleUpdateProfile = (field: string, value: string | number) => {
     if (userProgressRef) {
       updateDocumentNonBlocking(userProgressRef, { [field]: value });
-      toast({
-        title: "Perfil Atualizado",
-        description: "Suas preferências de psicomotricidade foram salvas.",
-      });
+      toast({ title: "Perfil Atualizado" });
     }
   };
+
+  const pLevel = profile?.psychomotorLevel || 1;
+  const levelNames = ["Alicerce", "Movimento", "Precisão", "Ritmo"];
+  const progressToNext = ((profile?.totalChallengesCompleted || 0) % 5) * 20;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -68,67 +40,67 @@ export default function DashboardPage() {
         </Link>
         <div className="flex items-center gap-2">
           <UrbeLudoLogo className="w-8 h-8 text-primary" />
-          <span className="text-lg font-headline font-bold tracking-tight">Painel de Controle</span>
+          <span className="text-lg font-headline font-bold tracking-tight">Evolução do Avatar</span>
         </div>
       </header>
 
-      <main className="flex-1 p-6 container mx-auto max-w-4xl">
-        <div className="grid md:grid-cols-3 gap-6 mb-10">
-          <StatMiniCard icon={<Brain className="w-4 h-4" />} label="Consciência Espacial" value={`${Math.min(100, (typeDistribution['spatial_awareness'] || 0) * 10)}%`} />
-          <StatMiniCard icon={<Move className="w-4 h-4" />} label="Equilíbrio e Tônus" value={`${Math.min(100, (typeDistribution['balance'] || 0) * 10)}%`} />
-          <StatMiniCard icon={<Crosshair className="w-4 h-4" />} label="Precisão Motora" value={`${Math.min(100, (typeDistribution['jump'] || 0) * 10)}%`} />
-        </div>
-
-        <div className="grid lg:grid-cols-3 gap-6 mb-8">
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle className="text-lg font-bold">Distribuição de Foco</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {chartData.length > 0 ? (
-                <div className="h-[300px] w-full">
-                  <ChartContainer config={chartConfig}>
-                    <BarChart data={chartData}>
-                      <XAxis 
-                        dataKey="name" 
-                        stroke="#888888" 
-                        fontSize={12} 
-                        tickLine={false} 
-                        axisLine={false} 
-                        tickFormatter={(val) => val.split(' ')[0]}
-                      />
-                      <ChartTooltip content={<ChartTooltipContent hideLabel />} />
-                      <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                        {chartData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={index % 2 === 0 ? "hsl(var(--primary))" : "hsl(var(--accent))"} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ChartContainer>
+      <main className="flex-1 p-6 container mx-auto max-w-4xl space-y-8">
+        {/* Avatar Section */}
+        <div className="grid md:grid-cols-2 gap-8 items-center">
+          <Card className="aspect-square flex flex-col items-center justify-center bg-gradient-to-br from-primary/10 to-accent/10 relative overflow-hidden group">
+             <div className="absolute inset-0 bg-[url('https://picsum.photos/seed/studio/800')] opacity-10 grayscale group-hover:scale-110 transition-transform duration-1000" />
+             <div className="z-10 text-center space-y-4">
+                <div className="w-32 h-32 rounded-full bg-white shadow-2xl flex items-center justify-center border-4 border-primary">
+                  <Sparkles className="w-16 h-16 text-primary animate-pulse" />
                 </div>
-              ) : (
-                <div className="h-[200px] flex items-center justify-center text-muted-foreground italic">
-                  {isLoading ? "Carregando seus dados..." : "Complete desafios para ver sua evolução."}
+                <div className="space-y-1">
+                  <h2 className="text-2xl font-black uppercase tracking-tighter">Seu Avatar</h2>
+                  <div className="flex gap-2 justify-center">
+                    <Badge className="bg-primary">{levelNames[pLevel-1]}</Badge>
+                    <Badge variant="outline" className="flex gap-1"><Coins className="w-3 h-3"/> {profile?.ludoCoins || 0}</Badge>
+                  </div>
                 </div>
-              )}
-            </CardContent>
+             </div>
           </Card>
 
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                <span>Progresso Motor</span>
+                <span>Nível {pLevel}</span>
+              </div>
+              <Progress value={progressToNext} className="h-3" />
+              <p className="text-[10px] text-muted-foreground italic">Faltam {5 - ((profile?.totalChallengesCompleted || 0) % 5)} desafios para o Nível {pLevel < 4 ? pLevel + 1 : 4}.</p>
+            </div>
+
+            <Card className="p-6 bg-muted/50 border-none">
+              <h3 className="font-bold mb-4 flex items-center gap-2">
+                <HomeIcon className="w-4 h-4 text-primary" /> Estúdio do Avatar
+              </h3>
+              <div className="grid grid-cols-3 gap-2">
+                {[1,2,3].map(i => (
+                  <div key={i} className="aspect-square bg-background rounded-xl border-2 border-dashed flex items-center justify-center text-muted-foreground">
+                    <Settings className="w-4 h-4 opacity-20" />
+                  </div>
+                ))}
+              </div>
+              <Button disabled variant="outline" className="w-full mt-4 text-xs font-bold uppercase">Loja em Breve</Button>
+            </Card>
+          </div>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
               <CardTitle className="text-lg font-bold flex items-center gap-2">
-                <Settings className="w-4 h-4" /> Perfil Psicomotor
+                <UserCircle className="w-4 h-4" /> Configurações de Perfil
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2">
-                <label className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1.5">
-                  <UserCircle className="w-3 h-3" /> Faixa Etária
-                </label>
-                <Select onValueChange={(v) => handleUpdateProfile('ageGroup', v)} value={userProfile?.ageGroup || 'adolescent_adult'}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione sua idade" />
-                  </SelectTrigger>
+                <label className="text-xs font-bold uppercase text-muted-foreground">Faixa Etária</label>
+                <Select onValueChange={(v) => handleUpdateProfile('ageGroup', v)} value={profile?.ageGroup || 'adolescent_adult'}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="preschool">Educação Infantil (2-5 anos)</SelectItem>
                     <SelectItem value="school_age">Fundamental (6-12 anos)</SelectItem>
@@ -136,78 +108,37 @@ export default function DashboardPage() {
                   </SelectContent>
                 </Select>
               </div>
-
               <div className="space-y-2">
                 <label className="text-xs font-bold uppercase text-muted-foreground">Nível de Habilidade</label>
-                <Select onValueChange={(v) => handleUpdateProfile('skillLevel', v)} value={userProfile?.skillLevel || 'intermediate'}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione seu nível" />
-                  </SelectTrigger>
+                <Select onValueChange={(v) => handleUpdateProfile('skillLevel', v)} value={profile?.skillLevel || 'intermediate'}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="beginner">Iniciante</SelectItem>
                     <SelectItem value="intermediate">Intermediário</SelectItem>
                     <SelectItem value="advanced">Avançado</SelectItem>
                   </SelectContent>
                 </Select>
-                <p className="text-[10px] text-muted-foreground leading-relaxed mt-2">
-                  A IA utiliza sua idade e nível para sugerir movimentos pedagogicamente seguros e desafiadores.
-                </p>
-              </div>
-
-              <div className="p-4 bg-muted/50 rounded-lg">
-                <div className="text-xs font-bold uppercase text-muted-foreground mb-1">ID do Jogador</div>
-                <div className="text-[10px] font-mono break-all opacity-60">{user?.uid}</div>
               </div>
             </CardContent>
           </Card>
-        </div>
 
-        <div className="grid md:grid-cols-2 gap-6">
-          <Card className="p-6 bg-muted/50 border-none">
-            <h3 className="font-bold mb-4 flex items-center gap-2">
-              <Activity className="w-4 h-4 text-primary" /> Lógica Pedagógica
-            </h3>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Baseado em Gallahue e Piaget, o UrbeLudo adapta os desafios ao seu estágio de desenvolvimento motor:
-            </p>
-            <ul className="mt-4 space-y-2 text-sm">
-              <li className="flex gap-2">
-                <span className="text-primary font-bold">●</span> <strong className="text-foreground">Sensório-motor:</strong> Exploração do ambiente.
-              </li>
-              <li className="flex gap-2">
-                <span className="text-primary font-bold">●</span> <strong className="text-foreground">Operatório:</strong> Coordenação e lateralidade.
-              </li>
-              <li className="flex gap-2">
-                <span className="text-primary font-bold">●</span> <strong className="text-foreground">Refinamento:</strong> Performance e saúde.
-              </li>
-            </ul>
-          </Card>
-          
-          <Card className="p-6 bg-primary/5 border-primary/20 flex flex-col justify-between">
-            <div>
-              <h3 className="font-bold mb-2">Pronto para mais?</h3>
-              <p className="text-sm text-muted-foreground">Encontre um novo elemento urbano e faça o scan para receber um desafio único personalizado para seu nível.</p>
+          <Card className="p-6 bg-primary/5 border-primary/20">
+            <h3 className="font-bold mb-2">Escada Psicomotora</h3>
+            <div className="space-y-3 mt-4">
+              {levelNames.map((name, i) => (
+                <div key={i} className={cn(
+                  "flex items-center gap-3 p-2 rounded-lg text-sm",
+                  pLevel === i + 1 ? "bg-primary text-white font-bold" : "opacity-40"
+                )}>
+                  <div className="w-6 h-6 rounded-full border flex items-center justify-center text-[10px]">{i+1}</div>
+                  {name}
+                  {pLevel > i + 1 && <Sparkles className="w-3 h-3 ml-auto" />}
+                </div>
+              ))}
             </div>
-            <Button asChild className="w-full mt-6">
-              <Link href="/playground">Abrir Câmera</Link>
-            </Button>
           </Card>
         </div>
       </main>
     </div>
-  );
-}
-
-function StatMiniCard({ icon, label, value }: { icon: React.ReactNode, label: string, value: string }) {
-  return (
-    <Card className="p-4 flex items-center gap-4">
-      <div className="p-2 rounded-lg bg-primary/10 text-primary">
-        {icon}
-      </div>
-      <div>
-        <div className="text-[10px] text-muted-foreground uppercase font-bold">{label}</div>
-        <div className="text-lg font-bold">{value}</div>
-      </div>
-    </Card>
   );
 }
