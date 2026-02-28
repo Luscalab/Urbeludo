@@ -16,7 +16,8 @@ import {
   Award,
   Edit2,
   Share2,
-  User
+  User,
+  Home
 } from 'lucide-react';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
@@ -44,9 +45,9 @@ export default function DashboardPage() {
     }
   };
 
-  const pLevel = profile?.psychomotorLevel || 1;
   const energy = profile?.avatar?.energy ?? 100;
-  const levelNames = ["Alicerce", "Movimento", "Precisão", "Ritmo"];
+  const studioLevel = profile?.avatar?.studioLevel || 1;
+  const challengesToNextLevel = 5 - ((profile?.totalChallengesCompleted || 0) % 5);
 
   const BADGE_DATA: Record<string, { label: string, icon: string, rarity: string }> = {
     'creative-explorer': { label: 'Explorador Criativo', icon: '🎨', rarity: 'rare' },
@@ -60,7 +61,7 @@ export default function DashboardPage() {
         <Link href="/playground" className="p-2"><ArrowLeft className="w-5 h-5" /></Link>
         <div className="flex items-center gap-1">
           <UrbeLudoLogo className="w-6 h-6 text-primary" />
-          <span className="text-sm font-black uppercase italic tracking-tighter">Perfil Urbe</span>
+          <span className="text-sm font-black uppercase italic tracking-tighter">Estúdio Ludo</span>
         </div>
         <div className="bg-primary/10 px-3 py-1 rounded-xl flex items-center gap-2">
             <Coins className="w-3 h-3 text-yellow-600" />
@@ -71,84 +72,73 @@ export default function DashboardPage() {
       <main className="flex-1 p-6 space-y-8 container max-w-lg mx-auto">
         {/* Header Profile */}
         <div className="flex flex-col items-center text-center space-y-4">
-           <div className="relative w-24 h-24 rounded-[2rem] overflow-hidden border-4 border-primary/20 shadow-xl bg-muted">
+           <div className="relative w-28 h-28 rounded-[2.5rem] overflow-hidden border-4 border-primary/20 shadow-xl bg-muted">
               <Image src={`https://picsum.photos/seed/${user?.uid}/200`} alt="Avatar" fill className="object-cover" />
-              <button className="absolute bottom-1 right-1 bg-primary text-white p-1.5 rounded-xl shadow-lg"><Edit2 className="w-3 h-3" /></button>
+              <button className="absolute bottom-1 right-1 bg-primary text-white p-2 rounded-xl shadow-lg"><Edit2 className="w-4 h-4" /></button>
            </div>
            <div className="space-y-1">
-              <h2 className="text-2xl font-black uppercase italic tracking-tighter">{profile?.displayName || "Explorador"}</h2>
-              <p className="text-[10px] font-bold text-muted-foreground uppercase italic px-4 leading-tight">{profile?.bio || "Transformando a cidade em playground."}</p>
+              <h2 className="text-2xl font-black uppercase italic tracking-tighter leading-none">{profile?.displayName || "Explorador"}</h2>
+              <div className="flex items-center justify-center gap-2">
+                 <Badge variant="outline" className="text-[8px] font-black uppercase border-primary/30 text-primary">Nível {profile?.psychomotorLevel || 1}</Badge>
+                 <Badge variant="outline" className="text-[8px] font-black uppercase border-accent/30 text-accent">Studio v.{studioLevel}</Badge>
+              </div>
            </div>
         </div>
 
-        {/* Badges Section */}
-        <div className="space-y-4">
-           <div className="flex justify-between items-center px-2">
-              <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Emblemas Épicos</h4>
-              <Award className="w-4 h-4 text-primary" />
+        {/* Studio Progress */}
+        <Card className="p-5 border-none rounded-[2rem] bg-primary/5 space-y-3">
+           <div className="flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                 <Home className="w-4 h-4 text-primary" />
+                 <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Expansão do Studio</span>
+              </div>
+              <span className="text-[9px] font-black uppercase text-primary">{challengesToNextLevel} missões para evoluir</span>
            </div>
-           <div className="flex flex-wrap gap-3">
+           <Progress value={(5 - challengesToNextLevel) * 20} className="h-2.5 rounded-full bg-primary/10" />
+        </Card>
+
+        {/* Energy Check */}
+        <div className="grid grid-cols-2 gap-3">
+           <Card className="p-4 bg-muted/20 border-none rounded-3xl flex items-center gap-3">
+              <Battery className={cn("w-5 h-5", energy < 30 ? "text-destructive" : "text-primary")} />
+              <div>
+                 <div className="text-xs font-black">{energy}%</div>
+                 <div className="text-[8px] font-bold text-muted-foreground uppercase">Energia</div>
+              </div>
+           </Card>
+           <Card className="p-4 bg-muted/20 border-none rounded-3xl flex items-center gap-3">
+              <Target className="w-5 h-5 text-accent" />
+              <div>
+                 <div className="text-xs font-black">{profile?.totalChallengesCompleted || 0}</div>
+                 <div className="text-[8px] font-bold text-muted-foreground uppercase">Concluídos</div>
+              </div>
+           </Card>
+        </div>
+
+        {/* Badges */}
+        <div className="space-y-3">
+           <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-2">Emblemas Conquistados</h4>
+           <div className="flex flex-wrap gap-2">
               {profile?.badges?.map((badgeId: string) => {
                 const badge = BADGE_DATA[badgeId];
                 return (
                   <div key={badgeId} className={cn(
-                    "px-4 py-2 rounded-2xl flex items-center gap-2 border shadow-sm transition-transform active:scale-95",
+                    "px-3 py-1.5 rounded-xl flex items-center gap-2 border shadow-sm",
                     badge?.rarity === 'legendary' ? "bg-yellow-50 border-yellow-200" : 
                     badge?.rarity === 'epic' ? "bg-purple-50 border-purple-200" : "bg-primary/5 border-primary/10"
                   )}>
-                    <span className="text-lg">{badge?.icon}</span>
-                    <span className="text-[9px] font-black uppercase tracking-tight">{badge?.label}</span>
+                    <span className="text-base">{badge?.icon}</span>
+                    <span className="text-[8px] font-black uppercase tracking-tight">{badge?.label}</span>
                   </div>
                 );
               }) || (
-                <div className="w-full py-6 bg-muted/20 rounded-3xl text-center border border-dashed">
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase">Complete missões lúdicas para ganhar emblemas!</p>
-                </div>
+                <p className="text-[9px] text-muted-foreground uppercase italic px-2">Nenhum emblema ainda. Vá para a rua!</p>
               )}
            </div>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 gap-4">
-           <Card className="p-6 bg-primary/5 border-none rounded-[2.5rem] flex flex-col items-center justify-center text-center space-y-2">
-              <Target className="w-8 h-8 text-primary opacity-40" />
-              <div className="text-2xl font-black">{profile?.totalChallengesCompleted || 0}</div>
-              <div className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">Desafios</div>
-           </Card>
-           <Card className="p-6 bg-accent/5 border-none rounded-[2.5rem] flex flex-col items-center justify-center text-center space-y-2">
-              <Share2 className="w-8 h-8 text-accent opacity-40" />
-              <div className="text-2xl font-black">{profile?.totalLikesReceived || 0}</div>
-              <div className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">Reconhecimento</div>
-           </Card>
-        </div>
-
-        {/* Settings */}
-        <Card className="p-6 border-none rounded-[3rem] space-y-6 bg-muted/20">
-          <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Configurações Psicomotoras</h4>
-          <div className="space-y-4">
-            <div className="space-y-1.5">
-              <label className="text-[9px] font-black uppercase text-muted-foreground px-2">Nome de Exibição</label>
-              <Input 
-                className="rounded-2xl h-12 border-none bg-background shadow-sm px-4 font-bold" 
-                defaultValue={profile?.displayName} 
-                onBlur={(e) => handleUpdateProfile('displayName', e.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[9px] font-black uppercase text-muted-foreground px-2">Faixa Etária (Lógica IA)</label>
-              <Select onValueChange={(v) => handleUpdateProfile('ageGroup', v)} value={profile?.ageGroup || 'adolescent_adult'}>
-                <SelectTrigger className="rounded-2xl h-12 border-none bg-background shadow-sm"><SelectValue /></SelectTrigger>
-                <SelectContent className="rounded-2xl">
-                  <SelectItem value="preschool">Infantil (2-5 anos)</SelectItem>
-                  <SelectItem value="school_age">Escolar (6-12 anos)</SelectItem>
-                  <SelectItem value="adolescent_adult">Adulto/Adolescente</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </Card>
-
-        <Button asChild className="w-full h-16 rounded-[2.5rem] font-black uppercase tracking-widest shadow-xl flex justify-between px-8 bg-black hover:bg-slate-900">
+        {/* Action Button */}
+        <Button asChild className="w-full h-16 rounded-[2.5rem] font-black uppercase tracking-widest shadow-xl flex justify-between px-8 bg-black hover:bg-slate-900 border-b-4 border-slate-800 active:border-b-0 active:translate-y-1 transition-all">
           <Link href="/shop">
             <span className="flex items-center gap-3"><ShoppingBag className="w-6 h-6" /> LudoShop</span>
             <ChevronRight className="w-5 h-5" />

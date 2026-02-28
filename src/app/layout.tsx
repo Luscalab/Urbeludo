@@ -8,6 +8,7 @@ import { Toaster } from '@/components/ui/toaster';
 export const metadata: Metadata = {
   title: 'UrbeLudo | Playground Urbano Digital',
   description: 'Transforme sua cidade em um playground psicomotor com IA de borda.',
+  manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
@@ -37,6 +38,9 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>
       <body className="font-body antialiased overflow-x-hidden selection:bg-accent selection:text-accent-foreground">
         <FirebaseClientProvider>
