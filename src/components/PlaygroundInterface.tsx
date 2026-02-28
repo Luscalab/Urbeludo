@@ -41,11 +41,6 @@ import {
   ChevronDown
 } from 'lucide-react';
 
-// TensorFlow.js & Pose Detection
-import * as tf from '@tensorflow/tfjs-core';
-import '@tensorflow/tfjs-backend-webgl';
-import * as poseDetection from '@tensorflow-models/pose-detection';
-
 import { proposeDynamicChallenges, type ProposeDynamicChallengesOutput } from '@/ai/flows/propose-dynamic-challenges';
 import { useUser, useDoc, useMemoFirebase } from '@/firebase';
 import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
@@ -66,7 +61,6 @@ export function PlaygroundInterface() {
   const { toast } = useToast();
   const { t } = useI18n();
   const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const trailCanvasRef = useRef<HTMLCanvasElement>(null);
   
   const [showGuide, setShowGuide] = useState(true);
@@ -80,7 +74,6 @@ export function PlaygroundInterface() {
   const [cameraMode, setCameraMode] = useState<'user' | 'environment'>('user');
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [isLibrasEnabled, setIsLibrasEnabled] = useState(false);
-  const [isLowLight, setIsLowLight] = useState(false);
 
   // Identity States
   const [explorerName, setExplorerName] = useState('');
@@ -90,7 +83,7 @@ export function PlaygroundInterface() {
   const [termsAccepted, setTermsAccepted] = useState(false);
 
   // AI Pose Detector State
-  const [detector, setDetector] = useState<poseDetection.PoseDetector | null>(null);
+  const [detector, setDetector] = useState<any>(null);
   const [isModelLoading, setIsModelLoading] = useState(true);
 
   // Standalone references
@@ -105,16 +98,21 @@ export function PlaygroundInterface() {
     }
   }, [profile]);
 
-  // Load TensorFlow Model
+  // Load TensorFlow Model Dynamically to avoid build errors
   useEffect(() => {
     async function loadModel() {
       setIsModelLoading(true);
       try {
+        const [tf, poseDetection] = await Promise.all([
+          import('@tensorflow/tfjs-core'),
+          import('@tensorflow-models/pose-detection'),
+          import('@tensorflow/tfjs-backend-webgl')
+        ]);
+        
         await tf.ready();
         const model = poseDetection.SupportedModels.MoveNet;
         const detectorConfig = {
           modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING,
-          // Em um APK real, o modelo seria carregado localmente de /public
         };
         const newDetector = await poseDetection.createDetector(model, detectorConfig);
         setDetector(newDetector);
@@ -159,11 +157,10 @@ export function PlaygroundInterface() {
           if (poses.length > 0) {
             const pose = poses[0];
             
-            // Mecânica de Arte: Rastro de Tinta baseada nos pulsos
             if (selectedCategory === 'Arte') {
-              const wrists = pose.keypoints.filter(kp => kp.name === 'left_wrist' || kp.name === 'right_wrist');
+              const wrists = pose.keypoints.filter((kp: any) => kp.name === 'left_wrist' || kp.name === 'right_wrist');
               
-              wrists.forEach(wrist => {
+              wrists.forEach((wrist: any) => {
                 if (wrist.score && wrist.score > 0.4) {
                   trailCtx.beginPath();
                   trailCtx.arc(wrist.x, wrist.y, 12, 0, Math.PI * 2);
@@ -171,7 +168,6 @@ export function PlaygroundInterface() {
                   trailCtx.globalAlpha = 0.6;
                   trailCtx.fill();
 
-                  // Eco Urbano: Som baseado na altura da mão
                   if (isAudioEnabled && Math.random() > 0.9) {
                     playBeep(200 + (1 - wrist.y / trailCanvas.height) * 800);
                   }
@@ -179,17 +175,14 @@ export function PlaygroundInterface() {
               });
             }
 
-            // Validação de Missão Motorizada
             if (selectedCategory === 'Motor' && activeChallenge) {
-               // Exemplo: Validação de equilíbrio (um pé levantado)
-               const leftAnkle = pose.keypoints.find(kp => kp.name === 'left_ankle');
-               const rightAnkle = pose.keypoints.find(kp => kp.name === 'right_ankle');
+               const leftAnkle = pose.keypoints.find((kp: any) => kp.name === 'left_ankle');
+               const rightAnkle = pose.keypoints.find((kp: any) => kp.name === 'right_ankle');
                
                if (leftAnkle && rightAnkle && leftAnkle.score! > 0.5 && rightAnkle.score! > 0.5) {
                  const diff = Math.abs(leftAnkle.y - rightAnkle.y);
                  if (diff > 50 && activeChallenge.challengeType === 'balance') {
                    // Feedback visual de sucesso no passo
-                   // Aqui poderíamos avançar o step automaticamente
                  }
                }
             }

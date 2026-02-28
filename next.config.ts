@@ -1,3 +1,4 @@
+
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
@@ -7,6 +8,13 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  transpilePackages: [
+    '@tensorflow-models/pose-detection',
+    '@tensorflow/tfjs-core',
+    '@tensorflow/tfjs-backend-webgl',
+    '@tensorflow/tfjs-converter',
+    '@mediapipe/pose'
+  ],
   images: {
     unoptimized: true,
     remotePatterns: [
