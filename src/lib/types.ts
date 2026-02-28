@@ -17,9 +17,6 @@ export interface Challenge {
   description: string;
   category: MissionCategory;
   level: MissionLevel;
-  /**
-   * Garantia técnica de exatamente 3 passos executáveis.
-   */
   steps: [string, string, string];
   reward: {
     ludoCoins: number;
@@ -29,27 +26,47 @@ export interface Challenge {
 }
 
 /**
- * Configuração da Aura do usuário, utilizada no Canvas API e Framer Motion.
+ * Configuração de móveis para o Estúdio.
  */
-export interface UserAura {
-  color: string; // Hex ou HSL usado no trailCanvasRef
-  intensity: number;
-  unlockedAt: Date;
-  active: boolean;
+export interface StudioFurniture {
+  id: string;
+  itemId: string; // Referência ao ID do catálogo
+  x: number;
+  y: number;
+  rotation: number;
+}
+
+export interface CatalogItem {
+  id: string;
+  name: string;
+  price: number;
+  category: 'decoracao' | 'ativo' | 'sonoro' | 'aura';
+  description: string;
+  icon: string;
 }
 
 /**
- * Esquema de progresso do usuário persistido no Firestore.
+ * Esquema de progresso do usuário persistido no Firestore/Local.
  */
 export interface UserProgress {
-  uid: string;
-  level: MissionLevel;
+  id: string;
+  displayName: string;
   ludoCoins: number;
-  stats: {
-    missionsCompleted: number;
-    distanceTraveled?: number;
+  psychomotorLevel: number;
+  totalChallengesCompleted: number;
+  currentStreak: number;
+  ageGroup: string;
+  dominantColor: string;
+  avatar: {
+    energy: number;
+    unlockedItems: string[];
+    equippedItems: string[];
+    studioLevel: number;
   };
-  aura: UserAura;
-  inventory: string[];
-  lastActive: Date;
+  studioFurniture: StudioFurniture[];
+  dailyCycle: {
+    homeMissionCompleted: boolean;
+    streetMissionCompleted: boolean;
+    lastResetDate: string;
+  };
 }

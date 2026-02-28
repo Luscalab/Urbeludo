@@ -17,7 +17,8 @@ import {
   Share2,
   User,
   Home,
-  LogOut
+  LogOut,
+  Sparkles
 } from 'lucide-react';
 import { useUser, useDoc, useMemoFirebase, useAuth } from '@/firebase';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
@@ -37,7 +38,6 @@ export default function DashboardPage() {
   const router = useRouter();
   const { t } = useI18n();
 
-  // Standalone: Usamos referências fake
   const userProgressRef = useMemoFirebase(() => user ? { id: user.uid, path: `user_progress/${user.uid}` } : null, [user]);
   const { data: profile } = useDoc(userProgressRef);
 
@@ -79,7 +79,7 @@ export default function DashboardPage() {
       <main className="flex-1 p-6 space-y-8 container max-w-lg mx-auto">
         <div className="flex flex-col items-center text-center space-y-4">
            <div className="relative w-28 h-28 rounded-[2.5rem] overflow-hidden border-4 border-primary/20 shadow-xl bg-muted">
-              <Image src={`https://picsum.photos/seed/${user?.uid}/200`} alt="Avatar" fill className="object-cover" />
+              <Image src={profile?.avatar?.equippedItems?.[0] || `https://picsum.photos/seed/${user?.uid}/200`} alt="Avatar" fill className="object-cover" />
               <button className="absolute bottom-1 right-1 bg-primary text-white p-2 rounded-xl shadow-lg"><Edit2 className="w-4 h-4" /></button>
            </div>
            <div className="space-y-1">
@@ -91,10 +91,17 @@ export default function DashboardPage() {
            </div>
         </div>
 
+        <Button asChild className="w-full h-20 rounded-[3rem] font-black uppercase tracking-widest shadow-2xl flex justify-between px-10 bg-primary border-b-6 border-primary/80 active:border-b-0 active:translate-y-1 transition-all">
+          <Link href="/studio">
+            <span className="flex items-center gap-4"><Home className="w-7 h-7" /> Entrar no Meu Estúdio</span>
+            <Sparkles className="w-6 h-6 animate-pulse" />
+          </Link>
+        </Button>
+
         <Card className="p-5 border-none rounded-[2rem] bg-primary/5 space-y-3">
            <div className="flex justify-between items-center">
               <div className="flex items-center gap-2">
-                 <Home className="w-4 h-4 text-primary" />
+                 <Target className="w-4 h-4 text-primary" />
                  <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t('dashboard.expansion')}</span>
               </div>
               <span className="text-[9px] font-black uppercase text-primary">{challengesToNextLevel} {t('dashboard.missionsToLevel')}</span>
