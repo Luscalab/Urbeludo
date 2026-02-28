@@ -1,9 +1,8 @@
 import { StudioItem } from './types';
 
 /**
- * Catálogo Central de Ativos do Estúdio - Versão Produção.
- * Mapeia os arquivos PNG transparentes da pasta /public/assets/studio/
- * integrando dimensões de grid para o estilo "The Sims".
+ * Catálogo Central de Ativos da Studio Update.
+ * Mapeia os arquivos PNG transparentes extraídos para /public/assets/studio/
  */
 export const STUDIO_CATALOG: StudioItem[] = [
   {

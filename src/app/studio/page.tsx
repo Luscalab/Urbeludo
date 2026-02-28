@@ -24,7 +24,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 export default function StudioPage() {
   const { user } = useUser();
-  const { studioState, updateItemPosition, updateAvatarPosition, addItem, removeItem } = useStudio();
+  const { studioState, updateItemPosition, updateAvatarPosition, addItem, removeItem, sellItem } = useStudio();
   
   const viewportRef = useRef<HTMLDivElement>(null);
   
@@ -47,12 +47,9 @@ export default function StudioPage() {
     const world = document.getElementById('studio-world');
     if (world) {
       const rect = world.getBoundingClientRect();
-      // O clique deve ser dentro do mundo gigante
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
       
-      // Limita o movimento para a área de chão (abaixo do rodapé)
-      // No cenário 2.5D, o chão começa em 40% da altura do mundo (1200 * 0.4 = 480)
       if (y > 480) {
         updateAvatarPosition(x, y);
       }
@@ -68,6 +65,12 @@ export default function StudioPage() {
           ludoCoins: profile.ludoCoins - price
         });
       }
+    }
+  };
+
+  const handleSell = (instanceId: string) => {
+    if (profile) {
+      sellItem(instanceId, profile.displayName);
     }
   };
 
@@ -126,12 +129,10 @@ export default function StudioPage() {
           className="w-[1200px] h-[1200px] relative bg-white flex flex-col shadow-[0_0_100px_rgba(0,0,0,0.5)]"
           initial={{ x: -400, y: -200 }} 
         >
-          {/* 1. PAREDE (Área Superior) */}
           <div className="relative w-full h-[40%] overflow-hidden" style={{ 
             background: `linear-gradient(to bottom, ${auraColor}15, ${auraColor}30)` 
           }}>
             <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:20px_20px]" />
-            
             <div className="absolute top-20 left-1/2 -translate-x-1/2 w-48 h-60 bg-blue-50 rounded-t-full border-8 border-white shadow-2xl overflow-hidden flex flex-col justify-end">
                 <div className="absolute inset-0 bg-gradient-to-t from-blue-200/50 to-transparent"></div>
                 <div className="w-full h-2 bg-white absolute top-1/2"></div>
@@ -141,7 +142,6 @@ export default function StudioPage() {
 
           <div className="relative z-10 w-full h-6 bg-white border-b border-gray-200 shadow-lg"></div>
 
-          {/* 2. CHÃO (Área de Movimento) */}
           <div className="relative w-full h-[60%] bg-[#F4F1EA]">
             <div className="absolute inset-0 opacity-30 flex flex-col justify-evenly">
                 {[...Array(30)].map((_, i) => (
@@ -151,7 +151,6 @@ export default function StudioPage() {
             <div className="absolute inset-0 opacity-5 bg-[linear-gradient(to_right,#000_1px,transparent_1px),linear-gradient(to_bottom,#000_1px,transparent_1px)] [background-size:40px_40px]"></div>
           </div>
 
-          {/* ITENS POSICIONADOS */}
           <div className="absolute inset-0 z-20 pointer-events-none">
             {studioState.placedItems.map(item => (
               <StudioItem 
@@ -159,13 +158,13 @@ export default function StudioPage() {
                 data={item} 
                 onUpdate={updateItemPosition}
                 onRemove={removeItem}
+                onSell={handleSell}
                 isEditing={mode === 'edit'}
                 auraColor={auraColor}
               />
             ))}
           </div>
 
-          {/* AVATAR DO EXPLORADOR */}
           <motion.div 
             id="studio-avatar"
             animate={{ 
@@ -195,7 +194,6 @@ export default function StudioPage() {
           </motion.div>
         </motion.div>
 
-        {/* HUD DE MODO */}
         <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-[110] pointer-events-none">
           <AnimatePresence mode="wait">
             <motion.div 

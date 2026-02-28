@@ -80,7 +80,6 @@ export function ShopDrawer({ isOpen, onClose, userCoins, unlockedItemIds, onBuyI
 
             <div className="flex-1 overflow-y-auto p-6 grid grid-cols-2 gap-4 pb-24 no-scrollbar">
               {filteredCatalog.map((item) => {
-                // No modo Sapient, todos os itens aparecem como desbloqueados ou gratuitos
                 const isUnlocked = isSapient || unlockedItemIds.includes(item.id);
                 const canAfford = isSapient || userCoins >= item.price;
                 const isSpecial = item.category === 'Especial';
@@ -124,7 +123,7 @@ export function ShopDrawer({ isOpen, onClose, userCoins, unlockedItemIds, onBuyI
                     
                     {isUnlocked && !isSapient ? (
                        <div className="mt-auto w-full py-3 bg-green-100 text-green-700 rounded-2xl text-[9px] font-black uppercase flex items-center justify-center gap-2">
-                         <CheckCircle2 className="w-4 h-4" /> Adquirido
+                         <CheckCircle2 className="w-4 h-4" /> No Inventário
                        </div>
                     ) : (
                       <button 

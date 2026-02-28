@@ -3,17 +3,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { LocalPersistence } from '@/lib/local-persistence';
 import { PlacedItem, StudioState } from '@/lib/types';
+import { STUDIO_CATALOG } from '@/lib/studio-catalog';
 
-const GRID_SIZE = 40; // Pixels para o Snap-to-Grid
+const GRID_SIZE = 40; 
 const WORLD_SIZE = 1200;
 
-/**
- * Hook para gerenciamento atômico do Estúdio.
- * Implementa Snap-to-Grid e Save Game persistente no hardware.
- */
 export function useStudio() {
   const [studioState, setStudioState] = useState<StudioState>({
-    unlockedItemIds: ['tapete-psicomotor'],
+    unlockedItemIds: ['foundation-sneakers'],
     placedItems: [],
     backgroundId: 'default',
     worldConfig: {
@@ -41,7 +38,6 @@ export function useStudio() {
     return () => window.removeEventListener('local-data-updated', loadStudio);
   }, [loadStudio]);
 
-  // Lógica de Snap-to-Grid Atômica
   const snapToGrid = (val: number) => Math.round(val / GRID_SIZE) * GRID_SIZE;
 
   const saveState = async (newState: StudioState) => {
@@ -105,12 +101,48 @@ export function useStudio() {
     });
   };
 
+  const sellItem = async (instanceId: string, userName: string) => {
+    const itemToSell = studioState.placedItems.find(i => i.instanceId === instanceId);
+    if (!itemToSell) return;
+
+    const catalogItem = STUDIO_CATALOG.find(i => i.id === itemToSell.itemId);
+    const isSapient = userName?.toLowerCase() === 'sapient';
+    
+    const profile = await LocalPersistence.getProgress();
+    const currentCoins = profile?.ludoCoins || 0;
+    const refund = catalogItem ? catalogItem.price : 0;
+
+    setStudioState(prev => {
+      const updatedPlacedItems = prev.placedItems.filter(item => item.instanceId !== instanceId);
+      // Remove do inventário também se for a última instância
+      const remainingInstances = updatedPlacedItems.filter(i => i.itemId === itemToSell.itemId);
+      const updatedUnlocked = remainingInstances.length === 0 
+        ? prev.unlockedItemIds.filter(id => id !== itemToSell.itemId)
+        : prev.unlockedItemIds;
+
+      const newState = { ...prev, placedItems: updatedPlacedItems, unlockedItemIds: updatedUnlocked };
+      
+      // Reembolsa moedas (exceto sapient que tem infinitas)
+      if (!isSapient) {
+        LocalPersistence.saveProgress({ 
+          ludoCoins: currentCoins + refund,
+          studioState: newState 
+        });
+      } else {
+        saveState(newState);
+      }
+      
+      return newState;
+    });
+  };
+
   return { 
     studioState, 
     isLoading, 
     updateItemPosition, 
     updateAvatarPosition,
     addItem, 
-    removeItem 
+    removeItem,
+    sellItem
   };
 }
