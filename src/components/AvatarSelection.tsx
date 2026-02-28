@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from "react";
@@ -22,7 +21,7 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
 
   return (
     <div className="w-full space-y-4">
-      <h3 className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em] px-2">
+      <h3 className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em] px-2 text-center sm:text-left">
         Escolha seu Personagem
       </h3>
       
@@ -35,10 +34,10 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
               key={avatar.id}
               onClick={() => handleSelect(avatar.id)}
               className={cn(
-                "relative flex-shrink-0 w-28 h-28 rounded-[2rem] border-4 cursor-pointer snap-center flex items-center justify-center transition-all",
+                "relative flex-shrink-0 w-28 h-28 rounded-[2.5rem] border-4 cursor-pointer snap-center flex items-center justify-center transition-all bg-white shadow-sm",
                 isSelected 
                   ? "border-primary bg-primary/5 shadow-lg scale-105" 
-                  : "border-muted/30 bg-white opacity-60 hover:opacity-100"
+                  : "border-muted/30 opacity-60 hover:opacity-100"
               )}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -50,17 +49,25 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
                   "w-20 h-20 object-contain drop-shadow-md transition-all",
                   isSelected ? "scale-110" : "scale-100"
                 )} 
+                onError={(e) => {
+                  // Fallback se a imagem falhar
+                  (e.target as HTMLImageElement).src = 'https://placehold.co/100x100?text=Avatar';
+                }}
               />
               
               {isSelected && (
                 <motion.div 
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
-                  className="absolute -top-2 -right-2 bg-primary text-white rounded-full w-8 h-8 flex items-center justify-center border-4 border-white shadow-lg"
+                  className="absolute -top-2 -right-2 bg-primary text-white rounded-full w-8 h-8 flex items-center justify-center border-4 border-white shadow-lg z-10"
                 >
                   <Check className="w-4 h-4 stroke-[4]" />
                 </motion.div>
               )}
+
+              <div className="absolute -bottom-2 inset-x-0 flex justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <span className="text-[7px] font-black uppercase bg-black text-white px-2 py-0.5 rounded-full whitespace-nowrap">{avatar.name}</span>
+              </div>
             </motion.div>
           );
         })}
