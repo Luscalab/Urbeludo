@@ -39,6 +39,47 @@ import { cn } from '@/lib/utils';
 
 type CategoryType = 'artistic' | 'motor' | 'memory' | 'relaxation';
 
+// Helper to ensure colors are valid HEX
+function ensureHexColor(color: string | undefined, fallback: string): string {
+  if (!color) return fallback;
+  if (color.startsWith('#') && (color.length === 4 || color.length === 7)) return color;
+  
+  // Mapping common descriptive terms to hex
+  const map: Record<string, string> = {
+    'claro': '#f5d1b0',
+    'medio': '#e0ac69',
+    'médio': '#e0ac69',
+    'escuro': '#8d5524',
+    'pardo': '#b58150',
+    'preto': '#333333',
+    'branco': '#ffffff',
+    'rosa': '#ffc0cb',
+    'loiro': '#ffd700',
+    'castanho': '#8b4513',
+    'ruivo': '#d2691e',
+    'azul': '#0000ff',
+    'verde': '#00ff00',
+  };
+
+  const normalized = color.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return map[normalized] || fallback;
+}
+
+// Helper to darken/lighten colors safely
+function adjustColor(colorStr: string, amt: number): string {
+  const hex = ensureHexColor(colorStr, '#000000').replace('#', '');
+  const num = parseInt(hex, 16);
+  if (isNaN(num)) return colorStr;
+
+  let r = (num >> 16) + amt;
+  if (r > 255) r = 255; else if (r < 0) r = 0;
+  let b = ((num >> 8) & 0x00FF) + amt;
+  if (b > 255) b = 255; else if (b < 0) b = 0;
+  let g = (num & 0x0000FF) + amt;
+  if (g > 255) g = 255; else if (g < 0) g = 0;
+  return "#" + (g | (b << 8) | (r << 16)).toString(16).padStart(6, '0');
+}
+
 // --- ENGINE DE RENDERIZAÇÃO PROCEDURAL URBELUDO 2026 ---
 const ProceduralLudoAvatar = ({ traits, motionData, isBreathing }: { traits: AvatarizeUserOutput, motionData: { x: number, y: number }, isBreathing: boolean }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -54,16 +95,16 @@ const ProceduralLudoAvatar = ({ traits, motionData, isBreathing }: { traits: Ava
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       
       const { x, y } = motionData;
-      const tilt = x * 20; // Inclinação baseada no movimento
+      const tilt = x * 20; 
       const breathScale = isBreathing ? Math.sin(Date.now() / 500) * 5 : 0;
       
-      // Configurações de Cores
-      const skinTone = traits.face?.tone || '#e0ac69';
-      const hairColor = traits.hair?.color || '#333333';
-      const eyeColor = traits.eyes?.color || '#00FFFF';
-      const accentColor = traits.dominantColor || '#33993D';
+      // Validated Colors
+      const skinTone = ensureHexColor(traits.face?.tone, '#e0ac69');
+      const hairColor = ensureHexColor(traits.hair?.color, '#333333');
+      const eyeColor = ensureHexColor(traits.eyes?.color, '#00FFFF');
+      const accentColor = ensureHexColor(traits.dominantColor, '#33993D');
 
-      // --- DESENHO DO TRONCO (ORGANIC PATH) ---
+      // --- TRONCO ---
       ctx.save();
       ctx.translate(canvas.width / 2, canvas.height + 20);
       const bodyGrad = ctx.createLinearGradient(0, -100, 0, 0);
@@ -77,12 +118,12 @@ const ProceduralLudoAvatar = ({ traits, motionData, isBreathing }: { traits: Ava
       ctx.fill();
       ctx.restore();
 
-      // --- CABEÇA E PESCOÇO (ORGANIC FLUIDITY) ---
+      // --- CABEÇA E PESCOÇO ---
       ctx.save();
       ctx.translate(canvas.width / 2 + tilt, canvas.height / 2 + y * 20);
       ctx.rotate(tilt * Math.PI / 180 * 0.2);
 
-      // Pescoço (IK Transition)
+      // Pescoço
       ctx.beginPath();
       ctx.moveTo(-15, 40);
       ctx.quadraticCurveTo(0, 55, 15, 40);
@@ -91,13 +132,12 @@ const ProceduralLudoAvatar = ({ traits, motionData, isBreathing }: { traits: Ava
       ctx.lineCap = 'round';
       ctx.stroke();
 
-      // Rosto (Procedural Shape)
+      // Rosto
       const faceGrad = ctx.createRadialGradient(0, 0, 10, 0, 0, 50);
       faceGrad.addColorStop(0, skinTone);
       faceGrad.addColorStop(1, adjustColor(skinTone, -20));
 
       ctx.beginPath();
-      // Silhueta orgânica do rosto usando Bézier
       ctx.moveTo(-40, -10);
       ctx.bezierCurveTo(-45, 45, 45, 45, 40, -10);
       ctx.bezierCurveTo(40, -50, -40, -50, -40, -10);
@@ -106,18 +146,15 @@ const ProceduralLudoAvatar = ({ traits, motionData, isBreathing }: { traits: Ava
       ctx.shadowColor = 'rgba(0,0,0,0.2)';
       ctx.fill();
 
-      // Olhos (Expressive Generator)
+      // Olhos
       const drawEye = (eyeX: number) => {
         ctx.save();
         ctx.translate(eyeX, -5);
-        
-        // Esclera
         ctx.beginPath();
         ctx.ellipse(0, 0, 10, 6, 0, 0, Math.PI * 2);
         ctx.fillStyle = '#FFFFFF';
         ctx.fill();
 
-        // Íris (Radial Shader)
         const irisGrad = ctx.createRadialGradient(0, 0, 1, 0, 0, 5);
         irisGrad.addColorStop(0, '#000000');
         irisGrad.addColorStop(0.6, eyeColor);
@@ -132,7 +169,7 @@ const ProceduralLudoAvatar = ({ traits, motionData, isBreathing }: { traits: Ava
       drawEye(-18);
       drawEye(18);
 
-      // Cabelo (Procedural Strands)
+      // Cabelo
       ctx.save();
       ctx.beginPath();
       ctx.fillStyle = hairColor;
@@ -150,7 +187,7 @@ const ProceduralLudoAvatar = ({ traits, motionData, isBreathing }: { traits: Ava
       ctx.fill();
       ctx.restore();
 
-      // Visor Neon (Shader Pixel Effect)
+      // Visor Neon
       ctx.save();
       ctx.globalCompositeOperation = 'screen';
       ctx.beginPath();
@@ -165,7 +202,7 @@ const ProceduralLudoAvatar = ({ traits, motionData, isBreathing }: { traits: Ava
       ctx.fill();
       ctx.restore();
 
-      // Boca (Expression Path)
+      // Boca
       ctx.beginPath();
       const mouthY = 20 + (isBreathing ? Math.sin(Date.now() / 500) * 3 : 0);
       ctx.moveTo(-10, mouthY);
@@ -176,7 +213,7 @@ const ProceduralLudoAvatar = ({ traits, motionData, isBreathing }: { traits: Ava
 
       ctx.restore();
 
-      // Aura de Partículas (Procedural Flow)
+      // Aura
       drawAura(ctx, canvas.width, canvas.height, accentColor);
 
       animationRef.current = requestAnimationFrame(draw);
@@ -188,20 +225,6 @@ const ProceduralLudoAvatar = ({ traits, motionData, isBreathing }: { traits: Ava
 
   return <canvas ref={canvasRef} width={400} height={400} className="w-full h-full" />;
 };
-
-// Funções Auxiliares de Programação Gráfica
-function adjustColor(hex: string, amt: number) {
-  let usePound = false;
-  if (hex[0] === "#") { hex = hex.slice(1); usePound = true; }
-  const num = parseInt(hex, 16);
-  let r = (num >> 16) + amt;
-  if (r > 255) r = 255; else if (r < 0) r = 0;
-  let b = ((num >> 8) & 0x00FF) + amt;
-  if (b > 255) b = 255; else if (b < 0) b = 0;
-  let g = (num & 0x0000FF) + amt;
-  if (g > 255) g = 255; else if (g < 0) g = 0;
-  return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16).padStart(6, '0');
-}
 
 function drawAura(ctx: CanvasRenderingContext2D, w: number, h: number, color: string) {
   ctx.save();
@@ -262,7 +285,6 @@ export function PlaygroundInterface() {
     }
   }, [profile]);
 
-  // Rastreamento Biométrico de Borda (Motion Tracking)
   useEffect(() => {
     let animationId: number;
     let lastX = 0;
@@ -478,7 +500,6 @@ export function PlaygroundInterface() {
 
   return (
     <div className="flex flex-col h-full bg-background relative overflow-hidden">
-      {/* Camada Visual de Alta Tecnologia */}
       <div className="relative w-full aspect-[3/4] bg-slate-900 overflow-hidden shadow-inner z-0">
         <video 
           ref={videoRef} 
@@ -488,7 +509,6 @@ export function PlaygroundInterface() {
           playsInline 
         />
         
-        {/* Renderização do Avatar Procedural 2026 */}
         {safeAvatar && cameraMode === 'user' && (
           <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none p-4">
             <ProceduralLudoAvatar 
@@ -499,7 +519,6 @@ export function PlaygroundInterface() {
           </div>
         )}
 
-        {/* Alerta de Sensor de Luz */}
         <AnimatePresence>
           {isLowLight && !showGuide && (
             <motion.div 
@@ -514,7 +533,6 @@ export function PlaygroundInterface() {
           )}
         </AnimatePresence>
 
-        {/* Avatar de Libras (Flutuante) */}
         {isLibrasEnabled && (
           <motion.div 
             drag
@@ -537,7 +555,6 @@ export function PlaygroundInterface() {
         )}
       </div>
 
-      {/* Painel de Controle UrbeLudo 2026 */}
       <div className="flex-1 -mt-16 bg-background rounded-t-[4rem] p-8 shadow-[0_-20px_50px_rgba(0,0,0,0.1)] z-20 border-t border-primary/10 overflow-y-auto">
         
         {showGuide ? (
@@ -669,7 +686,6 @@ export function PlaygroundInterface() {
         )}
       </div>
 
-      {/* Tela de Celebração de Recompensa */}
       <AnimatePresence>
         {celebrating && (
           <motion.div 

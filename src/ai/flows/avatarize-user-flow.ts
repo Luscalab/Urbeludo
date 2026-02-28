@@ -15,17 +15,17 @@ export type AvatarizeUserInput = z.infer<typeof AvatarizeUserInputSchema>;
 const AvatarTraitsSchema = z.object({
   hair: z.object({
     style: z.enum(['liso', 'ondulado', 'cacheado', 'crespo', 'careca', 'curto', 'longo']),
-    color: z.string().describe("Ex: #333333, #FFD700, #Rosa"),
+    color: z.string().describe("Cor do cabelo em formato HEX (ex: #333333, #FFD700)"),
     texture: z.string().describe("Ex: Fino, Grosso, Arroz cacheado"),
   }),
   eyes: z.object({
     shape: z.string().describe("Ex: Amendoado, Redondo, Puxado"),
-    color: z.string().describe("Ex: #00FFFF, #8B4513, #00FF00"),
+    color: z.string().describe("Cor dos olhos em formato HEX (ex: #00FFFF, #8B4513)"),
     eyebrowShape: z.string().describe("Ex: Arqueada, Reta, Grossa"),
   }),
   face: z.object({
     shape: z.string().describe("Ex: Oval, Quadrado, Coração"),
-    tone: z.string().describe("Tom de pele identificado"),
+    tone: z.string().describe("Tom de pele identificado em formato HEX (ex: #e0ac69, #8d5524)"),
     undertone: z.string().describe("Subtom de pele (frio, quente, neutro)"),
     noseShape: z.string().describe("Ex: Fino, Largo, Adunco"),
     mouthShape: z.string().describe("Ex: Labios cheios, Finos, Arco de cupido"),
@@ -59,13 +59,15 @@ Analise a foto fornecida e identifique detalhadamente as características faciai
 Sua análise deve ser PRECISA mas focada em transformar traços reais em elementos de DESIGN DIGITAL SEGURO.
 
 Características a identificar:
-1. Cabelo: Tipo (liso, ondulado, cacheado, crespo), cor (retorne em formato HEX ou cor legível) e textura.
-2. Olhos: Formato, cor e sobrancelhas.
-3. Rosto: Formato geral, tom de pele e subtons (frio/quente).
+1. Cabelo: Tipo (liso, ondulado, cacheado, crespo), cor (OBRIGATORIAMENTE em formato HEX) e textura.
+2. Olhos: Formato, cor (OBRIGATORIAMENTE em formato HEX) e sobrancelhas.
+3. Rosto: Formato geral, tom de pele (OBRIGATORIAMENTE em formato HEX) e subtons (frio/quente).
 4. Boca e Nariz: Formatos predominantes.
 5. Acessórios: Óculos, chapéus ou brincos.
 
-IMPORTANTE: O avatar final NÃO deve ser uma foto, mas uma representação artística baseada nesses traços.
+IMPORTANTE: 
+- O avatar final NÃO deve ser uma foto, mas uma representação artística baseada nesses traços.
+- Retorne SEMPRE as cores em formato HEXADECIMAL válido (ex: #RRGGBB).
 
 Foto: {{media url=photoDataUri}}`,
 });
@@ -86,7 +88,7 @@ const avatarizeUserFlow = ai.defineFlow(
       return {
         hair: { style: 'curto', color: '#333333', texture: 'Liso' },
         eyes: { shape: 'Amendoado', color: '#33993D', eyebrowShape: 'Natural' },
-        face: { shape: 'Oval', tone: 'Médio', undertone: 'Quente', noseShape: 'Natural', mouthShape: 'Natural' },
+        face: { shape: 'Oval', tone: '#e0ac69', undertone: 'Quente', noseShape: 'Natural', mouthShape: 'Natural' },
         accessories: [],
         dominantColor: "#33993D",
         accessoryType: "Visor de Neon Pulse",
