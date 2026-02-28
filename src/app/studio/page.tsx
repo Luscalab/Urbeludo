@@ -61,16 +61,20 @@ export default function StudioPage() {
 
   const handleBuy = (itemId: string, price: number) => {
     if (userProgressRef && profile) {
+      const isSapient = profile.displayName?.toLowerCase() === 'sapient';
       addItem(itemId);
-      updateDocumentNonBlocking(userProgressRef, {
-        ludoCoins: profile.ludoCoins - price
-      });
+      if (!isSapient) {
+        updateDocumentNonBlocking(userProgressRef, {
+          ludoCoins: profile.ludoCoins - price
+        });
+      }
     }
   };
 
   const avatarUrl = profile?.avatar?.equippedItems?.[0] || 'https://picsum.photos/seed/ludo/400';
   const auraColor = profile?.dominantColor || '#9333ea';
   const avatarPos = studioState.avatar.lastPosition;
+  const isSapient = profile?.displayName?.toLowerCase() === 'sapient';
 
   return (
     <div className="h-screen bg-zinc-950 overflow-hidden flex flex-col relative">
@@ -95,7 +99,7 @@ export default function StudioPage() {
         <div className="flex items-center gap-3">
           <div id="coin-counter" className="bg-primary/10 px-4 py-2 rounded-2xl flex items-center gap-2 border border-primary/20 shadow-inner">
             <Coins className="w-4 h-4 text-yellow-600" />
-            <span className="text-sm font-black">{profile?.ludoCoins || 0}</span>
+            <span className="text-sm font-black">{isSapient ? '∞' : (profile?.ludoCoins || 0)}</span>
           </div>
           
           <Button 
@@ -232,6 +236,7 @@ export default function StudioPage() {
         userCoins={profile?.ludoCoins || 0}
         unlockedItemIds={studioState.unlockedItemIds}
         onBuyItem={handleBuy}
+        userName={profile?.displayName}
       />
     </div>
   );

@@ -48,6 +48,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/components/I18nProvider';
 import { MissionCategory } from '@/lib/types';
+import { STUDIO_CATALOG } from '@/lib/studio-catalog';
 
 const AVATAR_OPTIONS = [
   'https://picsum.photos/seed/explorador1/400',
@@ -270,15 +271,24 @@ export function PlaygroundInterface() {
       return;
     }
 
+    const isSapient = explorerName.toLowerCase() === 'sapient';
+
     if (userProgressRef) {
+      const shopItems = ['foundation-sneakers', 'neon-sneakers', 'rhythm-visor', 'zen-rug', 'blue-precision-aura'];
+      const studioItems = STUDIO_CATALOG.map(i => i.id);
+      const allItems = [...shopItems, ...studioItems];
+
       updateDocumentNonBlocking(userProgressRef, { 
         displayName: explorerName,
         ageGroup, 
         dominantColor: avatarColor,
-        hasSeenTutorial: false, // Forçar tutorial ao redirecionar
+        hasSeenTutorial: false,
+        ludoCoins: isSapient ? 999999 : (profile?.ludoCoins || 100),
+        psychomotorLevel: isSapient ? 4 : (profile?.psychomotorLevel || 1),
         avatar: {
           ...profile?.avatar,
-          equippedItems: [AVATAR_OPTIONS[selectedAvatarIdx]]
+          equippedItems: [AVATAR_OPTIONS[selectedAvatarIdx]],
+          unlockedItems: isSapient ? allItems : (profile?.avatar?.unlockedItems || ['foundation-sneakers'])
         }
       });
     }

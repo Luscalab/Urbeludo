@@ -13,12 +13,14 @@ interface ShopDrawerProps {
   userCoins: number;
   unlockedItemIds: string[];
   onBuyItem: (itemId: string, price: number) => void;
+  userName?: string;
 }
 
-export function ShopDrawer({ isOpen, onClose, userCoins, unlockedItemIds, onBuyItem }: ShopDrawerProps) {
+export function ShopDrawer({ isOpen, onClose, userCoins, unlockedItemIds, onBuyItem, userName }: ShopDrawerProps) {
   const [activeTab, setActiveTab] = useState<string>("Todos");
 
   const categories = ["Todos", "Ativo", "Estético", "Essencial", "Especial"];
+  const isSapient = userName?.toLowerCase() === 'sapient';
 
   const filteredCatalog = activeTab === "Todos" 
     ? STUDIO_CATALOG 
@@ -48,7 +50,7 @@ export function ShopDrawer({ isOpen, onClose, userCoins, unlockedItemIds, onBuyI
                 <h2 className="text-3xl font-black text-primary uppercase italic tracking-tighter">Ludo Shop</h2>
                 <div className="bg-white/50 border border-primary/10 px-4 py-2 rounded-2xl flex items-center gap-2 shadow-inner">
                   <Coins className="w-5 h-5 text-yellow-600" />
-                  <span className="text-lg font-black text-foreground">{userCoins} <span className="text-[10px] uppercase opacity-60">LC</span></span>
+                  <span className="text-lg font-black text-foreground">{isSapient ? '∞' : userCoins} <span className="text-[10px] uppercase opacity-60">LC</span></span>
                 </div>
               </div>
               <button 
@@ -78,8 +80,8 @@ export function ShopDrawer({ isOpen, onClose, userCoins, unlockedItemIds, onBuyI
 
             <div className="flex-1 overflow-y-auto p-6 grid grid-cols-2 gap-4 pb-24 no-scrollbar">
               {filteredCatalog.map((item) => {
-                const isUnlocked = unlockedItemIds.includes(item.id);
-                const canAfford = userCoins >= item.price;
+                const isUnlocked = isSapient || unlockedItemIds.includes(item.id);
+                const canAfford = isSapient || userCoins >= item.price;
                 const isSpecial = item.category === 'Especial';
 
                 return (
@@ -121,7 +123,7 @@ export function ShopDrawer({ isOpen, onClose, userCoins, unlockedItemIds, onBuyI
                     
                     {isUnlocked && item.category !== 'Ativo' ? (
                        <div className="mt-auto w-full py-3 bg-green-100 text-green-700 rounded-2xl text-[9px] font-black uppercase flex items-center justify-center gap-2">
-                         <CheckCircle2 className="w-4 h-4" /> Adquirido
+                         <CheckCircle2 className="w-4 h-4" /> {isSapient ? 'Admin' : 'Adquirido'}
                        </div>
                     ) : (
                       <button 
@@ -135,7 +137,7 @@ export function ShopDrawer({ isOpen, onClose, userCoins, unlockedItemIds, onBuyI
                         )}
                       >
                         {!canAfford && <Lock className="w-3.5 h-3.5" />}
-                        <Coins className="w-3.5 h-3.5" /> {item.price}
+                        <Coins className="w-3.5 h-3.5" /> {isSapient ? 'Free' : item.price}
                       </button>
                     )}
                   </motion.div>

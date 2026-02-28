@@ -103,14 +103,15 @@ export default function ShopPage() {
   const unlockedItems = profile?.avatar?.unlockedItems || [];
   const currentLevel = profile?.psychomotorLevel || 1;
   const totalCompleted = profile?.totalChallengesCompleted || 0;
+  const isSapient = profile?.displayName?.toLowerCase() === 'sapient';
 
   const handleBuy = (item: ShopItem) => {
-    if (ludoCoins < item.price) {
+    if (!isSapient && ludoCoins < item.price) {
       toast({ variant: 'destructive', title: t('shop.balance'), description: t('shop.balanceDesc') });
       return;
     }
 
-    if (item.levelGate && currentLevel < item.levelGate) {
+    if (!isSapient && item.levelGate && currentLevel < item.levelGate) {
       toast({ variant: 'destructive', title: 'Nível Bloqueado', description: `Necessário Nível ${item.levelGate}.` });
       return;
     }
@@ -118,7 +119,7 @@ export default function ShopPage() {
     const newUnlocked = [...unlockedItems, item.id];
     if (userProgressRef) {
       updateDocumentNonBlocking(userProgressRef, {
-        ludoCoins: ludoCoins - item.price,
+        ludoCoins: isSapient ? ludoCoins : ludoCoins - item.price,
         avatar: { ...profile?.avatar, unlockedItems: newUnlocked }
       });
     }
@@ -136,7 +137,7 @@ export default function ShopPage() {
         </div>
         <div className="bg-primary/10 px-3 py-1.5 rounded-xl flex items-center gap-2 border border-primary/20">
           <Coins className="w-4 h-4 text-yellow-600" />
-          <span className="font-black text-sm">{ludoCoins}</span>
+          <span className="font-black text-sm">{isSapient ? '∞' : ludoCoins}</span>
         </div>
       </header>
 
@@ -175,8 +176,8 @@ export default function ShopPage() {
           {['vestiario', 'decoracao', 'aura'].map(cat => (
             <TabsContent key={cat} value={cat} className="grid grid-cols-1 gap-4">
               {LUDO_SHOP_ITEMS.filter(i => i.category === cat).map(item => {
-                const isLocked = (item.levelGate && currentLevel < item.levelGate) || (item.challengeGate && totalCompleted < item.challengeGate);
-                const isUnlocked = unlockedItems.includes(item.id);
+                const isLocked = !isSapient && ((item.levelGate && currentLevel < item.levelGate) || (item.challengeGate && totalCompleted < item.challengeGate));
+                const isUnlocked = isSapient || unlockedItems.includes(item.id);
 
                 return (
                   <Card key={item.id} className={cn(
@@ -193,13 +194,13 @@ export default function ShopPage() {
                            <h3 className="font-black uppercase italic tracking-tighter text-xs truncate">{item.name}</h3>
                            <div className="flex items-center gap-1">
                               <Coins className="w-3 h-3 text-yellow-600" />
-                              <span className="text-[10px] font-black">{item.price}</span>
+                              <span className="text-[10px] font-black">{isSapient ? 0 : item.price}</span>
                            </div>
                         </div>
                         <p className="text-[9px] text-muted-foreground font-medium line-clamp-2 mt-1">{item.description}</p>
                         <div className="mt-2 flex gap-2">
                            {isUnlocked ? (
-                             <Badge variant="secondary" className="bg-primary/20 text-primary border-none text-[8px] uppercase font-black"><Check className="w-2 h-2 mr-1" /> {t('shop.acquired')}</Badge>
+                             <Badge variant="secondary" className="bg-primary/20 text-primary border-none text-[8px] uppercase font-black"><Check className="w-2 h-2 mr-1" /> {isSapient ? 'Sapient' : t('shop.acquired')}</Badge>
                            ) : (
                              <>
                                <Button size="sm" variant="ghost" className="h-8 rounded-xl text-[8px] font-black uppercase px-3" onClick={() => setPreviewItem(item)}><Eye className="w-3 h-3 mr-1" /> {t('shop.test')}</Button>
