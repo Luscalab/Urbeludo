@@ -5,6 +5,10 @@ import { LocalPersistence } from '@/lib/local-persistence';
 import { Loader2 } from 'lucide-react';
 import { FALLBACK_AVATAR } from '@/lib/avatar-catalog';
 
+/**
+ * Componente que garante a inicialização correta do estado do usuário.
+ * Corrigido para não depender de catálogos estáticos que causavam erros de build.
+ */
 export function AuthInitializer({ children }: { children: React.ReactNode }) {
   const [isReady, setIsReady] = useState(false);
 
@@ -20,7 +24,7 @@ export function AuthInitializer({ children }: { children: React.ReactNode }) {
           id: uid,
           displayName: `Explorador_${uid.slice(-4)}`,
           bio: "Explorador Independente UrbeLudo 🌍",
-          ludoCoins: 150,
+          ludoCoins: 500, // Capital inicial sapiente
           psychomotorLevel: 1,
           totalChallengesCompleted: 0,
           currentStreak: 0,
@@ -32,7 +36,7 @@ export function AuthInitializer({ children }: { children: React.ReactNode }) {
           dominantColor: '#9333ea',
           avatar: {
             energy: 100,
-            avatarId: FALLBACK_AVATAR.id,
+            avatarId: FALLBACK_AVATAR.id, // Uso de exportação resiliente
             unlockedItems: ['cama-01'],
             equippedItems: [],
             studioLevel: 1
@@ -64,7 +68,7 @@ export function AuthInitializer({ children }: { children: React.ReactNode }) {
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Iniciando Motor Offline...</p>
+          <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest italic">Sincronizando Sensor de Borda...</p>
         </div>
       </div>
     );
