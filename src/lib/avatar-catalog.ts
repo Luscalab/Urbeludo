@@ -1,7 +1,7 @@
 
 /**
  * Utilitário para o catálogo de avatares.
- * Como o app agora é dinâmico, este arquivo serve como utilitário de mapeamento e fallback.
+ * Como o app agora é dinâmico, este arquivo fornece o avatar inicial e utilitários de mapeamento.
  */
 
 export interface AvatarAsset {
@@ -10,7 +10,7 @@ export interface AvatarAsset {
   src: string;
 }
 
-// Fallback estático caso a API falhe ou a pasta esteja vazia
+// Único ponto de verdade para o avatar de segurança
 export const FALLBACK_AVATAR = {
   id: '1.png',
   name: 'Explorador Padrão',
@@ -18,6 +18,7 @@ export const FALLBACK_AVATAR = {
 };
 
 export const getAvatarById = (filename: string) => {
+  if (!filename) return FALLBACK_AVATAR;
   return {
     id: filename,
     name: `Explorador ${filename.split('.')[0]}`,
