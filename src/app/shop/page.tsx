@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState } from 'react';
@@ -24,6 +25,7 @@ import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/components/I18nProvider';
+import { STUDIO_CATALOG } from '@/lib/studio-catalog';
 
 interface ShopItem {
   id: string;
@@ -39,34 +41,6 @@ interface ShopItem {
 
 const LUDO_SHOP_ITEMS: ShopItem[] = [
   { 
-    id: 'foundation-sneakers', 
-    name: 'Tênis de Alicerce', 
-    price: 0, 
-    category: 'vestiario', 
-    rarity: 'common',
-    description: 'O primeiro passo da sua jornada. Confortável e minimalista.',
-    image: '/assets/studio/tapete_psicomotor.png'
-  },
-  { 
-    id: 'neon-sneakers', 
-    name: 'Tênis Pulse Neon', 
-    price: 350, 
-    category: 'vestiario', 
-    rarity: 'rare',
-    description: 'Brilha em sincronia com seu movimento. Estilo Um Studio.',
-    challengeGate: 10,
-    image: '/assets/studio/vaso_hortela.png'
-  },
-  { 
-    id: 'zen-rug', 
-    name: 'Tapete de Treino Zen', 
-    price: 200, 
-    category: 'decoracao', 
-    rarity: 'common',
-    description: 'Um tapete minimalista para suas missões de casa.',
-    image: '/assets/studio/tapete_psicomotor.png'
-  },
-  { 
     id: 'cama-01', 
     name: 'Cama Minimalista', 
     price: 100, 
@@ -74,6 +48,15 @@ const LUDO_SHOP_ITEMS: ShopItem[] = [
     rarity: 'common',
     description: 'Uma cama confortável para recarregar energias.',
     image: '/assets/studio/cama_minimalista.png'
+  },
+  { 
+    id: 'tapete-01', 
+    name: 'Tapete de Treino Zen', 
+    price: 150, 
+    category: 'decoracao', 
+    rarity: 'common',
+    description: 'Um tapete minimalista para suas missões de casa.',
+    image: '/assets/studio/tapete_psicomotor.png'
   },
   { 
     id: 'espaldar-01', 
@@ -85,14 +68,22 @@ const LUDO_SHOP_ITEMS: ShopItem[] = [
     image: '/assets/studio/espaldar_madeira.png'
   },
   { 
+    id: 'vaso-01', 
+    name: 'Vaso de Hortelã', 
+    price: 50, 
+    category: 'decoracao', 
+    rarity: 'common',
+    description: 'Um toque de natureza.',
+    image: '/assets/studio/vaso_hortela.png'
+  },
+  { 
     id: 'blue-precision-aura', 
     name: 'Aura de Precisão Azul', 
     price: 2500, 
     category: 'aura', 
     rarity: 'legendary',
-    description: 'Um rastro de luz azul que aparece quando você atinge o equilíbrio perfeito.',
+    description: 'Um rastro de luz azul.',
     levelGate: 3,
-    challengeGate: 50,
     image: '/assets/studio/espaldar_madeira.png'
   }
 ];
@@ -101,7 +92,6 @@ export default function ShopPage() {
   const { user } = useUser();
   const { toast } = useToast();
   const { t } = useI18n();
-  const [previewItem, setPreviewItem] = useState<ShopItem | null>(null);
   
   const userProgressRef = useMemoFirebase(() => user ? { id: user.uid, path: `user_progress/${user.uid}` } : null, [user]);
   const { data: profile } = useDoc(userProgressRef);
@@ -144,11 +134,8 @@ export default function ShopPage() {
       </header>
 
       <main className="flex-1 p-6 space-y-6 container max-w-lg mx-auto">
-        <Tabs defaultValue="vestiario" className="space-y-6">
+        <Tabs defaultValue="decoracao" className="space-y-6">
           <TabsList className="w-full bg-muted/30 rounded-2xl p-1 h-auto flex gap-1">
-            <TabsTrigger value="vestiario" className="flex-1 py-3 rounded-xl gap-2 font-black uppercase text-[9px]">
-              <Shirt className="w-4 h-4" /> {t('shop.vestiario')}
-            </TabsTrigger>
             <TabsTrigger value="decoracao" className="flex-1 py-3 rounded-xl gap-2 font-black uppercase text-[9px]">
               <HomeIcon className="w-4 h-4" /> {t('shop.decoracao')}
             </TabsTrigger>
@@ -157,10 +144,10 @@ export default function ShopPage() {
             </TabsTrigger>
           </TabsList>
 
-          {['vestiario', 'decoracao', 'aura'].map(cat => (
+          {['decoracao', 'aura'].map(cat => (
             <TabsContent key={cat} value={cat} className="grid grid-cols-1 gap-4">
               {LUDO_SHOP_ITEMS.filter(i => i.category === cat).map(item => {
-                const isLocked = !isSapient && ((item.levelGate && currentLevel < item.levelGate) || (item.challengeGate && totalCompleted < item.challengeGate));
+                const isLocked = !isSapient && ((item.levelGate && currentLevel < item.levelGate));
                 const isUnlocked = isSapient || unlockedItems.includes(item.id);
 
                 return (

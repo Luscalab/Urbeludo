@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -59,27 +60,9 @@ export default function StudioPage() {
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
       
-      if (y > 480) {
+      if (y > 400) {
         updateAvatarPosition(x, y);
       }
-    }
-  };
-
-  const handleBuy = async (itemId: string, price: number) => {
-    await buyItem(itemId, price, profile?.displayName);
-  };
-
-  const handlePlace = async (itemId: string) => {
-    await placeItem(itemId);
-  };
-
-  const handleStore = async (instanceId: string) => {
-    await storeItem(instanceId);
-  };
-
-  const handleSell = async (instanceId: string) => {
-    if (profile) {
-      await sellItem(instanceId, profile.displayName);
     }
   };
 
@@ -148,11 +131,13 @@ export default function StudioPage() {
             </div>
           </div>
 
-          <div className="relative z-10 w-full h-10 flex -mt-5">
+          {/* RODAPÉ */}
+          <div className="relative z-10 w-full h-8 flex -mt-4">
              <div className="flex-1 bg-white shadow-lg border-b-4 border-zinc-200" style={{ clipPath: 'polygon(0 0, 100% 100%, 100% 100%, 0 100%)' }} />
              <div className="flex-1 bg-white shadow-lg border-b-4 border-zinc-200" style={{ clipPath: 'polygon(0 100%, 0 100%, 100% 0, 100% 100%)' }} />
           </div>
 
+          {/* CHÃO COM GRID DIAMANTE */}
           <div className="relative w-full h-[60%] bg-[#F5F2EC] overflow-hidden">
             <div className="absolute inset-0 opacity-15" style={{ 
                backgroundImage: `linear-gradient(45deg, #000 1px, transparent 1px), linear-gradient(-45deg, #000 1px, transparent 1px)`,
@@ -168,8 +153,8 @@ export default function StudioPage() {
                   key={item.instanceId} 
                   data={item} 
                   onUpdate={updateItemPosition}
-                  onStore={handleStore}
-                  onSell={handleSell}
+                  onStore={storeItem}
+                  onSell={sellItem}
                   isEditing={mode === 'edit'}
                   auraColor={auraColor}
                 />
@@ -242,8 +227,8 @@ export default function StudioPage() {
         onClose={() => setIsShopOpen(false)}
         userCoins={profile?.ludoCoins || 0}
         unlockedItemIds={studioState.unlockedItemIds}
-        onBuyItem={handleBuy}
-        onPlaceItem={handlePlace}
+        onBuyItem={buyItem}
+        onPlaceItem={placeItem}
         userName={profile?.displayName}
       />
     </div>
