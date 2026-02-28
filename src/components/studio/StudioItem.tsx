@@ -5,7 +5,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PlacedItem } from '@/lib/types';
 import { STUDIO_CATALOG } from '@/lib/studio-catalog';
-import { Package, Trash2, Coins, Cloud } from 'lucide-react';
+import { Package, Coins, Cloud } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface StudioItemProps {
@@ -88,18 +88,6 @@ export function StudioItem({ data, onUpdate, onStore, onSell, isEditing, auraCol
             alt={itemInfo.name}
             className="w-full h-full object-contain pointer-events-none drop-shadow-md"
           />
-          
-          {/* Sombra de Fumaça no Exit (Poof) */}
-          <AnimatePresence>
-            {!isSelected && isEditing && (
-               <motion.div 
-                 exit={{ opacity: [0, 1, 0], scale: [1, 2, 0.5] }}
-                 className="absolute inset-0 flex items-center justify-center pointer-events-none"
-               >
-                 <Cloud className="w-12 h-12 text-zinc-100 opacity-0" />
-               </motion.div>
-            )}
-          </AnimatePresence>
         </div>
 
         {/* Menu de Ações Flutuante */}

@@ -58,8 +58,8 @@ export default function StudioPage() {
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
       
-      // Limite para caminhar apenas no chão (abaixo da linha do horizonte em V)
-      if (y > 450) {
+      // Limite para caminhar apenas no chão (área bege)
+      if (y > 480) {
         updateAvatarPosition(x, y);
       }
     }
@@ -138,15 +138,13 @@ export default function StudioPage() {
           className="w-[1200px] h-[1200px] relative bg-white flex flex-col shadow-[0_0_100px_rgba(0,0,0,0.5)]"
           initial={{ x: -400, y: -200 }} 
         >
-          {/* PAREDE COM PERSPECTIVA DE CANTO */}
+          {/* PAREDE COM PERSPECTIVA DE CANTO (V-SHAPE) */}
           <div className="relative w-full h-[40%] overflow-hidden flex" style={{ 
             background: `linear-gradient(to bottom, ${auraColor}15, ${auraColor}30)` 
           }}>
-            {/* Parede Esquerda */}
             <div className="flex-1 border-r border-white/10 relative overflow-hidden" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 100%, 0 85%)' }}>
                <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:20px_20px]" />
             </div>
-            {/* Parede Direita */}
             <div className="flex-1 relative overflow-hidden" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 85%, 0 100%)' }}>
                <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:20px_20px]" />
                {/* Janela Isométrica */}
@@ -158,13 +156,13 @@ export default function StudioPage() {
             </div>
           </div>
 
-          {/* RODAPÉ EM V (CONEXÃO) */}
-          <div className="relative z-10 w-full h-6 flex">
+          {/* RODAPÉ EM V */}
+          <div className="relative z-10 w-full h-8 flex">
              <div className="flex-1 bg-white shadow-sm" style={{ clipPath: 'polygon(0 0, 100% 100%, 100% 100%, 0 100%)' }} />
              <div className="flex-1 bg-white shadow-sm" style={{ clipPath: 'polygon(0 100%, 0 100%, 100% 0, 100% 100%)' }} />
           </div>
 
-          {/* CHÃO COM GRID ISOMÉTRICO (LOSANGO) */}
+          {/* CHÃO COM GRID ISOMÉTRICO */}
           <div className="relative w-full h-[60%] bg-[#F4F1EA] overflow-hidden">
             <div className="absolute inset-0 opacity-20" style={{ 
                backgroundImage: `linear-gradient(45deg, #808080 1px, transparent 1px), linear-gradient(-45deg, #808080 1px, transparent 1px)`,
@@ -224,7 +222,7 @@ export default function StudioPage() {
           </motion.div>
         </motion.div>
 
-        {/* HUD de Orientação */}
+        {/* HUD */}
         <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-[110] pointer-events-none">
           <AnimatePresence mode="wait">
             <motion.div 
@@ -271,4 +269,8 @@ export default function StudioPage() {
       />
     </div>
   );
+}
+
+function Navigation(props: any) {
+  return <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-navigation"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>;
 }
