@@ -2,7 +2,7 @@ import { StudioItem } from './types';
 
 /**
  * Catálogo Central de Ativos da Studio Update.
- * Sincronizado com a pasta public/assets/studio/
+ * Apontando para os PNGs na pasta public/assets/studio/
  */
 export const STUDIO_CATALOG: StudioItem[] = [
   {

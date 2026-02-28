@@ -60,7 +60,7 @@ export default function StudioPage() {
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
       
-      // Só caminha se for na área do chão (y > 400)
+      // Caminha se for na área do chão
       if (y > 400) {
         updateAvatarPosition(x, y);
       }
@@ -120,7 +120,7 @@ export default function StudioPage() {
           className="w-[1200px] h-[1200px] relative bg-white flex flex-col shadow-[0_0_100px_rgba(0,0,0,0.5)]"
           initial={{ x: -400, y: -200 }} 
         >
-          {/* PAREDES EM V (PERSPECTIVA DE CANTO) */}
+          {/* Paredes em V */}
           <div className="relative w-full h-[40%] flex" style={{ 
             background: `linear-gradient(to bottom, ${auraColor}20, ${auraColor}40)` 
           }}>
@@ -132,13 +132,13 @@ export default function StudioPage() {
             </div>
           </div>
 
-          {/* RODAPÉ TRIDIMENSIONAL */}
+          {/* Rodapé */}
           <div className="relative z-10 w-full h-8 flex -mt-4">
              <div className="flex-1 bg-white shadow-lg border-b-4 border-zinc-200" style={{ clipPath: 'polygon(0 0, 100% 100%, 100% 100%, 0 100%)' }} />
              <div className="flex-1 bg-white shadow-lg border-b-4 border-zinc-200" style={{ clipPath: 'polygon(0 100%, 0 100%, 100% 0, 100% 100%)' }} />
           </div>
 
-          {/* CHÃO COM GRID ISOMÉTRICO (DIAMANTE) */}
+          {/* Chão Isométrico */}
           <div className="relative w-full h-[60%] bg-[#F5F2EC] overflow-hidden">
             <div className="absolute inset-0 opacity-15" style={{ 
                backgroundImage: `linear-gradient(45deg, #000 1px, transparent 1px), linear-gradient(-45deg, #000 1px, transparent 1px)`,
@@ -147,7 +147,7 @@ export default function StudioPage() {
             }} />
           </div>
 
-          {/* ITENS POSICIONADOS */}
+          {/* Itens Posicionados */}
           <div className="absolute inset-0 z-20 pointer-events-none">
             <AnimatePresence>
               {studioState.placedItems.map(item => (
@@ -164,7 +164,7 @@ export default function StudioPage() {
             </AnimatePresence>
           </div>
 
-          {/* AVATAR DE CORPO INTEIRO */}
+          {/* Avatar de Corpo Inteiro */}
           <motion.div 
             id="studio-avatar"
             animate={{ 
@@ -191,7 +191,7 @@ export default function StudioPage() {
           </motion.div>
         </motion.div>
 
-        {/* TOOLTIP DE INSTRUÇÃO */}
+        {/* Tooltip */}
         <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-[110] pointer-events-none">
           <AnimatePresence mode="wait">
             <motion.div 

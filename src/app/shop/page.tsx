@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/tabs'; // Ajustado se necessário, ou usar original
 import { 
   ArrowLeft, 
   Coins, 
@@ -22,6 +22,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/components/I18nProvider';
 import { STUDIO_CATALOG } from '@/lib/studio-catalog';
+import { Tabs as ShadTabs, TabsContent as ShadContent, TabsList as ShadList, TabsTrigger as ShadTrigger } from '@/components/ui/tabs';
 
 export default function ShopPage() {
   const { user } = useUser();
@@ -67,21 +68,21 @@ export default function ShopPage() {
       </header>
 
       <main className="flex-1 p-6 space-y-6 container max-w-lg mx-auto">
-        <Tabs defaultValue="Essencial" className="space-y-6">
-          <TabsList className="w-full bg-muted/30 rounded-2xl p-1 h-auto flex gap-1">
-            <TabsTrigger value="Essencial" className="flex-1 py-3 rounded-xl gap-2 font-black uppercase text-[9px]">
+        <ShadTabs defaultValue="Essencial" className="space-y-6">
+          <ShadList className="w-full bg-muted/30 rounded-2xl p-1 h-auto flex gap-1">
+            <ShadTrigger value="Essencial" className="flex-1 py-3 rounded-xl gap-2 font-black uppercase text-[9px]">
               <HomeIcon className="w-4 h-4" /> Essenciais
-            </TabsTrigger>
-            <TabsTrigger value="Ativo" className="flex-1 py-3 rounded-xl gap-2 font-black uppercase text-[9px]">
+            </ShadTrigger>
+            <ShadTrigger value="Ativo" className="flex-1 py-3 rounded-xl gap-2 font-black uppercase text-[9px]">
               <Zap className="w-4 h-4" /> Ativos
-            </TabsTrigger>
-            <TabsTrigger value="Estético" className="flex-1 py-3 rounded-xl gap-2 font-black uppercase text-[9px]">
+            </ShadTrigger>
+            <ShadTrigger value="Estético" className="flex-1 py-3 rounded-xl gap-2 font-black uppercase text-[9px]">
               <ShoppingBag className="w-4 h-4" /> Decoração
-            </TabsTrigger>
-          </TabsList>
+            </ShadTrigger>
+          </ShadList>
 
           {['Essencial', 'Ativo', 'Estético'].map(cat => (
-            <TabsContent key={cat} value={cat} className="grid grid-cols-1 gap-4">
+            <ShadContent key={cat} value={cat} className="grid grid-cols-1 gap-4">
               {STUDIO_CATALOG.filter(i => i.category === cat).map(item => {
                 const isUnlocked = isSapient || unlockedItems.includes(item.id);
 
@@ -114,9 +115,9 @@ export default function ShopPage() {
                   </Card>
                 );
               })}
-            </TabsContent>
+            </ShadContent>
           ))}
-        </Tabs>
+        </ShadTabs>
       </main>
 
       <footer className="fixed bottom-0 inset-x-0 h-20 bg-background border-t flex items-center justify-around px-6 z-50">
