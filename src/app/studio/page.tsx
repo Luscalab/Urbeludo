@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -60,7 +59,6 @@ export default function StudioPage() {
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
       
-      // Limite para caminhar apenas no chão (área abaixo da parede em V)
       if (y > 480) {
         updateAvatarPosition(x, y);
       }
@@ -150,13 +148,11 @@ export default function StudioPage() {
             </div>
           </div>
 
-          {/* RODAPÉ TRIDIMENSIONAL EM V */}
           <div className="relative z-10 w-full h-10 flex -mt-5">
              <div className="flex-1 bg-white shadow-lg border-b-4 border-zinc-200" style={{ clipPath: 'polygon(0 0, 100% 100%, 100% 100%, 0 100%)' }} />
              <div className="flex-1 bg-white shadow-lg border-b-4 border-zinc-200" style={{ clipPath: 'polygon(0 100%, 0 100%, 100% 0, 100% 100%)' }} />
           </div>
 
-          {/* CHÃO COM GRID ISOMÉTRICO (LOSANGOS) */}
           <div className="relative w-full h-[60%] bg-[#F5F2EC] overflow-hidden">
             <div className="absolute inset-0 opacity-15" style={{ 
                backgroundImage: `linear-gradient(45deg, #000 1px, transparent 1px), linear-gradient(-45deg, #000 1px, transparent 1px)`,
@@ -165,7 +161,6 @@ export default function StudioPage() {
             }} />
           </div>
 
-          {/* Itens Posicionados */}
           <div className="absolute inset-0 z-20 pointer-events-none">
             <AnimatePresence>
               {studioState.placedItems.map(item => (
@@ -182,7 +177,6 @@ export default function StudioPage() {
             </AnimatePresence>
           </div>
 
-          {/* Avatar de Corpo Inteiro Isométrico */}
           <motion.div 
             id="studio-avatar"
             animate={{ 
@@ -200,13 +194,6 @@ export default function StudioPage() {
                   className="w-full h-full object-contain drop-shadow-[0_25px_25px_rgba(0,0,0,0.4)]" 
                 />
               </div>
-              <motion.div 
-                animate={{ scale: [1, 1.25, 1], rotate: [0, 15, -15, 0] }} 
-                transition={{ duration: 4, repeat: Infinity }}
-                className="absolute -top-2 -right-2 bg-accent text-white p-2.5 rounded-full shadow-2xl border-4 border-white"
-              >
-                <Zap className="w-4 h-4" />
-              </motion.div>
             </div>
             <div className="absolute -bottom-4 inset-x-0 flex justify-center">
               <span className="bg-primary/95 backdrop-blur-xl text-white text-[9px] font-black uppercase px-5 py-2 rounded-full shadow-2xl border border-white/20 tracking-widest">
@@ -216,7 +203,6 @@ export default function StudioPage() {
           </motion.div>
         </motion.div>
 
-        {/* HUD */}
         <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-[110] pointer-events-none">
           <AnimatePresence mode="wait">
             <motion.div 
