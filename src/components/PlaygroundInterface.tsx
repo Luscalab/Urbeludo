@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -84,7 +83,8 @@ export function PlaygroundInterface() {
         videoRef.current.srcObject = stream;
         videoRef.current.onloadedmetadata = () => {
           videoRef.current?.play().catch(e => console.error("Erro ao reproduzir vídeo:", e));
-          setIsInitializingCamera(false);
+          // Pequeno delay para garantir estabilização do hardware antes de liberar o botão
+          setTimeout(() => setIsInitializingCamera(false), 800);
         };
       }
     } catch (error) {
@@ -126,11 +126,12 @@ export function PlaygroundInterface() {
   const handleFaceScan = async () => {
     if (!videoRef.current || isInitializingCamera) return;
     
-    if (videoRef.current.videoWidth === 0 || videoRef.current.videoHeight === 0) {
+    const video = videoRef.current;
+    if (video.videoWidth === 0 || video.videoHeight === 0 || video.readyState < 2) {
       toast({ 
         variant: 'destructive', 
         title: "Câmera Inicializando", 
-        description: "Aguarde um instante e tente novamente." 
+        description: "Aguarde o sinal de vídeo aparecer e tente novamente." 
       });
       return;
     }
@@ -138,28 +139,34 @@ export function PlaygroundInterface() {
     setIsAvatarizing(true);
     try {
       const canvas = document.createElement('canvas');
-      canvas.width = videoRef.current.videoWidth;
-      canvas.height = videoRef.current.videoHeight;
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
       const ctx = canvas.getContext('2d');
       if (!ctx) throw new Error("Canvas context error");
       
-      ctx.drawImage(videoRef.current, 0, 0);
-      const photo = canvas.toDataURL('image/jpeg');
+      ctx.drawImage(video, 0, 0);
+      const photo = canvas.toDataURL('image/jpeg', 0.8);
       
+      // O flow agora tem fallback interno, então sempre deve retornar um resultado
       const result = await avatarizeUser({ photoDataUri: photo });
       setSafeAvatar(result);
+      
+      // Troca para câmera traseira para a missão
       setCameraMode('environment');
       
       toast({ 
         title: "Avatar Seguro Criado!", 
-        description: "Sua identidade foi preservada. Dados descartados com sucesso." 
+        description: "Sua identidade foi preservada. Dados originais descartados." 
       });
     } catch (e) {
-      toast({ 
-        variant: 'destructive', 
-        title: "Erro no Reconhecimento", 
-        description: "Não foi possível processar. Tente em um lugar mais iluminado." 
+      console.error("Erro no scan:", e);
+      // Fallback local caso o servidor nem responda
+      setSafeAvatar({
+        avatarStyleDescription: "Explorador Cibernético Minimalista",
+        dominantColor: "#33993D",
+        accessoryType: "Visor de Neon"
       });
+      setCameraMode('environment');
     } finally {
       setIsAvatarizing(false);
     }
