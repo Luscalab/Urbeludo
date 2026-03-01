@@ -24,8 +24,16 @@ const RESPOSTAS_FIXAS: Record<string, string> = {
   // --- CONCEITOS PSICOMOTORES (UNICV / PROJETO SPSP) ---
   "psicomotricidade": "É o estudo de como nossos pensamentos, sentimentos e movimentos trabalham juntos! No UrbeLudo, ajudamos seu corpo e mente a dançarem no mesmo ritmo para você ganhar mais autonomia.",
   "corpo e mente": "A psicomotricidade ajuda você a entender e dominar seus movimentos. Aqui no UrbeLudo, cada jogo é um exercício para sua mente comandar seu corpo com alegria!",
+  "tonicidade": "A tonicidade é o controle dos seus músculos. No Elevador de Voz, quando você mantém o som estável, está treinando o tônus das pregas vocais e do diafragma!",
+  "praxia fina": "A praxia fina é a nossa capacidade de fazer movimentos pequenos e precisos. Seguir o Caminho de Luz treina seus dedos e olhos para trabalharem em perfeita harmonia!",
+  "esquema corporal": "O esquema corporal é a consciência que você tem do seu próprio corpo. Ver seu progresso na tela ajuda seu cérebro a mapear melhor suas capacidades físicas e vocais!",
+  "estruturação espacial": "Saber onde clicar e para onde a nuvem deve ir treina sua noção de espaço. É como desenhar um mapa mental do mundo ao seu redor!",
+  
+  // --- CIÊNCIA DO SOPRO E VOZ ---
+  "expiração": "Para guiar a Nuvem de Sopro, você precisa controlar a saída do ar. Isso ajuda na regulação emocional e no relaxamento muscular global.",
+  "pressão": "No Elevador, o desafio é a pressão do ar que vem dos pulmões. Ter esse controle é fundamental para uma fala clara e para a deglutição segura.",
+  "loop": "Ver a barra subir em 0% para 100% cria um 'loop' no cérebro. Ele entende o esforço que o corpo fez e tenta repetir o sucesso!",
   "por que treinar": "Cada desafio trabalha uma 'engrenagem' sua. O Caminho de Luz foca na sua precisão motora, enquanto o Elevador foca no controle do seu fôlego.",
-  "relacao corpo": "Treinar no UrbeLudo ajusta seu tônus muscular e melhora sua percepção espacial. É a ciência do movimento transformada em brincadeira!",
 
   // --- ANÁLISE TERAPÊUTICA POR JOGO ---
   "voz": "A voz é puro movimento! No Elevador, você treina a 'estabilidade fonatória', deixando sua voz firme e seu pulmão forte para falar sem cansar.",
@@ -41,16 +49,11 @@ const RESPOSTAS_FIXAS: Record<string, string> = {
   "estabilidade": "A Zona de Estabilidade é a área verde na tela. Ela indica que sua voz está firme, o que ajuda a fortalecer sua musculatura vocal!",
   "caminho": "No Caminho de Luz, o foco é a Precisão. Siga a trilha luminosa com o dedo sem sair da linha para vencer!",
   "moedas": "As LudoCoins (LC) são suas moedas de conquista! Você as ganha ao completar as fases e pode usá-las para mobiliar seu Estúdio.",
-  "lc": "As LudoCoins (LC) representam sua evolução! Use-as na Loja para deixar seu espaço de treino com a sua cara.",
   
   // --- SUPORTE TÉCNICO ---
   "não sobe": "Verifique se o ícone do microfone está ativo. Tente falar um pouco mais alto ou ajuste a sensibilidade no seu Painel de Perfil.",
   "sem som": "Confira se o volume do celular está alto. O UrbeLudo usa feedbacks sonoros para ajudar você a manter o ritmo do exercício!",
-  "calibro": "Vá ao menu Painel e procure por Sensibilidade. Lá você ajusta o quanto de voz ou movimento o sensor precisa captar para o jogo reagir.",
-  
-  // --- PROGRESSO ---
-  "sem internet": "O UrbeLudo é Offline-First! Seus treinos ficam salvos no aparelho e eu sincronizo tudo com a sua planilha assim que você conectar!",
-  "relatório": "O relatório clínico é gerado por mim ao final de cada sessão, ajudando você e seu terapeuta a acompanharem sua evolução biomecânica."
+  "calibro": "Vá ao menu Painel e procure por Sensibilidade. Lá você ajusta o quanto de voz ou movimento o sensor precisa captar para o jogo reagir."
 };
 
 export async function askAuraHelper(input: AuraHelperInput): Promise<AuraHelperOutput> {
@@ -76,13 +79,14 @@ export async function askAuraHelper(input: AuraHelperInput): Promise<AuraHelperO
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     const prompt = `Você é o AuraHelper, assistente especialista em Psicomotricidade e Fonoaudiologia do UrbeLudo.
-    Sua missão é explicar os benefícios dos jogos usando os conceitos de estabilidade fonatória, coordenação visomotora e tônus muscular, mas de forma lúdica.
+    Sua missão é explicar os benefícios dos jogos usando conceitos como tonicidade, praxia fina, esquema corporal e pressão subglótica, mas de forma lúdica e acessível.
 
     CONHECIMENTO TÉCNICO:
     - Psicomotricidade: Integração corpo-mente.
-    - Elevador de Voz: Treina pressão subglótica e estabilidade vocal.
-    - Caminho de Luz: Treina motricidade fina e percepção espacial.
-    - Nuvem de Sopro: Treina praxias bucofaciais.
+    - Tonicidade: Tônus muscular e estabilidade vocal.
+    - Praxia Fina: Coordenação olho-mão e precisão.
+    - Esquema Corporal: Consciência do eu e do movimento.
+    - Pressão Subglótica: Controle respiratório para fala e deglutição.
 
     REGRAS:
     - Seja encorajador e educativo.
