@@ -1,7 +1,7 @@
 'use client';
 /**
- * @fileOverview AuraHelper - Motor de Inteligência Semântica do UrbeLudo.
- * Implementa triagem via AuraBrain (Borda) e fallback para Gemini.
+ * @fileOverview AuraHelper - Orquestrador de Inteligência Híbrida.
+ * Revisa a triagem entre IA de Borda e Gemini 1.5 Flash.
  */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -20,9 +20,6 @@ export interface AuraHelperOutput {
   suggestedAction?: string;
 }
 
-/**
- * Base de Respostas Fixas (Determinísticas) para o UrbeLudo.
- */
 const RESPOSTAS_FIXAS: Record<string, { response: string, action: string }> = {
   jogar_elevador: {
     response: "Use sua voz para subir! Mantenha um som constante e tente ficar dentro da Zona de Estabilidade para encher a barra até 100%.",
@@ -41,7 +38,7 @@ const RESPOSTAS_FIXAS: Record<string, { response: string, action: string }> = {
     action: "Sinta a firmeza muscular."
   },
   moedas: {
-    response: "As LudoCoins (LC) são suas moedas de mestre! Você as ganha completando desafios e pode usá-las na Loja para seu Estúdio.",
+    response: "As LudoCoins (LC) são suas moedas de conquista! Você as ganha completando desafios e pode usá-las na Loja para personalizar seu Estúdio.",
     action: "Visite a Loja no Painel!"
   },
   tecnico_ajuda: {
@@ -58,9 +55,6 @@ const RESPOSTAS_FIXAS: Record<string, { response: string, action: string }> = {
   }
 };
 
-/**
- * Função principal que decide se usa a base fixa via IA de Borda ou o Gemini.
- */
 export async function askAuraHelper(input: AuraHelperInput): Promise<AuraHelperOutput> {
   const query = input.question;
   
@@ -74,10 +68,10 @@ export async function askAuraHelper(input: AuraHelperInput): Promise<AuraHelperO
     };
   }
 
-  // 2. FALLBACK PARA GEMINI (Perguntas complexas)
+  // 2. FALLBACK PARA GEMINI FLASH (Perguntas complexas)
   if (!API_KEY) {
     return {
-      answer: "Minha percepção sensorial oscilou, mas lembre-se: cada movimento seu é uma vitória! Tente perguntar sobre um jogo específico.",
+      answer: "Minha percepção sensorial oscilou, mas lembre-se: cada movimento seu é uma vitória! Tente perguntar sobre um jogo específico ou sobre Moedas.",
       suggestedAction: "Verifique sua rede."
     };
   }
@@ -88,6 +82,7 @@ export async function askAuraHelper(input: AuraHelperInput): Promise<AuraHelperO
     const prompt = `Você é o AuraHelper, assistente especialista em Psicomotricidade do UrbeLudo.
     Explique os benefícios usando conceitos como tonicidade, praxia fina e esquema corporal de forma lúdica.
     Máximo 3 frases. Retorne APENAS um JSON: {"answer": "...", "suggestedAction": "..."}
+    Contexto: ${input.context || ''}
     Pergunta: ${query}`;
 
     const result = await model.generateContent(prompt);
@@ -96,10 +91,10 @@ export async function askAuraHelper(input: AuraHelperInput): Promise<AuraHelperO
     
     return JSON.parse(text) as AuraHelperOutput;
   } catch (error) {
-    console.error("AuraHelper IA Fallback Error:", error);
+    console.error("AuraHelper Gemini Fallback Error:", error);
     return {
-      answer: "Minha conexão com a Grande Aura está instável, mas continue brilhando! Como posso te ajudar hoje?",
-      suggestedAction: "Pergunte sobre 'Moedas' ou 'Voz'."
+      answer: "Minha conexão com a Grande Aura está instável, mas continue brilhando! Como posso te ajudar na sua jornada psicomotora hoje?",
+      suggestedAction: "Pergunte sobre 'Voz' ou 'Movimento'."
     };
   }
 }

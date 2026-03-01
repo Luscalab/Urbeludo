@@ -2,8 +2,7 @@
 
 /**
  * @fileOverview AuraBrain - Motor de Inteligência de Borda para Classificação de Intenções.
- * Implementa carregamento dinâmico e tracking de progresso para o APK.
- * Versão ultra-resiliente para evitar erros de inicialização no Turbopack.
+ * Versão ultra-resiliente para evitar erros de inicialização no Turbopack e APK.
  */
 
 export interface IntentAnchor {
@@ -26,8 +25,8 @@ let extractor: any = null;
 let anchorEmbeddings: Record<string, number[][]> = {};
 
 /**
- * Inicializa o modelo de extração de características com callback de progresso.
- * Utiliza abordagem defensiva para evitar TypeError em propriedades do 'env'.
+ * Inicializa o modelo de extração de características.
+ * Acesso seguro ao 'env' para evitar TypeError no Turbopack.
  */
 export const initAuraBrain = async (onProgress?: (p: number) => void) => {
   if (typeof window === 'undefined') return;
@@ -36,7 +35,7 @@ export const initAuraBrain = async (onProgress?: (p: number) => void) => {
     try {
       const transformers = await import('@xenova/transformers');
       
-      // Configuração segura do ambiente para APK/Browser
+      // Configuração defensiva do ambiente
       if (transformers.env) {
         transformers.env.allowLocalModels = false;
         transformers.env.useBrowserCache = true;
@@ -53,7 +52,7 @@ export const initAuraBrain = async (onProgress?: (p: number) => void) => {
         }
       });
       
-      // Pré-calcula os vetores das âncoras para respostas instantâneas
+      // Pré-calcula os vetores das âncoras
       for (const item of INTENCOES) {
         const embeddings = [];
         for (const example of item.examples) {
@@ -63,7 +62,7 @@ export const initAuraBrain = async (onProgress?: (p: number) => void) => {
         anchorEmbeddings[item.id] = embeddings;
       }
     } catch (err) {
-      console.error("Erro na inicialização semântica:", err);
+      console.error("Erro crítico na inicialização da IA local:", err);
     }
   }
 };

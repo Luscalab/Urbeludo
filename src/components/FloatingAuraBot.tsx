@@ -36,18 +36,20 @@ export function FloatingAuraBot() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const startBrain = async () => {
-    if (isInitializing) return;
+    if (isInitializing || loadProgress === 100) return;
     setIsInitializing(true);
     try {
       await initAuraBrain((p) => setLoadProgress(p));
+    } catch (err) {
+      console.error("Erro ao ativar motor semântico:", err);
     } finally {
-      // Pequeno delay para mostrar o 100%
-      setTimeout(() => setIsInitializing(false), 500);
+      // Pequeno delay para garantir que a UI mostre o 100%
+      setTimeout(() => setIsInitializing(false), 800);
     }
   };
 
   useEffect(() => {
-    if (isOpen && loadProgress === 0) {
+    if (isOpen && loadProgress < 100) {
       startBrain();
     }
   }, [isOpen]);
@@ -72,7 +74,7 @@ export function FloatingAuraBot() {
       
       setMessages(prev => [...prev, { role: 'bot', text: response.answer }]);
     } catch (error) {
-      setMessages(prev => [...prev, { role: 'bot', text: "Minha percepção falhou. Pode repetir?" }]);
+      setMessages(prev => [...prev, { role: 'bot', text: "Minha percepção sensorial falhou. Pode repetir?" }]);
     } finally {
       setIsLoading(false);
     }
@@ -104,7 +106,7 @@ export function FloatingAuraBot() {
           <span className="text-[10px] font-black uppercase tracking-widest">
             {isOpen ? 'Fechar Guia' : 'AuraHelper'}
           </span>
-          {!isInitializing && !isOpen && <div className="w-2 h-2 rounded-full bg-green-500 animate-ping" />}
+          {!isInitializing && !isOpen && loadProgress === 100 && <div className="w-2 h-2 rounded-full bg-green-500 animate-ping" />}
           {isInitializing && <Loader2 className="w-3 h-3 animate-spin opacity-40" />}
         </motion.button>
 

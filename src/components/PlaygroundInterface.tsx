@@ -88,29 +88,6 @@ const CoinRain = () => {
   );
 };
 
-function GameModeCard({ icon, title, desc, goal, color, onClick, onInfo }: any) {
-  return (
-    <motion.div whileHover={{ scale: 1.02, x: 5 }} className="relative group w-full">
-      <button onClick={onClick} className="p-5 rounded-[2.5rem] bg-white/5 border border-white/10 flex items-center gap-5 text-left transition-all hover:bg-white/10 w-full relative overflow-hidden active:scale-95">
-        <div className={cn("w-14 h-14 rounded-[1.5rem] flex items-center justify-center text-white shadow-2xl group-hover:rotate-6 transition-transform shrink-0", color)}>
-          {React.cloneElement(icon, { className: "w-8 h-8" })}
-        </div>
-        <div className="flex-1 min-w-0 space-y-1">
-          <h3 className="text-sm font-black uppercase italic tracking-tighter text-white leading-tight">{title}</h3>
-          <p className="text-[8px] text-white/40 font-bold uppercase leading-relaxed">{desc}</p>
-          <div className="flex items-center gap-1.5 pt-1">
-            <Info className="w-2.5 h-2.5 text-primary/60" />
-            <span className="text-[7px] font-black uppercase text-primary/60 tracking-widest">Meta: {goal.split(' ')[0]}</span>
-          </div>
-        </div>
-      </button>
-      <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); onInfo(); }} className="absolute top-4 right-4 h-8 w-8 rounded-full bg-white/5 hover:bg-white/20 text-white/40 hover:text-white z-20">
-        <Info className="w-4 h-4" />
-      </Button>
-    </motion.div>
-  );
-}
-
 export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean }) {
   const router = useRouter();
   const { user } = useUser();
@@ -119,7 +96,6 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
   const [gameMode, setGameMode] = useState<GameMode>('select');
   const [isWin, setIsWin] = useState(false);
   const [rewardAmount, setRewardAmount] = useState(0);
-  const [activeInfoMode, setActiveInfoMode] = useState<GameMode | null>(null);
   const [showTutorial, setShowTutorial] = useState(false);
   const [pendingMode, setPendingMode] = useState<GameMode | null>(null);
   
@@ -218,16 +194,16 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
         </div>
 
         <div className="grid gap-4 w-full max-w-sm pb-10">
-          <GameModeCard icon={<Move />} title={t('playground.modes.balance.title')} desc={t('playground.modes.balance.desc')} goal={t('playground.modes.balance.goal')} color="bg-blue-500" onClick={() => handleModeSelect('balance')} onInfo={() => setActiveInfoMode('balance')} />
-          <GameModeCard icon={<Music />} title={t('playground.modes.rhythm.title')} desc={t('playground.modes.rhythm.desc')} goal={t('playground.modes.rhythm.goal')} color="bg-primary" onClick={() => handleModeSelect('rhythm')} onInfo={() => setActiveInfoMode('rhythm')} />
-          <GameModeCard icon={<Fingerprint />} title={t('playground.modes.path.title')} desc={t('playground.modes.path.desc')} goal={t('playground.modes.path.goal')} color="bg-accent" onClick={() => handleModeSelect('path')} onInfo={() => setActiveInfoMode('path')} />
+          <GameModeCard icon={<Move />} title={t('playground.modes.balance.title')} desc={t('playground.modes.balance.desc')} goal={t('playground.modes.balance.goal')} color="bg-blue-500" onClick={() => handleModeSelect('balance')} />
+          <GameModeCard icon={<Music />} title={t('playground.modes.rhythm.title')} desc={t('playground.modes.rhythm.desc')} goal={t('playground.modes.rhythm.goal')} color="bg-primary" onClick={() => handleModeSelect('rhythm')} />
+          <GameModeCard icon={<Fingerprint />} title={t('playground.modes.path.title')} desc={t('playground.modes.path.desc')} goal={t('playground.modes.path.goal')} color="bg-accent" onClick={() => handleModeSelect('path')} />
           
           <div className="w-full border-t border-white/10 pt-4 mt-2">
             <p className="text-[8px] font-black text-white/30 uppercase tracking-[0.4em] mb-4 text-center">Fonoaudiologia e Respiração</p>
           </div>
 
-          <GameModeCard icon={<Wind />} title={t('playground.modes.breath.title')} desc={t('playground.modes.breath.desc')} goal={t('playground.modes.breath.goal')} color="bg-teal-500" onClick={() => handleModeSelect('breath')} onInfo={() => setActiveInfoMode('breath')} />
-          <GameModeCard icon={<Volume2 />} title={t('playground.modes.voice.title')} desc={t('playground.modes.voice.desc')} goal={t('playground.modes.voice.goal')} color="bg-pink-500" onClick={() => handleModeSelect('voice')} onInfo={() => setActiveInfoMode('voice')} />
+          <GameModeCard icon={<Wind />} title={t('playground.modes.breath.title')} desc={t('playground.modes.breath.desc')} goal={t('playground.modes.breath.goal')} color="bg-teal-500" onClick={() => handleModeSelect('breath')} />
+          <GameModeCard icon={<Volume2 />} title={t('playground.modes.voice.title')} desc={t('playground.modes.voice.desc')} goal={t('playground.modes.voice.goal')} color="bg-pink-500" onClick={() => handleModeSelect('voice')} />
         </div>
         
         <Link href="/dashboard" className="text-[10px] font-black uppercase text-white/40 hover:text-white transition-colors tracking-widest mt-auto pb-4 flex items-center gap-2">
@@ -288,6 +264,26 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
         {gameMode === 'voice' && <VoiceGame key="voice" onWin={(reward, name) => handleWin(reward, name)} auraColor={auraColor} ludoCoins={profile?.ludoCoins || 0} userName={profile?.displayName || "Explorador"} />}
       </AnimatePresence>
     </div>
+  );
+}
+
+function GameModeCard({ icon, title, desc, goal, color, onClick }: any) {
+  return (
+    <motion.div whileHover={{ scale: 1.02, x: 5 }} className="relative group w-full">
+      <button onClick={onClick} className="p-5 rounded-[2.5rem] bg-white/5 border border-white/10 flex items-center gap-5 text-left transition-all hover:bg-white/10 w-full relative overflow-hidden active:scale-95">
+        <div className={cn("w-14 h-14 rounded-[1.5rem] flex items-center justify-center text-white shadow-2xl group-hover:rotate-6 transition-transform shrink-0", color)}>
+          {React.cloneElement(icon, { className: "w-8 h-8" })}
+        </div>
+        <div className="flex-1 min-w-0 space-y-1">
+          <h3 className="text-sm font-black uppercase italic tracking-tighter text-white leading-tight">{title}</h3>
+          <p className="text-[8px] text-white/40 font-bold uppercase leading-relaxed">{desc}</p>
+          <div className="flex items-center gap-1.5 pt-1">
+            <Info className="w-2.5 h-2.5 text-primary/60" />
+            <span className="text-[7px] font-black uppercase text-primary/60 tracking-widest">Meta: {goal.split(' ')[0]}</span>
+          </div>
+        </div>
+      </button>
+    </motion.div>
   );
 }
 
@@ -378,7 +374,7 @@ function BalanceGame({ onWin, auraColor }: { onWin: (reward: number, type: strin
         <div className="flex flex-col items-center gap-8 text-center max-w-xs">
           <div className="w-24 h-24 rounded-[2rem] bg-blue-500/20 border-4 border-blue-500 flex items-center justify-center text-blue-500 mb-4 animate-pulse"><Move className="w-12 h-12" /></div>
           <h3 className="text-3xl font-black uppercase italic text-white tracking-tighter">Equilibrista</h3>
-          <Button onClick={start} className="h-20 px-16 rounded-full bg-primary text-white font-black uppercase shadow-2xl flex gap-3 text-lg border-b-8 border-primary/70">Começar</Button>
+          <Button onClick={start} className="h-20 px-12 rounded-full bg-primary text-white font-black uppercase shadow-2xl flex gap-3 text-lg border-b-8 border-primary/70">Começar</Button>
         </div>
       ) : (
         <>
@@ -581,7 +577,7 @@ function BreathGame({ onWin, auraColor }: any) {
         <Alert variant="destructive" className="max-w-xs mb-8 rounded-3xl border-2">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Hardware não encontrado</AlertTitle>
-          <AlertDescription className="text-[10px] font-bold uppercase">{error}. Certifique-se de que o microfone está conectado e permitido.</AlertDescription>
+          <AlertDescription className="text-[10px] font-bold uppercase">{error}</AlertDescription>
         </Alert>
       )}
       
