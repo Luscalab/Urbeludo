@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -75,7 +74,7 @@ export function FloatingAuraBot() {
       
       setMessages(prev => [...prev, { role: 'bot', text: response.answer }]);
     } catch (error) {
-      setMessages(prev => [...prev, { role: 'bot', text: "Minha percepção sensorial oscilou. Pode repetir?" }]);
+      setMessages(prev => [...prev, { role: 'bot', text: "Minha percepção sensorial oscilou. Pode repetir de outra forma?" }]);
     } finally {
       setIsLoading(false);
     }
@@ -152,7 +151,7 @@ export function FloatingAuraBot() {
                       <div className="flex justify-between w-full">
                         <span className="text-[8px] font-black text-primary/40 uppercase">{loadProgress}% sincronizado</span>
                         <p className="text-primary/40 text-[8px] font-black uppercase italic">
-                          Download único de 25MB
+                          Apenas no primeiro uso
                         </p>
                       </div>
                     </div>
@@ -189,46 +188,47 @@ export function FloatingAuraBot() {
                 </div>
               </ScrollArea>
 
-              {isReady && (
-                <>
-                  <div className="px-6 py-2 border-t bg-slate-50/30">
-                    <div className="flex gap-2 overflow-x-auto no-scrollbar py-2">
-                      {SUGESTOES_AURA.map((sug) => (
-                        <button
-                          key={sug.id}
-                          onClick={() => processMessage(sug.label)}
-                          disabled={isLoading}
-                          className="whitespace-nowrap px-4 py-2 rounded-full bg-white border border-primary/10 text-primary text-[9px] font-black uppercase shadow-sm hover:bg-primary/5 active:scale-95 transition-all flex items-center gap-2"
-                        >
-                          <span>{sug.icon}</span>
-                          <span>{sug.label}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+              <div className="px-6 py-2 border-t bg-slate-50/30">
+                <div className="flex gap-2 overflow-x-auto no-scrollbar py-2">
+                  {SUGESTOES_AURA.map((sug) => (
+                    <button
+                      key={sug.id}
+                      onClick={() => processMessage(sug.label)}
+                      disabled={isLoading || !isReady}
+                      className={cn(
+                        "whitespace-nowrap px-4 py-2 rounded-full border text-[9px] font-black uppercase shadow-sm transition-all flex items-center gap-2",
+                        !isReady 
+                          ? "bg-zinc-100 text-zinc-400 border-zinc-200 cursor-not-allowed opacity-50"
+                          : "bg-white border-primary/10 text-primary hover:bg-primary/5 active:scale-95"
+                      )}
+                    >
+                      <span>{sug.icon}</span>
+                      <span>{sug.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-                  <div className="p-4 border-t bg-slate-50/50">
-                    <div className="relative">
-                      <Input
-                        value={inputValue}
-                        onChange={(e) => setInputValue(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                        disabled={isLoading}
-                        placeholder="Dúvidas técnicas ou sobre o corpo..."
-                        className="h-14 rounded-2xl pr-14 pl-6 border-transparent bg-white shadow-inner font-bold text-xs focus:ring-primary"
-                      />
-                      <Button
-                        size="icon"
-                        onClick={handleSend}
-                        disabled={isLoading || !inputValue.trim()}
-                        className="absolute right-2 top-2 h-10 w-10 rounded-xl bg-primary text-white shadow-lg active:scale-90 transition-transform"
-                      >
-                        <Send className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </>
-              )}
+              <div className="p-4 border-t bg-slate-50/50">
+                <div className="relative">
+                  <Input
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                    disabled={isLoading || !isReady}
+                    placeholder={isReady ? "Dúvidas técnicas ou sobre o corpo..." : "Aguarde a sincronização..."}
+                    className="h-14 rounded-2xl pr-14 pl-6 border-transparent bg-white shadow-inner font-bold text-xs focus:ring-primary"
+                  />
+                  <Button
+                    size="icon"
+                    onClick={handleSend}
+                    disabled={isLoading || !inputValue.trim() || !isReady}
+                    className="absolute right-2 top-2 h-10 w-10 rounded-xl bg-primary text-white shadow-lg active:scale-90 transition-transform"
+                  >
+                    <Send className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
 
               {!isReady && !isInitializing && (
                 <div className="p-4 bg-yellow-50 flex items-center gap-3 border-t">

@@ -1,9 +1,8 @@
-
 'use client';
 
 /**
  * @fileOverview AuraBrain - Motor de Inteligência de Borda para Classificação de Intenções.
- * Versão ultra-resiliente com threshold ajustado para 0.4 e logs de debug.
+ * Versão ultra-resiliente com threshold ajustado para 0.4 e logs de debug detalhados.
  */
 
 export interface IntentAnchor {
@@ -109,6 +108,7 @@ export const initAuraBrain = async (onProgress?: (p: number) => void) => {
     try {
       const transformers = await import('@xenova/transformers');
       
+      // Configuração para garantir funcionamento em APK/WebView
       if (transformers.env) {
         transformers.env.allowLocalModels = false;
         transformers.env.useBrowserCache = true;
@@ -125,7 +125,7 @@ export const initAuraBrain = async (onProgress?: (p: number) => void) => {
         }
       });
       
-      // Pré-calcula os vetores das âncoras
+      // Pré-calcula os vetores das âncoras para performance máxima
       for (const item of INTENCOES) {
         const embeddings = [];
         for (const example of item.examples) {
@@ -134,7 +134,7 @@ export const initAuraBrain = async (onProgress?: (p: number) => void) => {
         }
         anchorEmbeddings[item.id] = embeddings;
       }
-      console.log("✅ AuraBrain: Âncoras semânticas preparadas.");
+      console.log("✅ AuraBrain: IA de Borda pronta para ação.");
     } catch (err) {
       console.error("❌ AuraBrain: Erro crítico na inicialização:", err);
     }
@@ -157,7 +157,7 @@ function cosineSimilarity(vecA: number[], vecB: number[]) {
 export const classifyIntent = async (userText: string): Promise<string> => {
   try {
     if (!extractor) {
-      console.warn("⚠️ AuraBrain: Extrator não inicializado. Tentando agora...");
+      console.warn("⚠️ AuraBrain: Tentando inicializar extractor sob demanda...");
       await initAuraBrain();
     }
     if (!extractor) return 'fallback';
@@ -177,12 +177,12 @@ export const classifyIntent = async (userText: string): Promise<string> => {
       });
     }
 
-    console.log(`[AuraBrain] Input: "${userText}" | Melhor Match: ${bestMatch.id} (${bestMatch.score.toFixed(4)}) via "${bestMatch.example}"`);
+    console.log(`[AuraBrain] Input: "${userText}" | Match: ${bestMatch.id} | Score: ${bestMatch.score.toFixed(4)} | Referência: "${bestMatch.example}"`);
 
-    // Threshold reduzido para 0.4 para maior flexibilidade
+    // Threshold reduzido para 0.4 para garantir que a IA local responda mais
     return bestMatch.score >= 0.4 ? bestMatch.id : 'fallback';
   } catch (error) {
-    console.error("❌ AuraBrain: Erro na classificação:", error);
+    console.error("❌ AuraBrain: Erro na classificação semântica:", error);
     return 'fallback';
   }
 };

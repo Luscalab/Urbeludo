@@ -1,14 +1,13 @@
-
 'use client';
 /**
  * @fileOverview AuraHelper - Orquestrador de Inteligência Híbrida.
- * Revisado para usar a API Key fornecida e logs de erro reais.
+ * Revisado para usar a API Key fornecida e logs de erro detalhados.
  */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { classifyIntent } from "@/lib/aura-brain";
 
-// Usando a chave fornecida pelo usuário como fallback seguro
+// Usando a chave fornecida como fallback seguro e process.env para produção
 const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "AIzaSyCCwhUNlhnpxjDuZ8quod7MTnde1dZJj04";
 const genAI = new GoogleGenerativeAI(API_KEY);
 
@@ -70,12 +69,12 @@ export async function askAuraHelper(input: AuraHelperInput): Promise<AuraHelperO
     };
   }
 
-  // 2. FALLBACK PARA GEMINI FLASH (Perguntas complexas)
-  if (!API_KEY || API_KEY.includes("CHAVE_AUSENTE")) {
-    console.error("❌ AuraHelper: API Key do Gemini não configurada corretamente.");
+  // 2. FALLBACK PARA GEMINI FLASH (Para perguntas complexas)
+  if (!API_KEY || API_KEY.length < 10) {
+    console.error("❌ AuraHelper: Chave de API do Gemini não detectada.");
     return {
-      answer: "Minha percepção sensorial oscilou. Verifique se sua chave de API do Google está ativa para perguntas complexas!",
-      suggestedAction: "Configurar API Key"
+      answer: "Minha percepção sensorial oscilou. Verifique se sua chave de API está ativa para perguntas complexas!",
+      suggestedAction: "Conectar à Nuvem"
     };
   }
 
@@ -94,10 +93,10 @@ export async function askAuraHelper(input: AuraHelperInput): Promise<AuraHelperO
     
     return JSON.parse(text) as AuraHelperOutput;
   } catch (error: any) {
-    console.error("❌ AuraHelper: Gemini Error:", error?.message || error);
+    console.error("❌ AuraHelper: Erro Técnico Gemini:", error?.message || error);
     return {
-      answer: "Minha conexão com a Grande Aura está instável, mas continue brilhando! Como posso te ajudar na sua jornada psicomotora hoje?",
-      suggestedAction: "Tente perguntar sobre 'Voz'."
+      answer: "Minha conexão com a Grande Aura está instável, mas continue brilhando! Tente perguntar algo sobre os jogos.",
+      suggestedAction: "Tente 'Voz'."
     };
   }
 }
