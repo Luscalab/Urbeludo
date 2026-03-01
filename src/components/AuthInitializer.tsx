@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -26,7 +27,7 @@ export function AuthInitializer({ children }: { children: React.ReactNode }) {
             await LocalPersistence.saveUserId(uid);
           }
 
-          // Busca o primeiro herói disponível na pasta public/assets/avatars dinamicamente
+          // Busca dinamicamente o primeiro avatar disponível na pasta
           let defaultAvatar = '';
           try {
             const res = await fetch('/api/avatars');
@@ -37,7 +38,7 @@ export function AuthInitializer({ children }: { children: React.ReactNode }) {
               }
             }
           } catch (e) {
-            console.warn("API de avatares inacessível no boot.");
+            console.warn("API de avatares inacessível durante o boot.");
           }
 
           const initialData = {

@@ -20,8 +20,8 @@ interface AvatarSelectionProps {
 }
 
 /**
- * Seletor de Identidade de Alta Performance.
- * Utiliza framer-motion para interpretação fluida de qualquer arquivo em public/assets/avatars.
+ * Seletor de Identidade Dinâmico.
+ * Varre e exibe qualquer arquivo de imagem na pasta de avatares.
  */
 export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionProps) {
   const [avatars, setAvatars] = useState<string[]>([]);
@@ -39,18 +39,16 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
       
       if (files && files.length > 0) {
         setAvatars(files);
-        
-        // Tenta encontrar o avatar inicial na lista dinâmica
+        // Tenta sincronizar o índice atual com o avatar que já estava salvo
         if (initialAvatarId) {
           const idx = files.indexOf(initialAvatarId);
           if (idx !== -1) setCurrentIndex(idx);
-          else setCurrentIndex(0);
         }
       } else {
         setAvatars([]);
       }
     } catch (error) {
-      console.warn("Aviso: Falha ao sincronizar heróis locais.", error);
+      console.warn("Aviso: Falha ao carregar heróis da pasta local.", error);
       setAvatars([]);
     } finally {
       setIsLoadingList(false);
@@ -61,7 +59,7 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
     fetchAvatars();
   }, [fetchAvatars]);
 
-  // Notifica o pai sobre a seleção
+  // Sempre que o índice ou a lista mudar, notifica o componente pai
   useEffect(() => {
     if (avatars.length > 0) {
       onSelect(avatars[currentIndex]);
@@ -80,23 +78,23 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
 
   if (isLoadingList) {
     return (
-      <div className="w-full h-[400px] flex flex-col items-center justify-center bg-muted/10 rounded-[3rem] border-4 border-dashed border-primary/10">
+      <div className="w-full h-[380px] flex flex-col items-center justify-center bg-muted/10 rounded-[3rem] border-4 border-dashed border-primary/10">
         <Loader2 className="w-10 h-10 animate-spin text-primary/40" />
-        <span className="mt-4 text-[9px] font-black uppercase text-primary/40 tracking-[0.3em]">Varrendo Identidades...</span>
+        <span className="mt-4 text-[9px] font-black uppercase text-primary/40 tracking-[0.3em]">Buscando Heróis...</span>
       </div>
     );
   }
 
   if (avatars.length === 0) {
     return (
-      <div className="w-full h-[400px] flex flex-col items-center justify-center bg-background rounded-[3rem] border-4 border-dashed border-primary/10 p-10 text-center">
+      <div className="w-full h-[380px] flex flex-col items-center justify-center bg-background rounded-[3rem] border-4 border-dashed border-primary/10 p-10 text-center">
         <FolderOpen className="w-16 h-16 text-primary/20 mb-4" />
-        <h3 className="text-xl font-black uppercase text-foreground/40 mb-2">Sem Heróis Ativos</h3>
-        <p className="text-[10px] font-bold text-muted-foreground uppercase max-w-xs mx-auto mb-6">
-          Coloque suas fotos (PNG, JPG, etc) na pasta: <br/> 
-          <span className="text-primary font-mono select-all">public/assets/avatars</span>
+        <h3 className="text-xl font-black uppercase text-foreground/40 mb-2">Pasta de Heróis Vazia</h3>
+        <p className="text-[9px] font-bold text-muted-foreground uppercase max-w-xs mx-auto mb-6">
+          Coloque suas fotos PNG ou JPG na pasta:<br/>
+          <span className="text-primary select-all lowercase font-mono">public/assets/avatars</span>
         </p>
-        <button onClick={fetchAvatars} className="flex items-center gap-2 text-[10px] font-black uppercase text-primary border-b border-primary">
+        <button onClick={fetchAvatars} className="flex items-center gap-2 text-[10px] font-black uppercase text-primary border-b border-primary pb-1">
           <RefreshCw className="w-3 h-3" /> Tentar Sincronizar
         </button>
       </div>
@@ -107,7 +105,7 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
   const avatarPath = `/assets/avatars/${currentAvatar}`;
 
   return (
-    <div className="w-full space-y-8 select-none">
+    <div className="w-full space-y-6 select-none">
       <div className="flex flex-col items-center text-center space-y-2">
         <div className="flex items-center gap-2 bg-primary/10 px-3 py-1 rounded-full border border-primary/20">
           <Sparkles className="w-3 h-3 text-primary" />
@@ -115,21 +113,11 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
             Identidade {currentIndex + 1} de {avatars.length}
           </span>
         </div>
-        <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest truncate max-w-xs px-10">
-          {currentAvatar}
-        </p>
       </div>
       
-      <div className="relative flex justify-center items-center h-[420px]">
-        {/* Efeito de Aura de Fundo */}
-        <motion.div 
-          animate={{ scale: [1, 1.2, 1], rotate: 360 }}
-          transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
-          className="absolute w-72 h-72 rounded-full bg-gradient-to-r from-primary/20 via-accent/10 to-transparent blur-3xl"
-        />
-
+      <div className="relative flex justify-center items-center h-[380px]">
         {avatars.length > 1 && (
-          <div className="absolute inset-x-0 flex justify-between items-center z-50 px-2 sm:px-10">
+          <div className="absolute inset-x-0 flex justify-between items-center z-50 px-2 sm:px-4">
             <button onClick={handlePrev} className="bg-white p-4 rounded-full shadow-xl active:scale-90 transition-all border-2 border-primary/5">
               <ChevronLeft className="w-6 h-6 text-primary" />
             </button>
@@ -139,20 +127,20 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
           </div>
         )}
 
-        <div className="relative w-72 h-[400px] z-10">
+        <div className="relative w-64 h-[350px] z-10">
           <AnimatePresence mode="wait">
             <motion.div
               key={currentAvatar}
-              initial={{ opacity: 0, scale: 0.8, x: 50 }}
+              initial={{ opacity: 0, scale: 0.8, x: 20 }}
               animate={{ opacity: 1, scale: 1, x: 0 }}
-              exit={{ opacity: 0, scale: 0.8, x: -50 }}
+              exit={{ opacity: 0, scale: 0.8, x: -20 }}
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
               className="w-full h-full rounded-[4rem] bg-white shadow-2xl flex items-center justify-center p-8 overflow-hidden border-4 border-white"
             >
               {loadError[currentAvatar] ? (
                 <div className="flex flex-col items-center gap-2 opacity-20 text-center">
                   <AlertCircle className="w-12 h-12 text-red-500" />
-                  <span className="text-[8px] font-black uppercase">Falha na Foto</span>
+                  <span className="text-[8px] font-black uppercase">Imagem Inválida</span>
                 </div>
               ) : (
                 <img 
@@ -160,7 +148,7 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
                   onLoad={() => setLoadedImages(prev => ({ ...prev, [currentAvatar]: true }))}
                   onError={() => setLoadError(prev => ({ ...prev, [currentAvatar]: true }))}
                   className={cn(
-                    "w-full h-full object-contain drop-shadow-[0_20px_40px_rgba(0,0,0,0.2)] transition-all duration-500",
+                    "w-full h-full object-contain drop-shadow-2xl transition-all duration-500",
                     loadedImages[currentAvatar] ? "opacity-100 scale-100" : "opacity-0 scale-90"
                   )} 
                   alt={`Herói ${currentAvatar}`}

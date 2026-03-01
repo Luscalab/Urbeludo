@@ -1,7 +1,7 @@
 
 /**
- * Utilitário de Catálogo de Avatares Dinâmico.
- * Converte qualquer nome de arquivo em um caminho de imagem válido no navegador.
+ * Utilitário de Catálogo de Avatares Universal.
+ * Mapeia nomes de arquivos para caminhos acessíveis pelo navegador.
  */
 
 export interface AvatarAsset {
@@ -13,7 +13,7 @@ export interface AvatarAsset {
 export const FALLBACK_AVATAR_SRC = "https://picsum.photos/seed/urbeludo/400/400";
 
 /**
- * Resolve o caminho da imagem baseando-se no nome do arquivo dentro de public/assets/avatars/
+ * Resolve o caminho da imagem baseando-se no diretório /assets/avatars/
  */
 export const getAvatarById = (filename: string | null | undefined): AvatarAsset => {
   if (!filename || filename === '') {
@@ -24,16 +24,16 @@ export const getAvatarById = (filename: string | null | undefined): AvatarAsset 
     };
   }
 
-  // Se o id já for uma URL (caso de IA ou externas), mantém
+  // Se já for uma URL (externa ou IA), mantém
   if (filename.startsWith('http') || filename.startsWith('data:')) {
     return {
       id: filename,
-      name: 'Avatar Especial',
+      name: 'Identidade Especial',
       src: filename
     };
   }
 
-  // O Next.js serve a pasta public na raiz do servidor web
+  // No Next.js, a pasta public é servida na raiz /
   return {
     id: filename,
     name: filename.split('.')[0].replace(/[-_]/g, ' '),
