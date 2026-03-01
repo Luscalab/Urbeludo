@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -34,11 +33,12 @@ export function AuthInitializer({ children }: { children: React.ReactNode }) {
             if (res.ok) {
               const list = await res.json();
               if (list && list.length > 0) {
+                // Seleciona o primeiro arquivo encontrado dinamicamente
                 defaultAvatar = list[0];
               }
             }
           } catch (e) {
-            console.warn("API de avatares inacessível no boot, usando placeholder.");
+            console.warn("API de avatares inacessível no boot, usando fallback.");
           }
 
           const initialData = {
@@ -56,7 +56,7 @@ export function AuthInitializer({ children }: { children: React.ReactNode }) {
           await LocalPersistence.saveProgress(initialData);
         }
       } catch (error) {
-        console.error("Falha fatal na sincronização de aura:", error);
+        console.error("Falha fatal na sincronização de identidade:", error);
       } finally {
         setIsReady(true);
       }

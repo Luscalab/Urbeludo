@@ -90,7 +90,7 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
         <FolderOpen className="w-16 h-16 text-primary/20 mb-4" />
         <h3 className="text-xl font-black uppercase text-foreground/40 mb-2">Pasta de Heróis Vazia</h3>
         <p className="text-[10px] font-bold text-muted-foreground uppercase max-w-xs mx-auto mb-6">
-          Adicione suas fotos PNG ou JPG em: <br/> 
+          Adicione suas fotos em: <br/> 
           <span className="text-primary font-mono select-all">public/assets/avatars</span>
         </p>
         <button onClick={fetchAvatars} className="flex items-center gap-2 text-[10px] font-black uppercase text-primary border-b border-primary">
@@ -107,8 +107,7 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
     <div className="w-full space-y-8 select-none">
       <div className="flex flex-col items-center text-center space-y-2">
         <div className="flex items-center gap-2 bg-primary/10 px-3 py-1 rounded-full">
-          <Sparkles className="w-3 h-3 text-primary" />
-          <span className="text-[8px] font-black uppercase text-primary">Câmara de Identidade</span>
+          <span className="text-[8px] font-black uppercase text-primary tracking-widest">Câmara de Identidade</span>
         </div>
         <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">
           {currentAvatar} ({currentIndex + 1}/{avatars.length})
@@ -116,12 +115,6 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
       </div>
       
       <div className="relative flex justify-center items-center h-[400px]">
-        <motion.div 
-          animate={{ rotate: 360 }}
-          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-          className="absolute w-64 h-64 bg-primary/10 rounded-full blur-3xl -z-10"
-        />
-
         {avatars.length > 1 && (
           <div className="absolute inset-x-0 flex justify-between items-center z-50 px-2 sm:px-10">
             <button onClick={handlePrev} className="bg-white p-4 rounded-full shadow-xl active:scale-90 transition-all border border-muted">
@@ -159,12 +152,6 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
                   alt={`Herói ${currentAvatar}`}
                 />
               )}
-              
-              <div className="absolute bottom-4 inset-x-4">
-                 <div className="bg-primary/90 text-white rounded-xl py-2 text-center text-[8px] font-black uppercase truncate px-2">
-                    {currentAvatar.split('.')[0].replace(/[-_]/g, ' ')}
-                 </div>
-              </div>
             </motion.div>
           </AnimatePresence>
         </div>

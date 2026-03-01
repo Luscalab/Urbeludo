@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -23,6 +22,7 @@ import { ShopDrawer } from '@/components/studio/ShopDrawer';
 import { TutorialOverlay } from '@/components/studio/TutorialOverlay';
 import { cn } from '@/lib/utils';
 import { STUDIO_CATALOG } from '@/lib/studio-catalog';
+import { getAvatarById } from '@/lib/avatar-catalog';
 
 export default function StudioPage() {
   const { user } = useUser();
@@ -61,7 +61,7 @@ export default function StudioPage() {
     }
   };
 
-  const avatarSrc = `/assets/avatars/${profile?.avatar?.avatarId || '1.png'}`;
+  const avatarInfo = getAvatarById(profile?.avatar?.avatarId);
   const auraColor = profile?.dominantColor || '#9333ea';
   const avatarPos = studioState.avatar.lastPosition;
   const isSapient = profile?.displayName?.toLowerCase() === 'sapient';
@@ -75,7 +75,7 @@ export default function StudioPage() {
         {showTutorial && profile && (
           <TutorialOverlay 
             userName={profile.displayName}
-            avatarUrl={avatarSrc}
+            avatarUrl={avatarInfo.src}
             onComplete={() => {
               setShowTutorial(false);
               if (userProgressRef) updateDocumentNonBlocking(userProgressRef, { hasSeenTutorial: true });
@@ -181,12 +181,7 @@ export default function StudioPage() {
             <div className="relative group">
               <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-24 h-6 bg-black/10 blur-xl rounded-full -z-10" />
               <div className="w-32 h-48 flex items-center justify-center">
-                <img src={avatarSrc} alt="Char" className="w-full h-full object-contain drop-shadow-[0_20px_40px_rgba(0,0,0,0.3)]" />
-              </div>
-              <div className="absolute -top-12 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <div className="bg-white/90 backdrop-blur-md px-4 py-1.5 rounded-2xl border-2 border-primary shadow-xl">
-                   <span className="text-[10px] font-black uppercase text-primary tracking-widest">{profile?.displayName}</span>
-                </div>
+                <img src={avatarInfo.src} alt="Char" className="w-full h-full object-contain drop-shadow-[0_20px_40px_rgba(0,0,0,0.3)]" />
               </div>
             </div>
           </motion.div>
