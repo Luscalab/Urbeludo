@@ -9,10 +9,10 @@ import {
   ChevronLeft, 
   ChevronRight,
   FolderOpen,
-  RefreshCw,
   Sparkles
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { STATIC_AVATAR_LIST } from "@/lib/avatar-catalog";
 
 interface AvatarSelectionProps {
   initialAvatarId?: string;
@@ -20,44 +20,22 @@ interface AvatarSelectionProps {
 }
 
 /**
- * Seletor de Identidade Dinâmico.
- * Varre e exibe qualquer arquivo de imagem na pasta de avatares.
+ * Seletor de Identidade Estático.
+ * Utiliza o catálogo local para garantir compatibilidade com exportação APK.
  */
 export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionProps) {
-  const [avatars, setAvatars] = useState<string[]>([]);
+  const [avatars, setAvatars] = useState<string[]>(STATIC_AVATAR_LIST);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isLoadingList, setIsLoadingList] = useState(true);
+  const [isLoadingList, setIsLoadingList] = useState(false);
   const [loadedImages, setLoadedImages] = useState<Record<string, boolean>>({});
   const [loadError, setLoadError] = useState<Record<string, boolean>>({});
 
-  const fetchAvatars = useCallback(async () => {
-    setIsLoadingList(true);
-    try {
-      const response = await fetch('/api/avatars');
-      if (!response.ok) throw new Error('API Inacessível');
-      const files = await response.json();
-      
-      if (files && files.length > 0) {
-        setAvatars(files);
-        // Tenta sincronizar o índice atual com o avatar que já estava salvo
-        if (initialAvatarId) {
-          const idx = files.indexOf(initialAvatarId);
-          if (idx !== -1) setCurrentIndex(idx);
-        }
-      } else {
-        setAvatars([]);
-      }
-    } catch (error) {
-      console.warn("Aviso: Falha ao carregar heróis da pasta local.", error);
-      setAvatars([]);
-    } finally {
-      setIsLoadingList(false);
-    }
-  }, [initialAvatarId]);
-
   useEffect(() => {
-    fetchAvatars();
-  }, [fetchAvatars]);
+    if (initialAvatarId) {
+      const idx = avatars.indexOf(initialAvatarId);
+      if (idx !== -1) setCurrentIndex(idx);
+    }
+  }, [initialAvatarId, avatars]);
 
   // Sempre que o índice ou a lista mudar, notifica o componente pai
   useEffect(() => {
@@ -91,12 +69,9 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
         <FolderOpen className="w-16 h-16 text-primary/20 mb-4" />
         <h3 className="text-xl font-black uppercase text-foreground/40 mb-2">Pasta de Heróis Vazia</h3>
         <p className="text-[9px] font-bold text-muted-foreground uppercase max-w-xs mx-auto mb-6">
-          Coloque suas fotos PNG ou JPG na pasta:<br/>
-          <span className="text-primary select-all lowercase font-mono">public/assets/avatars</span>
+          Verifique o catálogo estático em:<br/>
+          <span className="text-primary select-all lowercase font-mono">src/lib/avatar-catalog.ts</span>
         </p>
-        <button onClick={fetchAvatars} className="flex items-center gap-2 text-[10px] font-black uppercase text-primary border-b border-primary pb-1">
-          <RefreshCw className="w-3 h-3" /> Tentar Sincronizar
-        </button>
       </div>
     );
   }

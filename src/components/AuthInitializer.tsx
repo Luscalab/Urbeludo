@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import { LocalPersistence } from '@/lib/local-persistence';
+import { STATIC_AVATAR_LIST } from '@/lib/avatar-catalog';
 import { Loader2 } from 'lucide-react';
 
 /**
@@ -27,19 +28,8 @@ export function AuthInitializer({ children }: { children: React.ReactNode }) {
             await LocalPersistence.saveUserId(uid);
           }
 
-          // Busca dinamicamente o primeiro avatar disponível na pasta
-          let defaultAvatar = '';
-          try {
-            const res = await fetch('/api/avatars');
-            if (res.ok) {
-              const list = await res.json();
-              if (list && list.length > 0) {
-                defaultAvatar = list[0];
-              }
-            }
-          } catch (e) {
-            console.warn("API de avatares inacessível durante o boot.");
-          }
+          // Busca o primeiro avatar da lista estática (compatível com APK)
+          const defaultAvatar = STATIC_AVATAR_LIST[0] || 'hero_default.png';
 
           const initialData = {
             id: uid,
