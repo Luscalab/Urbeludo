@@ -1,8 +1,8 @@
 'use client';
 
 /**
- * @fileOverview AuraBrain - Interface Cliente para o Web Worker de IA.
- * Gerencia a comunicação com a thread de processamento.
+ * @fileOverview AuraBrain - Interface de comunicação com o Web Worker.
+ * Centraliza a lógica de IA de Borda para manter a UI fluida.
  */
 
 export interface IntentAnchor {
@@ -11,48 +11,42 @@ export interface IntentAnchor {
 }
 
 const INTENCOES: IntentAnchor[] = [
-  { id: 'jogar_elevador', examples: ["Como jogar o Elevador?", "como jogar o elevador", "instruções do jogo de voz", "como subir o baú", "ajuda no elevador"] },
-  { id: 'zona_estabilidade', examples: ["Zona de Estabilidade?", "o que é zona de estabilidade", "área verde na tela", "para que serve o círculo verde"] },
-  { id: 'clinico_psico', examples: ["O que é Psicomotricidade?", "o que é psicomotricidade", "por que esse jogo ajuda", "relação com o corpo e mente", "como o elevador ajuda minha voz"] },
-  { id: 'tonicidade', examples: ["o que é tonicidade", "controle dos músculos", "treino de pregas vocais", "tônus muscular", "firmeza na voz"] },
-  { id: 'moedas', examples: ["Para que servem as LudoCoins?", "para que servem as ludocoins", "onde vejo minhas moedas", "como ganhar dinheiro no jogo"] },
-  { id: 'tecnico_ajuda', examples: ["Problemas técnicos?", "não funciona", "bug no microfone", "sem som", "o elevador não sobe", "ajuda técnica"] },
-  { id: 'praxia_fina', examples: ["O que é Praxia Fina?", "o que é praxia fina", "coordenação das mãos", "movimentos pequenos"] },
-  { id: 'esquema_corporal', examples: ["O que é Esquema Corporal?", "esquema corporal", "consciência do corpo", "meu avatar e progresso"] }
+  { id: 'jogar_elevador', examples: ["Como jogar o Elevador?", "instruções do elevador", "como subir o baú", "ajuda no jogo de voz"] },
+  { id: 'zona_estabilidade', examples: ["Zona de Estabilidade?", "o que é a área verde", "círculo verde na tela", "estabilizar voz"] },
+  { id: 'clinico_psico', examples: ["O que é Psicomotricidade?", "como esse jogo ajuda meu corpo", "benefícios clínicos", "psicomotricidade e ludicidade"] },
+  { id: 'tonicidade', examples: ["o que é tonicidade", "controle dos músculos", "tônus das pregas vocais", "firmeza muscular"] },
+  { id: 'moedas', examples: ["Para que servem as LudoCoins?", "onde vejo minhas moedas", "como ganhar ludocoins"] },
+  { id: 'tecnico_ajuda', examples: ["Microfone não funciona", "bug no som", "o elevador não sobe", "problemas técnicos"] },
+  { id: 'praxia_fina', examples: ["O que é Praxia Fina?", "coordenação das mãos", "movimentos precisos", "caminho de luz ajuda o que"] },
+  { id: 'esquema_corporal', examples: ["O que é Esquema Corporal?", "consciência do corpo", "meu avatar e progresso"] }
 ];
 
 let worker: Worker | null = null;
-let isReady = false;
-let onReadyCallback: (() => void) | null = null;
-let onProgressCallback: ((p: number) => void) | null = null;
 let resolveClassification: ((id: string) => void) | null = null;
 
+/**
+ * Inicializa o Worker em segundo plano.
+ */
 export const initAuraBrain = (onProgress?: (p: number) => void) => {
   if (typeof window === 'undefined' || worker) return;
 
-  onProgressCallback = onProgress || null;
-  
-  // Cria o Worker a partir do arquivo otimizado
   worker = new Worker(new URL('./aura-worker.ts', import.meta.url), { type: 'module' });
 
   worker.onmessage = (event) => {
-    const { type, progress, intentId, score, message } = event.data;
+    const { type, progress, intentId, message } = event.data;
 
     switch (type) {
       case 'progress':
-        if (onProgressCallback) onProgressCallback(progress);
+        if (onProgress) onProgress(progress);
         break;
       case 'ready':
-        isReady = true;
-        if (onProgressCallback) onProgressCallback(100);
-        if (onReadyCallback) onReadyCallback();
+        if (onProgress) onProgress(100);
         break;
       case 'result':
-        console.log(`[AuraWorker] Match: ${intentId} | Score: ${score.toFixed(4)}`);
         if (resolveClassification) resolveClassification(intentId);
         break;
       case 'error':
-        console.error("❌ AuraWorker Error:", message);
+        console.error("❌ AuraBrain: Erro no Worker:", message);
         if (resolveClassification) resolveClassification('fallback');
         break;
     }
@@ -61,9 +55,12 @@ export const initAuraBrain = (onProgress?: (p: number) => void) => {
   worker.postMessage({ type: 'init' });
 };
 
+/**
+ * Classifica a intenção do usuário via Web Worker (Zero bloqueio de UI).
+ */
 export const classifyIntent = async (userText: string): Promise<string> => {
-  if (!worker || !isReady) {
-    console.warn("⚠️ AuraBrain: Worker não está pronto.");
+  if (!worker) {
+    console.warn("⚠️ AuraBrain: Worker não inicializado.");
     return 'fallback';
   }
 

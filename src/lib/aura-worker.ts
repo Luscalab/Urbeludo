@@ -6,6 +6,7 @@
 import { pipeline, env } from '@xenova/transformers';
 
 // Configuração para carregamento LOCAL (Pasta public/models/)
+// Essencial para funcionamento 100% Offline no APK
 env.allowLocalModels = true;
 env.remoteModels = false;
 env.localModelPath = '/models/';
@@ -36,7 +37,7 @@ self.onmessage = async (event) => {
       const output = await extractor(text, { pooling: 'mean', normalize: true });
       const userVector = Array.from(output.data as Float32Array);
 
-      // 2. Compara com os exemplos fornecidos
+      // 2. Compara com as intenções âncoras (Similaridade de Cosseno)
       let bestMatch = { id: 'fallback', score: 0 };
 
       for (const intent of examples) {
@@ -51,7 +52,13 @@ self.onmessage = async (event) => {
         }
       }
 
-      self.postMessage({ type: 'result', intentId: bestMatch.score >= 0.4 ? bestMatch.id : 'fallback', score: bestMatch.score });
+      // Threshold ajustado para 0.4 para maior flexibilidade linguística
+      const finalId = bestMatch.score >= 0.4 ? bestMatch.id : 'fallback';
+      self.postMessage({ 
+        type: 'result', 
+        intentId: finalId, 
+        score: bestMatch.score 
+      });
     }
   } catch (error: any) {
     self.postMessage({ type: 'error', message: error.message });

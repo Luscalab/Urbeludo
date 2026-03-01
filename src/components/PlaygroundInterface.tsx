@@ -47,6 +47,7 @@ import { saveToSheets } from '@/lib/sheets';
 
 type GameMode = 'select' | 'balance' | 'rhythm' | 'path' | 'breath' | 'voice';
 
+// Otimização: Carregamento sob demanda para ativos de jogo
 const VOICE_ASSETS = {
   fundo: "/games/elevador/1.png",
   roboParado: "/games/elevador/2.png",
@@ -68,6 +69,7 @@ const CoinRain = () => {
         <motion.img
           key={i}
           src={VOICE_ASSETS.ludocoin}
+          loading="lazy"
           className="absolute w-10 h-10"
           initial={{ x: "50%", y: "15%", scale: 0, opacity: 1 }}
           animate={{ 
@@ -186,11 +188,11 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
            <div className="flex items-center justify-center gap-2 mb-2">
              <div className="px-3 py-1 bg-primary/20 rounded-full border border-primary/30 flex items-center gap-2">
                <ShieldCheck className="w-3 h-3 text-primary" />
-               <span className="text-[8px] font-black uppercase text-primary tracking-widest">IA de Borda: 100% Offline</span>
+               <span className="text-[8px] font-black uppercase text-primary tracking-widest">SPSP: Laboratório Biomecânico</span>
              </div>
            </div>
-           <h2 className="text-4xl font-black uppercase italic tracking-tighter text-white">Laboratório de Movimento</h2>
-           <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.4em]">Sincronia Biomecânica de 2026</p>
+           <h2 className="text-4xl font-black uppercase italic tracking-tighter text-white">Centro de Treino</h2>
+           <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.4em]">Sincronia a 60 FPS</p>
         </div>
 
         <div className="grid gap-4 w-full max-w-sm pb-10">
@@ -228,7 +230,7 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
                
                <DialogFooter className="flex flex-col gap-3 mt-8">
                   <Button onClick={startPendingGame} className="w-full h-20 rounded-full bg-primary text-white font-black uppercase text-lg border-b-8 border-primary/70 active:border-b-0 active:translate-y-2 transition-all shadow-xl">
-                    Imersão Sonora
+                    Iniciar Desafio
                   </Button>
                </DialogFooter>
             </div>
@@ -267,7 +269,8 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
   );
 }
 
-function GameModeCard({ icon, title, desc, goal, color, onClick }: any) {
+// Otimização: Componente puro para evitar re-renders
+const GameModeCard = React.memo(({ icon, title, desc, goal, color, onClick }: any) => {
   return (
     <motion.div whileHover={{ scale: 1.02, x: 5 }} className="relative group w-full">
       <button onClick={onClick} className="p-5 rounded-[2.5rem] bg-white/5 border border-white/10 flex items-center gap-5 text-left transition-all hover:bg-white/10 w-full relative overflow-hidden active:scale-95">
@@ -285,7 +288,9 @@ function GameModeCard({ icon, title, desc, goal, color, onClick }: any) {
       </button>
     </motion.div>
   );
-}
+});
+
+GameModeCard.displayName = 'GameModeCard';
 
 function BalanceGame({ onWin, auraColor }: { onWin: (reward: number, type: string) => void, auraColor: string }) {
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
@@ -576,7 +581,7 @@ function BreathGame({ onWin, auraColor }: any) {
       {error && (
         <Alert variant="destructive" className="max-w-xs mb-8 rounded-3xl border-2">
           <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Hardware não encontrado</AlertTitle>
+          <AlertTitle>Hardware Ocupado</AlertTitle>
           <AlertDescription className="text-[10px] font-bold uppercase">{error}</AlertDescription>
         </Alert>
       )}
@@ -703,7 +708,12 @@ function VoiceGame({ onWin, auraColor, ludoCoins, userName }: { onWin: (reward: 
   return (
     <div className="flex-1 flex flex-col items-center justify-center relative overflow-hidden bg-slate-950">
       <div className="absolute inset-0 z-0">
-        <img src={VOICE_ASSETS.fundo} alt="" className="w-full h-full object-cover opacity-60" />
+        <img 
+          src={VOICE_ASSETS.fundo} 
+          alt="" 
+          loading="lazy"
+          className="w-full h-full object-cover opacity-60" 
+        />
       </div>
 
       {!active && !showTransition ? (
@@ -712,14 +722,6 @@ function VoiceGame({ onWin, auraColor, ludoCoins, userName }: { onWin: (reward: 
           animate={{ opacity: 1, y: 0 }}
           className="relative z-50 text-center space-y-10 p-12 bg-black/60 backdrop-blur-2xl rounded-[4rem] border-4 border-white/10 max-w-sm"
         >
-          {error && (
-            <Alert variant="destructive" className="mb-6 rounded-3xl border-2 bg-red-950/20">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle className="text-xs uppercase font-black">Hardware Ocupado</AlertTitle>
-              <AlertDescription className="text-[10px] font-bold uppercase">{error}</AlertDescription>
-            </Alert>
-          )}
-
           <div className="w-32 h-32 mx-auto bg-pink-500/20 rounded-[2.5rem] flex items-center justify-center text-pink-500 border-4 border-pink-500 animate-pulse shadow-2xl">
             <Volume2 className="w-16 h-16" />
           </div>
@@ -733,16 +735,13 @@ function VoiceGame({ onWin, auraColor, ludoCoins, userName }: { onWin: (reward: 
             <Button onClick={start} className="h-20 px-12 rounded-full bg-pink-600 text-white font-black uppercase text-xl shadow-2xl border-b-8 border-pink-800 active:translate-y-2 transition-all">
               Iniciar Missão
             </Button>
-            <button onClick={() => setIsExplorationMode(!isExplorationMode)} className={cn("text-[9px] font-black uppercase tracking-widest transition-colors", isExplorationMode ? "text-green-400" : "text-white/30")}>
-              {isExplorationMode ? "Modo Livre Ativado" : "Ativar Modo Livre"}
-            </button>
           </div>
         </motion.div>
       ) : (
         <div className="relative w-full max-w-lg h-full flex items-center justify-center">
           <div className="absolute left-8 top-1/2 -translate-y-1/2 w-20 z-30">
             <div className="relative">
-              <img src={VOICE_ASSETS.medidor} alt="Volume" className="w-full h-auto" />
+              <img src={VOICE_ASSETS.medidor} alt="Volume" loading="lazy" className="w-full h-auto" />
               <div 
                 className={cn(
                   "absolute bottom-[12%] left-1/2 -translate-x-1/2 w-3 shadow-[0_0_15px] transition-all duration-100 rounded-full",
@@ -754,7 +753,7 @@ function VoiceGame({ onWin, auraColor, ludoCoins, userName }: { onWin: (reward: 
           </div>
 
           <div className="absolute left-1/2 bottom-0 -translate-x-1/2 h-[85%] z-10 flex items-center justify-center">
-             <img src={VOICE_ASSETS.torre} alt="" className="h-full w-auto object-contain filter drop-shadow-[0_0_30px_rgba(255,255,255,0.1)]" />
+             <img src={VOICE_ASSETS.torre} alt="" loading="lazy" className="h-full w-auto object-contain filter drop-shadow-[0_0_30px_rgba(255,255,255,0.1)]" />
              <motion.div 
                animate={{ y: 150 - (currentLevel.range.min * 1.5) }}
                className="absolute inset-x-8 h-24 bg-green-500/10 border-y-2 border-green-500/30 backdrop-blur-sm flex items-center justify-center rounded-2xl"
@@ -767,10 +766,11 @@ function VoiceGame({ onWin, auraColor, ludoCoins, userName }: { onWin: (reward: 
                transition={{ type: "spring", stiffness: 35, damping: 18 }}
                className="absolute left-1/2 -translate-x-1/2 w-32 h-56 z-20 flex flex-col items-center justify-center"
              >
-                <img src={VOICE_ASSETS.cabine} alt="" className="w-full h-full object-contain filter drop-shadow-2xl relative z-20" />
+                <img src={VOICE_ASSETS.cabine} alt="" loading="lazy" className="w-full h-full object-contain filter drop-shadow-2xl relative z-20" />
                 <img 
                   src={isSinging ? VOICE_ASSETS.roboCantando : VOICE_ASSETS.roboParado} 
                   alt="" 
+                  loading="lazy"
                   className="absolute top-[45%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 z-30 transition-all" 
                 />
              </motion.div>
@@ -782,6 +782,7 @@ function VoiceGame({ onWin, auraColor, ludoCoins, userName }: { onWin: (reward: 
                       <motion.img 
                         initial={{ scale: 0.9 }} animate={{ scale: 1 }} 
                         src={VOICE_ASSETS.caixaFechada} 
+                        loading="lazy"
                         className="w-full h-auto object-contain filter drop-shadow-2xl"
                       />
                       {!isExplorationMode && sustensionProgress > 0 && (
@@ -799,7 +800,7 @@ function VoiceGame({ onWin, auraColor, ludoCoins, userName }: { onWin: (reward: 
                       initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
                       className="relative w-full h-full"
                     >
-                       <img src={VOICE_ASSETS.caixaAberta} className="w-full h-auto object-contain" />
+                       <img src={VOICE_ASSETS.caixaAberta} loading="lazy" className="w-full h-auto object-contain" />
                        <CoinRain />
                     </motion.div>
                   )}
@@ -811,7 +812,7 @@ function VoiceGame({ onWin, auraColor, ludoCoins, userName }: { onWin: (reward: 
              <div className="flex justify-between items-center bg-black/60 backdrop-blur-xl p-4 rounded-[2rem] border border-white/10">
                 <div className="flex items-center gap-3">
                    <div className="w-10 h-10 rounded-xl bg-yellow-500/20 flex items-center justify-center">
-                      <img src={VOICE_ASSETS.pilhaMoedas} className="w-6 h-6" alt="Saldo" />
+                      <img src={VOICE_ASSETS.pilhaMoedas} loading="lazy" className="w-6 h-6" alt="Saldo" />
                    </div>
                    <div className="flex flex-col">
                       <span className="text-[10px] font-black text-white uppercase tracking-tighter">{currentLevel.name}</span>
@@ -861,7 +862,7 @@ function VoiceGame({ onWin, auraColor, ludoCoins, userName }: { onWin: (reward: 
                    {isGeneratingReport ? (
                       <div className="flex flex-col items-center gap-2 py-4">
                          <div className="w-6 h-6 border-2 border-pink-400 border-t-transparent rounded-full animate-spin" />
-                         <span className="text-[8px] font-black uppercase text-pink-300">Sincronizando Neurônios...</span>
+                         <span className="text-[8px] font-black uppercase text-pink-300">Analisando Biomecânica...</span>
                       </div>
                    ) : (
                       <p className="text-[10px] font-bold leading-relaxed text-slate-700 text-left italic">
@@ -881,7 +882,7 @@ function VoiceGame({ onWin, auraColor, ludoCoins, userName }: { onWin: (reward: 
               </div>
 
               <Button onClick={nextLevel} className="w-full h-20 rounded-full bg-pink-600 text-white font-black uppercase shadow-2xl border-b-8 border-pink-800 active:translate-y-2 transition-all text-lg flex items-center justify-center gap-3">
-                {phaseIdx === VOICE_LEVELS.length - 1 ? 'Finalizar Maestro' : 'Subir Mais Alto'} <Rocket className="w-6 h-6" />
+                {phaseIdx === VOICE_LEVELS.length - 1 ? 'Finalizar Maestria' : 'Subir Mais Alto'} <Rocket className="w-6 h-6" />
               </Button>
             </motion.div>
           </motion.div>
