@@ -18,7 +18,10 @@ export const translations = {
       accessibility: 'Acessibilidade',
       readPage: 'Ler Página',
       libras: 'Assistente de Libras',
-      stopAudio: 'Parar Áudio'
+      stopAudio: 'Parar Áudio',
+      howToPlay: 'Como Brincar',
+      safety: 'Segurança e Adaptação',
+      close: 'Fechar'
     },
     home: {
       heroTitle: 'Seu corpo é o equilíbrio',
@@ -70,7 +73,10 @@ export const translations = {
         balance: {
           title: 'Equilibrista de Auras',
           desc: 'Mantenha a esfera no centro usando a gravidade.',
-          goal: 'Sistema Vestibular e Tônus Muscular'
+          goal: 'Sistema Vestibular e Tônus Muscular',
+          info: 'Trabalha o equilíbrio estático e dinâmico.',
+          warning: 'Este jogo exige controle do tronco e mãos estáveis.',
+          tip: 'Se o equilíbrio for difícil, tente jogar sentado em uma superfície firme.'
         },
         rhythm: {
           title: 'Maestro de Auras',
@@ -78,42 +84,58 @@ export const translations = {
           goal: 'Ritmo e Freio Inibitório',
           tooEarly: 'Muito Cedo!',
           dontShake: 'Não balance!',
-          offBeat: 'Fora de Ritmo!'
+          offBeat: 'Fora de Ritmo!',
+          info: 'Trabalha a coordenação rítmica e o freio inibitório.',
+          warning: 'Se o tempo da música for um desafio, tente focar apenas no som e relaxar os braços primeiro.',
+          tip: 'Você pode jogar batendo o celular suavemente na palma da outra mão.'
         },
         path: {
           title: 'Caminho de Luz',
           desc: 'Guie a Aura pelo labirinto sem tirar o dedo.',
-          goal: 'Coordenação Visomotora e Escrita'
+          goal: 'Coordenação Visomotora e Escrita',
+          info: 'Desenvolve a coordenação olho-mão e precisão digital.',
+          warning: 'Este desafio exige paciência. Errar o caminho faz parte do treino! Respire fundo e recomece devagar.',
+          tip: 'Para quem tem dificuldade motora fina, use uma caneta touch para maior controle.'
         },
         jump: {
           title: 'O Pulo do Gigante',
           desc: 'Dê o maior pulo para decolar sua Aura!',
-          goal: 'Motricidade Global e Impulsão'
-        },
-        twister: {
-          title: 'Twister de Auras',
-          desc: 'Segure todos os pontos na tela ao mesmo tempo.',
-          goal: 'Dissociação Digital e Lateralidade'
+          goal: 'Motricidade Global e Impulsão',
+          info: 'Recruta grandes grupos musculares e força de explosão.',
+          warning: 'Atenção: Envolve movimentos bruscos. Crianças com hipersensibilidade vestibular podem precisar de apoio.',
+          tip: 'O pulo pode ser substituído por um movimento rápido de braços para cima.'
         },
         radar: {
           title: 'O Radar Cego',
           desc: 'Siga o som para encontrar a Aura escondida.',
-          goal: 'Percepção Espacial e Auditiva'
+          goal: 'Percepção Espacial e Auditiva',
+          info: 'Trabalha a localização sonora e orientação 360 graus.',
+          warning: 'Sons 3D podem causar desorientação. Se sentir tontura, jogue com o volume baixo.',
+          tip: 'Tente jogar de olhos fechados para focar totalmente na audição.'
         },
         breath: {
           title: 'O Sopro Mágico',
           desc: 'Sopre no microfone para girar o cata-vento!',
-          goal: 'Controle Respiratório e Fonoaudiologia'
+          goal: 'Controle Respiratório e Fonoaudiologia',
+          info: 'Treino de fluxo aéreo e capacidade vital pulmonar.',
+          warning: 'Exige esforço respiratório. Se sentir tontura, faça uma pausa e recupere o fôlego.',
+          tip: 'Pode ser controlado por sopros curtos (staccato) se o sopro longo for difícil.'
         },
         voice: {
           title: 'O Elevador de Voz',
           desc: 'Controle o elevador com o volume da sua voz.',
-          goal: 'Intensidade e Sustentação Vocal'
+          goal: 'Intensidade e Sustentação Vocal',
+          info: 'Controle de volume (dB) e sustentação de vogais.',
+          warning: 'Trabalha a propriocepção vocal. Evite gritar excessivamente.',
+          tip: 'Use sons suaves como "hummm" ou "shhh" para um controle mais estável.'
         },
         pitch: {
           title: 'Montanha Russa Sonora',
           desc: 'Sons agudos sobem, sons graves descem!',
-          goal: 'Modulação de Frequência Vocal'
+          goal: 'Modulação de Frequência Vocal',
+          info: 'Alongamento e encurtamento das pregas vocais.',
+          warning: 'Explore as frequências sem forçar a garganta.',
+          tip: 'Imagine que você é um passarinho para subir e um urso para descer!'
         }
       }
     },
@@ -146,9 +168,13 @@ export const translations = {
       accessibility: 'Accessibility',
       readPage: 'Read Page',
       libras: 'Sign Language Assist',
-      stopAudio: 'Stop Audio'
+      stopAudio: 'Stop Audio',
+      howToPlay: 'How to Play',
+      safety: 'Safety & Adaptation',
+      close: 'Close'
     },
     playground: {
+      selectGame: 'Choose your Challenge',
       modes: {
         rhythm: {
           tooEarly: 'Too Early!',
@@ -175,9 +201,13 @@ export const translations = {
       accessibility: 'Accesibilidad',
       readPage: 'Leer Página',
       libras: 'Asistente de Lengua de Señas',
-      stopAudio: 'Detener Audio'
+      stopAudio: 'Detener Audio',
+      howToPlay: 'Cómo Jugar',
+      safety: 'Seguridad y Adaptación',
+      close: 'Cerrar'
     },
     playground: {
+      selectGame: 'Elige tu Desafío',
       modes: {
         rhythm: {
           tooEarly: '¡Muy Pronto!',

@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -23,7 +22,10 @@ import {
   Sparkles,
   Info,
   Play,
-  Volume2
+  Volume2,
+  AlertTriangle,
+  Lightbulb,
+  X
 } from 'lucide-react';
 
 import { useUser, useDoc, useMemoFirebase } from '@/firebase';
@@ -32,6 +34,13 @@ import { useI18n } from '@/components/I18nProvider';
 import { AccessibilityToolbar } from '@/components/AccessibilityToolbar';
 import { UrbeLudoLogo } from '@/components/UrbeLudoLogo';
 import { cn } from '@/lib/utils';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 
 type GameMode = 'select' | 'balance' | 'rhythm' | 'path' | 'jump' | 'twister' | 'radar' | 'breath' | 'voice' | 'pitch';
 
@@ -43,6 +52,7 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
   const [gameMode, setGameMode] = useState<GameMode>('select');
   const [isWin, setIsWin] = useState(false);
   const [rewardAmount, setRewardAmount] = useState(0);
+  const [activeInfoMode, setActiveInfoMode] = useState<GameMode | null>(null);
   
   const userProgressRef = useMemoFirebase(() => user ? { id: user.uid, path: `user_progress/${user.uid}` } : null, [user]);
   const { data: profile } = useDoc(userProgressRef);
@@ -129,22 +139,73 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
         </div>
 
         <div className="grid gap-4 w-full max-w-sm pb-10">
-          <GameModeCard icon={<Move />} title={t('playground.modes.balance.title')} desc={t('playground.modes.balance.desc')} goal={t('playground.modes.balance.goal')} color="bg-blue-500" onClick={() => setGameMode('balance')} />
-          <GameModeCard icon={<Music />} title={t('playground.modes.rhythm.title')} desc={t('playground.modes.rhythm.desc')} goal={t('playground.modes.rhythm.goal')} color="bg-primary" onClick={() => setGameMode('rhythm')} />
-          <GameModeCard icon={<Fingerprint />} title={t('playground.modes.path.title')} desc={t('playground.modes.path.desc')} goal={t('playground.modes.path.goal')} color="bg-accent" onClick={() => setGameMode('path')} />
+          <GameModeCard icon={<Move />} mode="balance" title={t('playground.modes.balance.title')} desc={t('playground.modes.balance.desc')} goal={t('playground.modes.balance.goal')} color="bg-blue-500" onClick={() => setGameMode('balance')} onInfo={() => setActiveInfoMode('balance')} />
+          <GameModeCard icon={<Music />} mode="rhythm" title={t('playground.modes.rhythm.title')} desc={t('playground.modes.rhythm.desc')} goal={t('playground.modes.rhythm.goal')} color="bg-primary" onClick={() => setGameMode('rhythm')} onInfo={() => setActiveInfoMode('rhythm')} />
+          <GameModeCard icon={<Fingerprint />} mode="path" title={t('playground.modes.path.title')} desc={t('playground.modes.path.desc')} goal={t('playground.modes.path.goal')} color="bg-accent" onClick={() => setGameMode('path')} onInfo={() => setActiveInfoMode('path')} />
           
           <div className="w-full border-t border-white/10 pt-4 mt-2">
             <p className="text-[8px] font-black text-white/30 uppercase tracking-[0.4em] mb-4 text-center">Fonoaudiologia e Respiração</p>
           </div>
 
-          <GameModeCard icon={<Wind />} title={t('playground.modes.breath.title')} desc={t('playground.modes.breath.desc')} goal={t('playground.modes.breath.goal')} color="bg-teal-500" onClick={() => setGameMode('breath')} />
-          <GameModeCard icon={<Volume2 />} title={t('playground.modes.voice.title')} desc={t('playground.modes.voice.desc')} goal={t('playground.modes.voice.goal')} color="bg-pink-500" onClick={() => setGameMode('voice')} />
-          <GameModeCard icon={<Waves />} title={t('playground.modes.pitch.title')} desc={t('playground.modes.pitch.desc')} goal={t('playground.modes.pitch.goal')} color="bg-cyan-500" onClick={() => setGameMode('pitch')} />
+          <GameModeCard icon={<Wind />} mode="breath" title={t('playground.modes.breath.title')} desc={t('playground.modes.breath.desc')} goal={t('playground.modes.breath.goal')} color="bg-teal-500" onClick={() => setGameMode('breath')} onInfo={() => setActiveInfoMode('breath')} />
+          <GameModeCard icon={<Volume2 />} mode="voice" title={t('playground.modes.voice.title')} desc={t('playground.modes.voice.desc')} goal={t('playground.modes.voice.goal')} color="bg-pink-500" onClick={() => setGameMode('voice')} onInfo={() => setActiveInfoMode('voice')} />
+          <GameModeCard icon={<Waves />} mode="pitch" title={t('playground.modes.pitch.title')} desc={t('playground.modes.pitch.desc')} goal={t('playground.modes.pitch.goal')} color="bg-cyan-500" onClick={() => setGameMode('pitch')} onInfo={() => setActiveInfoMode('pitch')} />
         </div>
         
         <Link href="/dashboard" className="text-[10px] font-black uppercase text-white/40 hover:text-white transition-colors tracking-widest mt-auto pb-4 flex items-center gap-2">
           <ArrowLeft className="w-4 h-4" /> {t('common.back')}
         </Link>
+
+        {/* Modal Informativo e Pedagógico */}
+        <Dialog open={!!activeInfoMode} onOpenChange={() => setActiveInfoMode(null)}>
+          <DialogContent className="max-w-md rounded-[3rem] border-4 border-white/20 bg-slate-900 text-white p-8 overflow-hidden">
+            <div className="absolute inset-0 bg-mesh-game opacity-20 pointer-events-none" />
+            
+            {activeInfoMode && (
+              <div className="relative space-y-6">
+                <DialogHeader>
+                  <div className="flex items-center gap-4 mb-2">
+                    <div className="p-3 bg-primary/20 rounded-2xl border border-primary/30">
+                       <UrbeLudoLogo className="w-6 h-6 text-primary" />
+                    </div>
+                    <DialogTitle className="text-2xl font-black uppercase italic tracking-tighter">
+                      {t(`playground.modes.${activeInfoMode}.title`)}
+                    </DialogTitle>
+                  </div>
+                  <DialogDescription className="text-xs font-bold text-white/60 uppercase tracking-widest leading-relaxed">
+                    {t(`playground.modes.${activeInfoMode}.info`)}
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="space-y-4">
+                  <div className="p-5 bg-white/5 rounded-[2rem] border border-white/10 flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-yellow-500/20 flex items-center justify-center text-yellow-500 shrink-0">
+                       <AlertTriangle className="w-5 h-5" />
+                    </div>
+                    <div className="space-y-1">
+                      <h4 className="text-[10px] font-black uppercase text-yellow-500 tracking-widest">{t('common.safety')}</h4>
+                      <p className="text-[9px] font-medium leading-relaxed opacity-80">{t(`playground.modes.${activeInfoMode}.warning`)}</p>
+                    </div>
+                  </div>
+
+                  <div className="p-5 bg-white/5 rounded-[2rem] border border-white/10 flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center text-green-500 shrink-0">
+                       <Lightbulb className="w-5 h-5" />
+                    </div>
+                    <div className="space-y-1">
+                      <h4 className="text-[10px] font-black uppercase text-green-500 tracking-widest">Dica de Adaptação</h4>
+                      <p className="text-[9px] font-medium leading-relaxed opacity-80">{t(`playground.modes.${activeInfoMode}.tip`)}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <Button onClick={() => setActiveInfoMode(null)} className="w-full h-16 rounded-full bg-white text-slate-900 font-black uppercase text-[10px] tracking-widest border-b-4 border-slate-200 active:border-b-0 active:translate-y-1 transition-all">
+                  {t('common.close')}
+                </Button>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
@@ -182,30 +243,45 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
   );
 }
 
-function GameModeCard({ icon, title, desc, goal, color, onClick }: any) {
+function GameModeCard({ icon, title, desc, goal, color, onClick, onInfo }: any) {
   return (
-    <motion.button 
+    <motion.div 
       whileHover={{ scale: 1.02, x: 5 }} 
-      whileTap={{ scale: 0.95 }} 
-      onClick={onClick} 
-      className="p-5 rounded-[2.5rem] bg-white/5 border border-white/10 flex items-center gap-5 text-left group transition-all hover:bg-white/10 w-full relative overflow-hidden"
+      className="relative group w-full"
     >
-      <div className={cn("w-14 h-14 rounded-[1.5rem] flex items-center justify-center text-white shadow-2xl group-hover:rotate-6 transition-transform shrink-0", color)}>
-        {React.cloneElement(icon, { className: "w-8 h-8" })}
-      </div>
-      <div className="flex-1 min-w-0 space-y-1">
-        <h3 className="text-sm font-black uppercase italic tracking-tighter text-white leading-tight">{title}</h3>
-        <p className="text-[8px] text-white/40 font-bold uppercase leading-relaxed">{desc}</p>
-        <div className="flex items-center gap-1.5 pt-1">
-          <Info className="w-2.5 h-2.5 text-primary/60" />
-          <span className="text-[7px] font-black uppercase text-primary/60 tracking-widest">Objetivo: {goal}</span>
+      <button 
+        onClick={onClick} 
+        className="p-5 rounded-[2.5rem] bg-white/5 border border-white/10 flex items-center gap-5 text-left transition-all hover:bg-white/10 w-full relative overflow-hidden active:scale-95"
+      >
+        <div className={cn("w-14 h-14 rounded-[1.5rem] flex items-center justify-center text-white shadow-2xl group-hover:rotate-6 transition-transform shrink-0", color)}>
+          {React.cloneElement(icon, { className: "w-8 h-8" })}
         </div>
-      </div>
-    </motion.button>
+        <div className="flex-1 min-w-0 space-y-1">
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-black uppercase italic tracking-tighter text-white leading-tight">{title}</h3>
+          </div>
+          <p className="text-[8px] text-white/40 font-bold uppercase leading-relaxed">{desc}</p>
+          <div className="flex items-center gap-1.5 pt-1">
+            <Info className="w-2.5 h-2.5 text-primary/60" />
+            <span className="text-[7px] font-black uppercase text-primary/60 tracking-widest">Foco: {goal.split(' ')[0]}</span>
+          </div>
+        </div>
+      </button>
+      
+      {/* Botão de Info Separado para não interferir no clique do jogo */}
+      <Button 
+        variant="ghost" 
+        size="icon" 
+        onClick={(e) => { e.stopPropagation(); onInfo(); }}
+        className="absolute top-4 right-4 h-8 w-8 rounded-full bg-white/5 hover:bg-white/20 text-white/40 hover:text-white z-20"
+      >
+        <Info className="w-4 h-4" />
+      </Button>
+    </motion.div>
   );
 }
 
-// --- JOGO 1: EQUILIBRISTA DE AURAS (REFORMULADO) ---
+// --- JOGO 1: EQUILIBRISTA DE AURAS ---
 function BalanceGame({ onWin, auraColor }: { onWin: (reward: number, type: string) => void, auraColor: string }) {
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const [progress, setProgress] = useState(0);
@@ -222,7 +298,6 @@ function BalanceGame({ onWin, auraColor }: { onWin: (reward: number, type: strin
 
   const currentPhase = BALANCE_PHASES[phaseIdx];
 
-  // Iniciar sensores
   const start = async () => {
     if (typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
       const res = await (DeviceOrientationEvent as any).requestPermission();
@@ -232,12 +307,9 @@ function BalanceGame({ onWin, auraColor }: { onWin: (reward: number, type: strin
     }
   };
 
-  // Sensor de orientação
   useEffect(() => {
     if (!active) return;
     const handleOrientation = (e: DeviceOrientationEvent) => {
-      // Gamma: inclinação lateral (esquerda/direita)
-      // Beta: inclinação frontal (frente/trás) - Ajustamos o offset para 45 graus (posição natural)
       setTilt({ 
         x: (e.gamma || 0), 
         y: ((e.beta || 0) - 45) 
@@ -247,62 +319,41 @@ function BalanceGame({ onWin, auraColor }: { onWin: (reward: number, type: strin
     return () => window.removeEventListener('deviceorientation', handleOrientation);
   }, [active]);
 
-  // Movimentação do alvo
   useEffect(() => {
     if (!active || currentPhase.moveFrequency === 0) {
       setTargetPos({ x: 0, y: 0 });
       return;
     }
-
     const moveTarget = () => {
-      // Gera uma posição aleatória dentro de um raio seguro (-20 a 20)
       setTargetPos({
         x: (Math.random() * 40) - 20,
         y: (Math.random() * 40) - 20
       });
     };
-
     const interval = setInterval(moveTarget, currentPhase.moveFrequency);
     return () => clearInterval(interval);
-  }, [active, phaseIdx, currentPhase.moveFrequency]);
+  }, [active, currentPhase.moveFrequency]);
 
-  // Lógica de progresso e vitória
   useEffect(() => {
     if (!active) return;
-
-    // Distância euclidiana entre a bolinha (tilt) e o alvo (targetPos)
-    const dist = Math.sqrt(
-      Math.pow(tilt.x - targetPos.x, 2) + 
-      Math.pow(tilt.y - targetPos.y, 2)
-    );
-
+    const dist = Math.sqrt(Math.pow(tilt.x - targetPos.x, 2) + Math.pow(tilt.y - targetPos.y, 2));
     const isInside = dist < currentPhase.threshold;
 
-    let timer: NodeJS.Timeout;
-    if (isInside) {
-      timer = setInterval(() => {
-        setProgress(prev => {
-          if (prev >= 100) return 100;
-          return prev + 2;
-        });
-      }, 100);
-    } else {
-      // Se sair do alvo, o progresso cai devagar
-      timer = setInterval(() => {
+    const timer = setInterval(() => {
+      if (isInside) {
+        setProgress(prev => Math.min(100, prev + 2));
+      } else {
         setProgress(prev => Math.max(0, prev - 1));
-      }, 100);
-    }
-
+      }
+    }, 100);
     return () => clearInterval(timer);
   }, [active, tilt, targetPos, currentPhase.threshold]);
 
-  // Transição de fase
   useEffect(() => {
     if (progress >= 100) {
       if (phaseIdx < BALANCE_PHASES.length - 1) {
         setPhaseIdx(prev => prev + 1);
         setProgress(0);
-        if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
       } else {
         onWin(currentPhase.reward, 'Mestre do Equilíbrio');
       }
@@ -326,77 +377,26 @@ function BalanceGame({ onWin, auraColor }: { onWin: (reward: number, type: strin
                 <span className="text-xl font-black text-white">{Math.round(progress)}%</span>
              </div>
              <div className="h-4 bg-white/10 rounded-full overflow-hidden border border-white/5">
-                <motion.div 
-                  initial={{ width: 0 }}
-                  animate={{ width: `${progress}%` }} 
-                  className="h-full bg-primary shadow-[0_0_20px_rgba(147,51,234,0.5)]" 
-                />
+                <motion.div animate={{ width: `${progress}%` }} className="h-full bg-primary shadow-[0_0_20px_rgba(147,51,234,0.5)]" />
              </div>
           </div>
-
           <div className="relative w-80 h-80 flex items-center justify-center">
-            {/* Grid Isométrico de Fundo */}
-            <div className="absolute inset-0 opacity-10" style={{ 
-               backgroundImage: `radial-gradient(circle at center, white 1px, transparent 1px)`,
-               backgroundSize: '20px 20px'
-            }} />
-            
-            {/* Anéis de Orientação */}
-            <div className="absolute inset-0 border-4 border-white/5 rounded-full" />
-            <div className="absolute inset-16 border-2 border-white/5 rounded-full" />
-
-            {/* Alvo Móvel (Onde equilibrar) */}
+            <div className="absolute inset-0 opacity-10" style={{ backgroundImage: `radial-gradient(circle at center, white 1px, transparent 1px)`, backgroundSize: '20px 20px' }} />
             <motion.div
-              animate={{ 
-                x: targetPos.x * 4, 
-                y: targetPos.y * 4,
-                scale: [1, 1.1, 1]
-              }}
-              transition={{ 
-                x: { type: "spring", stiffness: 100, damping: 20 },
-                y: { type: "spring", stiffness: 100, damping: 20 },
-                scale: { duration: 2, repeat: Infinity }
-              }}
+              animate={{ x: targetPos.x * 4, y: targetPos.y * 4, scale: [1, 1.1, 1] }}
+              transition={{ x: { type: "spring", stiffness: 100, damping: 20 }, y: { type: "spring", stiffness: 100, damping: 20 }, scale: { duration: 2, repeat: Infinity } }}
               className="absolute rounded-full border-4 border-dashed border-white/30 flex items-center justify-center"
-              style={{ 
-                width: currentPhase.targetSize * 2.5, 
-                height: currentPhase.targetSize * 2.5,
-                backgroundColor: progress > 5 ? 'rgba(255,255,255,0.05)' : 'transparent'
-              }}
-            >
-               <div className="w-1.5 h-1.5 bg-white/20 rounded-full" />
-            </motion.div>
-
-            {/* AURA do Usuário (Bolinha) */}
-            <motion.div 
-              animate={{ x: tilt.x * 4, y: tilt.y * 4 }} 
-              transition={{ type: "spring", stiffness: 150, damping: 25 }} 
-              className="rounded-full border-4 border-white shadow-[0_0_50px_rgba(0,0,0,0.5)] z-20 flex items-center justify-center overflow-hidden" 
-              style={{ 
-                backgroundColor: auraColor,
-                width: currentPhase.ballSize * 2,
-                height: currentPhase.ballSize * 2
-              }}
-            >
-              <div className="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent" />
-              <motion.div 
-                animate={{ scale: [1, 1.2, 1] }}
-                transition={{ duration: 3, repeat: Infinity }}
-                className="w-full h-full bg-white opacity-10 rounded-full blur-md"
-              />
-            </motion.div>
+              style={{ width: currentPhase.targetSize * 2.5, height: currentPhase.targetSize * 2.5, backgroundColor: progress > 5 ? 'rgba(255,255,255,0.05)' : 'transparent' }}
+            />
+            <motion.div animate={{ x: tilt.x * 4, y: tilt.y * 4 }} transition={{ type: "spring", stiffness: 150, damping: 25 }} className="rounded-full border-4 border-white shadow-[0_0_50px_rgba(0,0,0,0.5)] z-20" style={{ backgroundColor: auraColor, width: currentPhase.ballSize * 2, height: currentPhase.ballSize * 2 }} />
           </div>
-
-          <p className="absolute bottom-32 text-[8px] font-black uppercase text-white/30 tracking-[0.3em] text-center max-w-[200px] leading-relaxed">
-            Incline o celular suavemente para manter a Aura no círculo pontilhado.
-          </p>
         </>
       )}
     </div>
   );
 }
 
-// --- JOGO 2: MAESTRO DE AURAS (RITMO) ---
+// --- JOGO 2: MAESTRO DE AURAS ---
 function RhythmGame({ onWin, auraColor }: any) {
   const { t } = useI18n();
   const [active, setActive] = useState(false);
@@ -404,7 +404,6 @@ function RhythmGame({ onWin, auraColor }: any) {
   const [hits, setHits] = useState(0);
   const [pulse, setPulse] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
-  
   const audioContextRef = useRef<AudioContext | null>(null);
   const canHitRef = useRef(true);
   const currentAccelRef = useRef(0);
@@ -416,7 +415,6 @@ function RhythmGame({ onWin, auraColor }: any) {
     { name: 'Allegro', bpm: 120, reward: 60, goal: 10 },
     { name: 'Presto', bpm: 145, reward: 80, goal: 12 }
   ];
-
   const currentPhase = PHASES[phase] || PHASES[0];
 
   useEffect(() => {
@@ -428,36 +426,29 @@ function RhythmGame({ onWin, auraColor }: any) {
         onWin(currentPhase.reward, 'Maestro Supremo');
       }
     }
-  }, [hits, phase, onWin, currentPhase]);
+  }, [hits, phase, onWin, currentPhase.goal, currentPhase.reward]);
 
   const showFeedback = (msgKey: string) => {
     setFeedback(t(`playground.modes.rhythm.${msgKey}`));
     setTimeout(() => setFeedback(null), 800);
   };
 
-  const playOrchestraNote = useCallback(() => {
+  const playNote = useCallback(() => {
     if (!audioContextRef.current) return;
     const ctx = audioContextRef.current;
     if (ctx.state === 'suspended') ctx.resume();
-
     const now = ctx.currentTime;
     const baseFreq = 261.63 * Math.pow(2, hits / 12);
-
-    // Síntese de Cordas Orquestrais (Múltiplos Osciladores)
     [0, 1.005, 0.995].forEach((detune, i) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = i === 0 ? 'triangle' : 'sine';
       osc.frequency.setValueAtTime(baseFreq * detune, now);
-      
       gain.gain.setValueAtTime(0, now);
       gain.gain.linearRampToValueAtTime(0.2, now + 0.1);
       gain.gain.exponentialRampToValueAtTime(0.001, now + 1.5);
-      
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start();
-      osc.stop(now + 1.6);
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start(); osc.stop(now + 1.6);
     });
   }, [hits]);
 
@@ -465,61 +456,32 @@ function RhythmGame({ onWin, auraColor }: any) {
     const AC = (window as any).AudioContext || (window as any).webkitAudioContext;
     audioContextRef.current = new AC();
     if (audioContextRef.current?.state === 'suspended') await audioContextRef.current.resume();
-    
     if (typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
       const res = await (DeviceOrientationEvent as any).requestPermission();
       if (res === 'granted') setActive(true);
-    } else {
-      setActive(true);
-    }
+    } else setActive(true);
   };
 
   useEffect(() => {
     if (!active) return;
-    
     const interval = setInterval(() => {
-      if (currentAccelRef.current > 15) {
-        wasMovingBeforePulseRef.current = true;
-      } else {
-        wasMovingBeforePulseRef.current = false;
-      }
-
-      setPulse(true);
-      canHitRef.current = true;
+      wasMovingBeforePulseRef.current = currentAccelRef.current > 15;
+      setPulse(true); canHitRef.current = true;
       setTimeout(() => setPulse(false), 180); 
     }, (60 / currentPhase.bpm) * 1000);
 
     const handleMotion = (e: DeviceMotionEvent) => {
-      const accel = Math.sqrt(
-        (e.accelerationIncludingGravity?.x || 0) ** 2 +
-        (e.accelerationIncludingGravity?.y || 0) ** 2 +
-        (e.accelerationIncludingGravity?.z || 0) ** 2
-      );
-      
+      const accel = Math.sqrt((e.accelerationIncludingGravity?.x || 0) ** 2 + (e.accelerationIncludingGravity?.y || 0) ** 2 + (e.accelerationIncludingGravity?.z || 0) ** 2);
       currentAccelRef.current = accel;
-
       if (accel > 20 && canHitRef.current) {
-        if (!pulse) {
-          showFeedback('tooEarly');
-          canHitRef.current = false;
-        } else if (wasMovingBeforePulseRef.current) {
-          showFeedback('dontShake');
-          canHitRef.current = false;
-        } else {
-          setHits(h => h + 1);
-          canHitRef.current = false; 
-          playOrchestraNote();
-          if (navigator.vibrate) navigator.vibrate(50);
-        }
+        if (!pulse) showFeedback('tooEarly');
+        else if (wasMovingBeforePulseRef.current) showFeedback('dontShake');
+        else { setHits(h => h + 1); canHitRef.current = false; playNote(); }
       }
     };
-
     window.addEventListener('devicemotion', handleMotion);
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('devicemotion', handleMotion);
-    };
-  }, [active, currentPhase, pulse, playOrchestraNote, t]);
+    return () => { clearInterval(interval); window.removeEventListener('devicemotion', handleMotion); };
+  }, [active, currentPhase.bpm, pulse, playNote]);
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-900">
@@ -533,47 +495,15 @@ function RhythmGame({ onWin, auraColor }: any) {
               <h3 className="text-5xl font-black uppercase italic text-white tracking-tighter">{currentPhase.name}</h3>
               <p className="text-[10px] font-black uppercase text-primary tracking-[0.4em]">{currentPhase.bpm} BPM</p>
            </div>
-
            <div className="relative">
-             <motion.div 
-               animate={{ 
-                 scale: pulse ? 1.3 : 1, 
-                 opacity: pulse ? 1 : 0.4,
-                 borderColor: pulse ? 'white' : 'rgba(255,255,255,0.1)'
-               }}
-               className="w-48 h-48 rounded-[4rem] border-8 flex items-center justify-center shadow-[0_0_80px_rgba(255,255,255,0.1)] transition-colors relative z-10"
-               style={{ backgroundColor: pulse ? auraColor : 'transparent' }}
-             >
+             <motion.div animate={{ scale: pulse ? 1.3 : 1, opacity: pulse ? 1 : 0.4, borderColor: pulse ? 'white' : 'rgba(255,255,255,0.1)' }} className="w-48 h-48 rounded-[4rem] border-8 flex items-center justify-center shadow-[0_0_80px_rgba(255,255,255,0.1)] transition-colors relative z-10" style={{ backgroundColor: pulse ? auraColor : 'transparent' }}>
                <Music className={cn("w-20 h-20 transition-colors", pulse ? "text-white" : "text-white/20")} />
              </motion.div>
-
-             <AnimatePresence>
-               {feedback && (
-                 <motion.div 
-                   initial={{ opacity: 0, scale: 0.5, y: 0 }}
-                   animate={{ opacity: 1, scale: 1.2, y: -40 }}
-                   exit={{ opacity: 0, scale: 0.5 }}
-                   className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none"
-                 >
-                   <span className="bg-red-500 text-white px-6 py-2 rounded-full font-black uppercase text-[10px] shadow-2xl border-2 border-white">
-                     {feedback}
-                   </span>
-                 </motion.div>
-               )}
-             </AnimatePresence>
+             <AnimatePresence>{feedback && (<motion.div initial={{ opacity: 0, scale: 0.5, y: 0 }} animate={{ opacity: 1, scale: 1.2, y: -40 }} exit={{ opacity: 0, scale: 0.5 }} className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none"><span className="bg-red-500 text-white px-6 py-2 rounded-full font-black uppercase text-[10px] shadow-2xl border-2 border-white">{feedback}</span></motion.div>)}</AnimatePresence>
            </div>
-
            <div className="w-64 space-y-4">
-              <div className="flex justify-between text-[9px] font-black uppercase text-white/40 tracking-widest">
-                 <span>Precisão Rítmica</span>
-                 <span>{hits}/{currentPhase.goal}</span>
-              </div>
-              <div className="h-4 bg-white/10 rounded-full overflow-hidden border border-white/5 p-1">
-                 <motion.div animate={{ width: `${(hits/currentPhase.goal)*100}%` }} className="h-full bg-primary rounded-full" />
-              </div>
-              <p className="text-[8px] font-black uppercase text-white/30 tracking-widest leading-relaxed">
-                Fique parado e bata no ritmo exato da luz!
-              </p>
+              <div className="flex justify-between text-[9px] font-black uppercase text-white/40 tracking-widest"><span>Precisão Rítmica</span><span>{hits}/{currentPhase.goal}</span></div>
+              <div className="h-4 bg-white/10 rounded-full overflow-hidden border border-white/5 p-1"><motion.div animate={{ width: `${(hits/currentPhase.goal)*100}%` }} className="h-full bg-primary rounded-full" /></div>
            </div>
         </div>
       )}
@@ -581,7 +511,7 @@ function RhythmGame({ onWin, auraColor }: any) {
   );
 }
 
-// --- JOGO 3: CAMINHO DE LUZ (COORDENAÇÃO FINA) ---
+// --- JOGO 3: CAMINHO DE LUZ ---
 function PathGame({ onWin, auraColor }: any) {
   const [phase, setPhase] = useState(0);
   const [progress, setProgress] = useState(0);
@@ -593,45 +523,31 @@ function PathGame({ onWin, auraColor }: any) {
     { name: 'Deslize da Serpente', path: 'M 50,450 C 150,350 -50,150 50,50', reward: 45 },
     { name: 'Montanhas de Cristal', path: 'M 50,450 L 150,350 L 50,250 L 150,150 L 50,50', reward: 60 }
   ];
-
   const currentPhase = PHASES[phase] || PHASES[0];
 
   useEffect(() => {
     if (progress >= 0.98) {
       if (phase < PHASES.length - 1) {
-        setPhase(p => p + 1);
-        setProgress(0);
-      } else {
-        onWin(currentPhase.reward, 'Mestre do Caminho');
-      }
+        setPhase(p => p + 1); setProgress(0);
+      } else onWin(currentPhase.reward, 'Mestre do Caminho');
     }
-  }, [progress, phase, onWin, currentPhase]);
+  }, [progress, phase, onWin, currentPhase.reward]);
 
-  const handleTouchMove = (e: React.TouchEvent) => {
+  const handleTouch = (e: React.TouchEvent) => {
     if (!pathRef.current || !svgRef.current) return;
-    
     const touch = e.touches[0];
     const rect = svgRef.current.getBoundingClientRect();
     const x = ((touch.clientX - rect.left) / rect.width) * 200; 
     const y = ((touch.clientY - rect.top) / rect.height) * 500;
-
     const path = pathRef.current;
     const length = path.getTotalLength();
-    let bestDist = Infinity;
-    let bestProg = 0;
-    
+    let bestDist = Infinity; let bestProg = 0;
     for (let i = 0; i <= 100; i += 2) {
       const p = path.getPointAtLength((i / 100) * length);
       const dist = Math.sqrt((p.x - x) ** 2 + (p.y - y) ** 2);
-      if (dist < bestDist) {
-        bestDist = dist;
-        bestProg = i / 100;
-      }
+      if (dist < bestDist) { bestDist = dist; bestProg = i / 100; }
     }
-
-    if (bestDist < 40 && bestProg > progress - 0.05) {
-      setProgress(Math.max(progress, bestProg));
-    }
+    if (bestDist < 40 && bestProg > progress - 0.05) setProgress(Math.max(progress, bestProg));
   };
 
   const currentPoint = pathRef.current ? pathRef.current.getPointAtLength(progress * pathRef.current.getTotalLength()) : { x: 50, y: 450 };
@@ -639,7 +555,7 @@ function PathGame({ onWin, auraColor }: any) {
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-900">
       <div className="relative w-full max-w-xs aspect-[2/5] bg-white/5 rounded-[3rem] border-4 border-white/10 overflow-hidden">
-        <svg ref={svgRef} viewBox="0 0 200 500" className="w-full h-full touch-none" onTouchMove={handleTouchMove}>
+        <svg ref={svgRef} viewBox="0 0 200 500" className="w-full h-full touch-none" onTouchMove={handleTouch}>
           <path ref={pathRef} d={currentPhase.path} fill="none" stroke="white" strokeWidth="30" strokeLinecap="round" strokeOpacity="0.1" />
           <path d={currentPhase.path} fill="none" stroke={auraColor} strokeWidth="30" strokeLinecap="round" strokeDasharray="1000" strokeDashoffset={1000 - (progress * 1000)} />
           <circle cx={currentPoint.x} cy={currentPoint.y} r="15" fill="white" />
@@ -662,43 +578,23 @@ function BreathGame({ onWin, auraColor }: any) {
       const AC = (window as any).AudioContext || (window as any).webkitAudioContext;
       const ctx = new AC();
       const source = ctx.createMediaStreamSource(stream);
-      const analyser = ctx.createAnalyser();
-      analyser.fftSize = 256;
+      const analyser = ctx.createAnalyser(); analyser.fftSize = 256;
       source.connect(analyser);
-      
       const bufferLength = analyser.frequencyBinCount;
       const dataArray = new Uint8Array(bufferLength);
-
       const update = () => {
         analyser.getByteFrequencyData(dataArray);
-        let average = 0;
-        for(let i=0; i<bufferLength; i++) average += dataArray[i];
-        average /= bufferLength;
-
-        if (average > 30) {
-          rotationRef.current += average / 5;
-          setLevel(prev => Math.min(100, prev + 0.5));
-        } else {
-          setLevel(prev => Math.max(0, prev - 0.2));
-        }
-
+        let average = dataArray.reduce((a, b) => a + b) / bufferLength;
+        if (average > 30) { rotationRef.current += average / 5; setLevel(prev => Math.min(100, prev + 0.5)); }
+        else setLevel(prev => Math.max(0, prev - 0.2));
         const wheel = document.getElementById('sopro-wheel');
         if (wheel) wheel.style.transform = `rotate(${rotationRef.current}deg)`;
-
-        if (level >= 99) {
-          onWin();
-          return;
-        }
+        if (level >= 99) { onWin(); return; }
         requestRef.current = requestAnimationFrame(update);
       };
-
-      setActive(true);
-      update();
-    } catch (e) {
-      console.error(e);
-    }
+      setActive(true); update();
+    } catch (e) {}
   };
-
   useEffect(() => () => { if(requestRef.current) cancelAnimationFrame(requestRef.current); }, []);
 
   return (
@@ -707,13 +603,8 @@ function BreathGame({ onWin, auraColor }: any) {
         <Button onClick={start} className="h-20 px-12 rounded-full bg-teal-500 text-white font-black uppercase text-lg">Ativar Microfone</Button>
       ) : (
         <div className="space-y-12 flex flex-col items-center">
-          <div id="sopro-wheel" className="w-48 h-48 flex items-center justify-center">
-             <Wind className="w-40 h-40 text-white" />
-          </div>
-          <div className="w-64 h-4 bg-white/10 rounded-full overflow-hidden">
-             <motion.div animate={{ width: `${level}%` }} className="h-full bg-teal-400" />
-          </div>
-          <p className="text-[10px] font-black text-white/40 uppercase">Sopre no microfone!</p>
+          <div id="sopro-wheel" className="w-48 h-48 flex items-center justify-center"><Wind className="w-40 h-40 text-white" /></div>
+          <div className="w-64 h-4 bg-white/10 rounded-full overflow-hidden"><motion.div animate={{ width: `${level}%` }} className="h-full bg-teal-400" /></div>
         </div>
       )}
     </div>
@@ -733,23 +624,16 @@ function VoiceGame({ onWin, auraColor }: any) {
       const analyser = ctx.createAnalyser();
       ctx.createMediaStreamSource(stream).connect(analyser);
       const data = new Uint8Array(analyser.frequencyBinCount);
-
       const update = () => {
         analyser.getByteFrequencyData(data);
         let avg = data.reduce((a, b) => a + b) / data.length;
         setVolume(avg);
-        
-        if (avg > 20 && avg < 80) {
-          setProgress(p => Math.min(100, p + 0.5));
-        } else {
-          setProgress(p => Math.max(0, p - 0.5));
-        }
-        
+        if (avg > 20 && avg < 80) setProgress(p => Math.min(100, p + 0.5));
+        else setProgress(p => Math.max(0, p - 0.5));
         if (progress < 100) requestAnimationFrame(update);
         else onWin();
       };
-      setActive(true);
-      update();
+      setActive(true); update();
     } catch (e) {}
   };
 
@@ -762,9 +646,7 @@ function VoiceGame({ onWin, auraColor }: any) {
           <motion.div animate={{ y: 350 - (volume * 3) }} className="w-16 h-16 rounded-2xl bg-white shadow-2xl flex items-center justify-center absolute bottom-0">
              <Volume2 className="w-8 h-8 text-pink-500" />
           </motion.div>
-          <div className="absolute top-4 w-full px-4 h-1">
-             <motion.div animate={{ width: `${progress}%` }} className="h-full bg-pink-400" />
-          </div>
+          <div className="absolute top-4 w-full px-4 h-1"><motion.div animate={{ width: `${progress}%` }} className="h-full bg-pink-400" /></div>
         </div>
       )}
     </div>
