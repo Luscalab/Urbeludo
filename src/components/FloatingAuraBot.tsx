@@ -31,19 +31,26 @@ export function FloatingAuraBot() {
     { role: 'bot', text: 'Olá, Mestre do Movimento! Eu sou o AuraHelper. Em que posso ajudar sua jornada hoje?' }
   ]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isInitializing, setIsInitializing] = useState(true);
+  const [isInitializing, setIsInitializing] = useState(false);
+  const [loadProgress, setLoadProgress] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  const startBrain = async () => {
+    if (isInitializing) return;
+    setIsInitializing(true);
+    try {
+      await initAuraBrain((p) => setLoadProgress(p));
+    } finally {
+      // Pequeno delay para mostrar o 100%
+      setTimeout(() => setIsInitializing(false), 500);
+    }
+  };
+
   useEffect(() => {
-    const warmup = async () => {
-      try {
-        await initAuraBrain();
-      } finally {
-        setIsInitializing(false);
-      }
-    };
-    warmup();
-  }, []);
+    if (isOpen && loadProgress === 0) {
+      startBrain();
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -52,7 +59,7 @@ export function FloatingAuraBot() {
   }, [messages, isLoading]);
 
   const processMessage = async (text: string) => {
-    if (!text.trim() || isLoading) return;
+    if (!text.trim() || isLoading || isInitializing) return;
 
     setMessages(prev => [...prev, { role: 'user', text }]);
     setIsLoading(true);
@@ -119,32 +126,55 @@ export function FloatingAuraBot() {
                 </div>
                 <div className="flex items-center gap-2 px-3 py-1 bg-green-100 rounded-full">
                    <div className={cn("w-1.5 h-1.5 rounded-full", isInitializing ? "bg-yellow-500" : "bg-green-500")} />
-                   <span className="text-[7px] font-black text-green-700 uppercase">{isInitializing ? "Iniciando..." : "Online"}</span>
+                   <span className="text-[7px] font-black text-green-700 uppercase">{isInitializing ? "Sincronizando..." : "Online"}</span>
                 </div>
               </div>
 
               <ScrollArea className="flex-1 p-6" ref={scrollRef}>
                 <div className="space-y-4 pb-4">
-                  {messages.map((msg, idx) => (
-                    <motion.div
-                      key={idx}
-                      initial={{ opacity: 0, x: msg.role === 'bot' ? -10 : 10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      className={cn(
-                        "flex flex-col max-w-[85%]",
-                        msg.role === 'bot' ? "items-start" : "items-end ml-auto"
-                      )}
-                    >
-                      <div className={cn(
-                        "p-4 rounded-3xl text-[11px] font-medium leading-relaxed shadow-sm",
-                        msg.role === 'bot' 
-                          ? "bg-slate-100 text-slate-800 rounded-tl-none border-l-4 border-primary" 
-                          : "bg-primary text-white rounded-tr-none shadow-primary/20"
-                      )}>
-                        {msg.text}
+                  {isInitializing ? (
+                    <div className="flex flex-col items-center justify-center p-8 bg-primary/5 rounded-[2rem] border-2 border-primary/10 space-y-4">
+                      <div className="text-primary text-[10px] font-black uppercase tracking-widest animate-pulse">
+                        Aura está expandindo o cérebro...
                       </div>
-                    </motion.div>
-                  ))}
+                      <div className="w-full bg-white h-2 rounded-full overflow-hidden shadow-inner">
+                        <motion.div 
+                          className="bg-primary h-full"
+                          initial={{ width: 0 }}
+                          animate={{ width: `${loadProgress}%` }}
+                        />
+                      </div>
+                      <div className="flex justify-between w-full">
+                        <span className="text-[8px] font-black text-primary/40 uppercase">{loadProgress}% sincronizado</span>
+                        <p className="text-primary/40 text-[8px] font-black uppercase italic">
+                          Modo Offline Ativando!
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {messages.map((msg, idx) => (
+                        <motion.div
+                          key={idx}
+                          initial={{ opacity: 0, x: msg.role === 'bot' ? -10 : 10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          className={cn(
+                            "flex flex-col max-w-[85%]",
+                            msg.role === 'bot' ? "items-start" : "items-end ml-auto"
+                          )}
+                        >
+                          <div className={cn(
+                            "p-4 rounded-3xl text-[11px] font-medium leading-relaxed shadow-sm",
+                            msg.role === 'bot' 
+                              ? "bg-slate-100 text-slate-800 rounded-tl-none border-l-4 border-primary" 
+                              : "bg-primary text-white rounded-tr-none shadow-primary/20"
+                          )}>
+                            {msg.text}
+                          </div>
+                        </motion.div>
+                      ))}
+                    </>
+                  )}
                   {isLoading && (
                     <div className="flex items-center gap-2 p-4 bg-slate-50 rounded-2xl w-fit">
                       <Loader2 className="w-3 h-3 animate-spin text-primary" />
@@ -154,43 +184,45 @@ export function FloatingAuraBot() {
                 </div>
               </ScrollArea>
 
-              {/* Quick Replies Section */}
-              <div className="px-6 py-2 border-t bg-slate-50/30">
-                <div className="flex gap-2 overflow-x-auto no-scrollbar py-2">
-                  {SUGESTOES_AURA.map((sug) => (
-                    <button
-                      key={sug.id}
-                      onClick={() => processMessage(sug.label)}
-                      disabled={isLoading || isInitializing}
-                      className="whitespace-nowrap px-4 py-2 rounded-full bg-white border border-primary/10 text-primary text-[9px] font-black uppercase shadow-sm hover:bg-primary/5 active:scale-95 transition-all flex items-center gap-2"
-                    >
-                      <span>{sug.icon}</span>
-                      <span>{sug.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
+              {!isInitializing && (
+                <>
+                  <div className="px-6 py-2 border-t bg-slate-50/30">
+                    <div className="flex gap-2 overflow-x-auto no-scrollbar py-2">
+                      {SUGESTOES_AURA.map((sug) => (
+                        <button
+                          key={sug.id}
+                          onClick={() => processMessage(sug.label)}
+                          disabled={isLoading}
+                          className="whitespace-nowrap px-4 py-2 rounded-full bg-white border border-primary/10 text-primary text-[9px] font-black uppercase shadow-sm hover:bg-primary/5 active:scale-95 transition-all flex items-center gap-2"
+                        >
+                          <span>{sug.icon}</span>
+                          <span>{sug.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
-              <div className="p-4 border-t bg-slate-50/50">
-                <div className="relative">
-                  <Input
-                    value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                    placeholder="Dúvidas técnicas ou sobre o corpo..."
-                    className="h-14 rounded-2xl pr-14 pl-6 border-transparent bg-white shadow-inner font-bold text-xs focus:ring-primary"
-                    disabled={isInitializing}
-                  />
-                  <Button
-                    size="icon"
-                    onClick={handleSend}
-                    disabled={isLoading || !inputValue.trim() || isInitializing}
-                    className="absolute right-2 top-2 h-10 w-10 rounded-xl bg-primary text-white shadow-lg active:scale-90 transition-transform"
-                  >
-                    <Send className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
+                  <div className="p-4 border-t bg-slate-50/50">
+                    <div className="relative">
+                      <Input
+                        value={inputValue}
+                        onChange={(e) => setInputValue(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                        placeholder="Dúvidas técnicas ou sobre o corpo..."
+                        className="h-14 rounded-2xl pr-14 pl-6 border-transparent bg-white shadow-inner font-bold text-xs focus:ring-primary"
+                      />
+                      <Button
+                        size="icon"
+                        onClick={handleSend}
+                        disabled={isLoading || !inputValue.trim()}
+                        className="absolute right-2 top-2 h-10 w-10 rounded-xl bg-primary text-white shadow-lg active:scale-90 transition-transform"
+                      >
+                        <Send className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </>
+              )}
             </motion.div>
           )}
         </AnimatePresence>

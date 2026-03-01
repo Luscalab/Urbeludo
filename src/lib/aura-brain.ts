@@ -2,7 +2,7 @@
 
 /**
  * @fileOverview AuraBrain - Motor de Inteligência de Borda para Classificação de Intenções.
- * Versão resiliente com carregamento dinâmico para evitar erros de avaliação de módulo no Next.js/Turbopack.
+ * Implementa carregamento dinâmico e tracking de progresso para o APK.
  */
 
 export interface IntentAnchor {
@@ -25,24 +25,30 @@ let extractor: any = null;
 let anchorEmbeddings: Record<string, number[][]> = {};
 
 /**
- * Inicializa o modelo de extração de características de forma segura.
+ * Inicializa o modelo de extração de características com callback de progresso.
  */
-export const initAuraBrain = async () => {
+export const initAuraBrain = async (onProgress?: (p: number) => void) => {
   if (typeof window === 'undefined') return;
   
   if (!extractor) {
     try {
-      console.log("AuraBrain: Invocando modelo de borda...");
-      // Carregamento dinâmico para evitar erros de Object.keys no Turbopack
       const { pipeline, env } = await import('@xenova/transformers');
       
-      // Configurações para ambiente de navegador/APK
       env.allowLocalModels = false;
       env.useBrowserCache = true;
 
-      extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
+      extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', {
+        progress_callback: (data: any) => {
+          if (data.status === 'progress' && onProgress) {
+            onProgress(Math.round(data.progress));
+          }
+          if (data.status === 'ready' && onProgress) {
+            onProgress(100);
+          }
+        }
+      });
       
-      // Pré-calcula os vetores das nossas âncoras
+      // Pré-calcula os vetores das âncoras para respostas instantâneas
       for (const item of INTENCOES) {
         const embeddings = [];
         for (const example of item.examples) {
@@ -51,16 +57,12 @@ export const initAuraBrain = async () => {
         }
         anchorEmbeddings[item.id] = embeddings;
       }
-      console.log("AuraBrain: Sincronização de borda completa.");
     } catch (err) {
-      console.error("Erro crítico ao inicializar Transformers.js:", err);
+      console.error("Erro na inicialização semântica:", err);
     }
   }
 };
 
-/**
- * Calcula a similaridade de cosseno.
- */
 function cosineSimilarity(vecA: number[], vecB: number[]) {
   let dotProduct = 0;
   let magA = 0;
@@ -74,13 +76,9 @@ function cosineSimilarity(vecA: number[], vecB: number[]) {
   return magnitude === 0 ? 0 : dotProduct / magnitude;
 }
 
-/**
- * Classifica a intenção usando embeddings semânticos.
- */
 export const classifyIntent = async (userText: string): Promise<string> => {
   try {
-    await initAuraBrain();
-    
+    if (!extractor) await initAuraBrain();
     if (!extractor) return 'fallback';
 
     const output = await extractor(userText, { pooling: 'mean', normalize: true });
@@ -99,7 +97,7 @@ export const classifyIntent = async (userText: string): Promise<string> => {
 
     return bestMatch.score > 0.7 ? bestMatch.id : 'fallback';
   } catch (error) {
-    console.error("AuraBrain Classification Error:", error);
+    console.error("Erro na classificação de borda:", error);
     return 'fallback';
   }
 };

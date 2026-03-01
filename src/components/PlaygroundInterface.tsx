@@ -23,7 +23,8 @@ import {
   BookOpen,
   Cpu,
   BrainCircuit,
-  UserCheck
+  UserCheck,
+  Loader2
 } from 'lucide-react';
 
 import { useUser, useDoc, useMemoFirebase } from '@/firebase';
@@ -86,6 +87,29 @@ const CoinRain = () => {
     </div>
   );
 };
+
+function GameModeCard({ icon, title, desc, goal, color, onClick, onInfo }: any) {
+  return (
+    <motion.div whileHover={{ scale: 1.02, x: 5 }} className="relative group w-full">
+      <button onClick={onClick} className="p-5 rounded-[2.5rem] bg-white/5 border border-white/10 flex items-center gap-5 text-left transition-all hover:bg-white/10 w-full relative overflow-hidden active:scale-95">
+        <div className={cn("w-14 h-14 rounded-[1.5rem] flex items-center justify-center text-white shadow-2xl group-hover:rotate-6 transition-transform shrink-0", color)}>
+          {React.cloneElement(icon, { className: "w-8 h-8" })}
+        </div>
+        <div className="flex-1 min-w-0 space-y-1">
+          <h3 className="text-sm font-black uppercase italic tracking-tighter text-white leading-tight">{title}</h3>
+          <p className="text-[8px] text-white/40 font-bold uppercase leading-relaxed">{desc}</p>
+          <div className="flex items-center gap-1.5 pt-1">
+            <Info className="w-2.5 h-2.5 text-primary/60" />
+            <span className="text-[7px] font-black uppercase text-primary/60 tracking-widest">Meta: {goal.split(' ')[0]}</span>
+          </div>
+        </div>
+      </button>
+      <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); onInfo(); }} className="absolute top-4 right-4 h-8 w-8 rounded-full bg-white/5 hover:bg-white/20 text-white/40 hover:text-white z-20">
+        <Info className="w-4 h-4" />
+      </Button>
+    </motion.div>
+  );
+}
 
 export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean }) {
   const router = useRouter();
@@ -264,29 +288,6 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
         {gameMode === 'voice' && <VoiceGame key="voice" onWin={(reward, name) => handleWin(reward, name)} auraColor={auraColor} ludoCoins={profile?.ludoCoins || 0} userName={profile?.displayName || "Explorador"} />}
       </AnimatePresence>
     </div>
-  );
-}
-
-function GameModeCard({ icon, title, desc, goal, color, onClick, onInfo }: any) {
-  return (
-    <motion.div whileHover={{ scale: 1.02, x: 5 }} className="relative group w-full">
-      <button onClick={onClick} className="p-5 rounded-[2.5rem] bg-white/5 border border-white/10 flex items-center gap-5 text-left transition-all hover:bg-white/10 w-full relative overflow-hidden active:scale-95">
-        <div className={cn("w-14 h-14 rounded-[1.5rem] flex items-center justify-center text-white shadow-2xl group-hover:rotate-6 transition-transform shrink-0", color)}>
-          {React.cloneElement(icon, { className: "w-8 h-8" })}
-        </div>
-        <div className="flex-1 min-w-0 space-y-1">
-          <h3 className="text-sm font-black uppercase italic tracking-tighter text-white leading-tight">{title}</h3>
-          <p className="text-[8px] text-white/40 font-bold uppercase leading-relaxed">{desc}</p>
-          <div className="flex items-center gap-1.5 pt-1">
-            <Info className="w-2.5 h-2.5 text-primary/60" />
-            <span className="text-[7px] font-black uppercase text-primary/60 tracking-widest">Meta: {goal.split(' ')[0]}</span>
-          </div>
-        </div>
-      </button>
-      <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); onInfo(); }} className="absolute top-4 right-4 h-8 w-8 rounded-full bg-white/5 hover:bg-white/20 text-white/40 hover:text-white z-20">
-        <Info className="w-4 h-4" />
-      </Button>
-    </motion.div>
   );
 }
 
@@ -892,8 +893,4 @@ function VoiceGame({ onWin, auraColor, ludoCoins, userName }: { onWin: (reward: 
       </AnimatePresence>
     </div>
   );
-}
-
-function Loader2(props: any) {
-  return <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-loader-2 animate-spin"><path d="M12 2v4"/><path d="m16.2 7.8 2.9-2.9"/><path d="M18 12h4"/><path d="m16.2 16.2 2.9 2.9"/><path d="M12 18v4"/><path d="m4.9 19.1 2.9-2.9"/><path d="M2 12h4"/><path d="m4.9 4.9 2.9 2.9"/></svg>;
 }
