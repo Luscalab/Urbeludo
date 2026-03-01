@@ -33,7 +33,8 @@ import {
   Flame,
   DoorOpen,
   Gamepad2,
-  BookOpen
+  BookOpen,
+  Star
 } from 'lucide-react';
 
 import { useUser, useDoc, useMemoFirebase } from '@/firebase';
@@ -248,7 +249,6 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
                 </Button>
               </div>
             ) : (
-              /* Titulo Invisível para Acessibilidade quando não há modo ativo (evita erro de montagem) */
               <DialogHeader className="sr-only">
                 <DialogTitle>Informações do Jogo</DialogTitle>
                 <DialogDescription>Detalhes sobre os modos de jogo psicomotores.</DialogDescription>
@@ -286,7 +286,7 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
         {gameMode === 'rhythm' && <RhythmGame key="rhythm" onWin={(reward, name) => handleWin(reward, name)} auraColor={auraColor} />}
         {gameMode === 'path' && <PathGame key="path" onWin={(reward, name) => handleWin(reward, name)} auraColor={auraColor} />}
         {gameMode === 'breath' && <BreathGame key="breath" onWin={() => handleWin(40, 'Mestre do Sopro')} auraColor={auraColor} />}
-        {gameMode === 'voice' && <VoiceGame key="voice" onWin={() => handleWin(50, 'Maestro Vocal')} auraColor={auraColor} />}
+        {gameMode === 'voice' && <VoiceGame key="voice" onWin={(reward, name) => handleWin(reward, name)} auraColor={auraColor} />}
       </AnimatePresence>
     </div>
   );
@@ -315,7 +315,6 @@ function GameModeCard({ icon, title, desc, goal, color, onClick, onInfo }: any) 
   );
 }
 
-// --- JOGO 1: EQUILIBRISTA (Ajustado para crianças) ---
 function BalanceGame({ onWin, auraColor }: { onWin: (reward: number, type: string) => void, auraColor: string }) {
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const [progress, setProgress] = useState(0);
@@ -328,11 +327,9 @@ function BalanceGame({ onWin, auraColor }: { onWin: (reward: number, type: strin
   const gainRef = useRef<GainNode | null>(null);
 
   const BALANCE_PHASES = [
-    { name: 'Ninho de Luz', threshold: 35, targetSize: 95, ballSize: 70, reward: 20, moveFrequency: 0, benefit: "Calibração inicial: sinta seu corpo no espaço." },
-    { name: 'Pulo do Gato', threshold: 30, targetSize: 85, ballSize: 65, reward: 25, moveFrequency: 0, benefit: "Estabilidade básica." },
-    { name: 'Equilíbrio na Árvore', threshold: 25, targetSize: 75, ballSize: 60, reward: 30, moveFrequency: 7000, benefit: "Atenção em movimento suave." },
-    { name: 'Vento de Verão', threshold: 22, targetSize: 70, ballSize: 55, reward: 35, moveFrequency: 6000, benefit: "Ajustes posturais guiados." },
-    { name: 'Ponte de Cristal', threshold: 20, targetSize: 65, ballSize: 50, reward: 40, moveFrequency: 5500, benefit: "Foco e precisão visomotora." }
+    { name: 'Ninho de Luz', threshold: 45, targetSize: 100, ballSize: 75, reward: 20, benefit: "Calibração inicial: sinta seu corpo no espaço." },
+    { name: 'Pulo do Gato', threshold: 35, targetSize: 90, ballSize: 70, reward: 25, benefit: "Estabilidade básica e controle postural." },
+    { name: 'Equilíbrio na Árvore', threshold: 30, targetSize: 85, ballSize: 65, reward: 30, benefit: "Foco prolongado e ajustes milimétricos." }
   ];
 
   const currentPhase = BALANCE_PHASES[phaseIdx];
@@ -342,7 +339,6 @@ function BalanceGame({ onWin, auraColor }: { onWin: (reward: number, type: strin
     audioContextRef.current = new AC();
     if (audioContextRef.current?.state === 'suspended') await audioContextRef.current.resume();
     
-    // Configura som ambiente de feedback harmônico
     const ctx = audioContextRef.current;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
@@ -374,15 +370,15 @@ function BalanceGame({ onWin, auraColor }: { onWin: (reward: number, type: strin
     if (!active || showPhaseTransition || !gainRef.current || !oscRef.current) return;
     const dist = Math.sqrt(Math.pow(tilt.x - targetPos.x, 2) + Math.pow(tilt.y - targetPos.y, 2));
     
-    const proximity = Math.max(0, 1 - (dist / 60));
-    gainRef.current.gain.setTargetAtTime(proximity * 0.1, audioContextRef.current!.currentTime, 0.1);
+    const proximity = Math.max(0, 1 - (dist / 80));
+    gainRef.current.gain.setTargetAtTime(proximity * 0.15, audioContextRef.current!.currentTime, 0.1);
     oscRef.current.frequency.setTargetAtTime(220 + (proximity * 220), audioContextRef.current!.currentTime, 0.1);
 
     const isInside = dist < currentPhase.threshold;
 
     const timer = setInterval(() => {
-      if (isInside) setProgress(prev => Math.min(100, prev + 3.0)); 
-      else setProgress(prev => Math.max(0, prev - 1.0)); 
+      if (isInside) setProgress(prev => Math.min(100, prev + 2.5)); 
+      else setProgress(prev => Math.max(0, prev - 1.2)); 
     }, 100);
     return () => clearInterval(timer);
   }, [active, showPhaseTransition, tilt, targetPos, currentPhase.threshold]);
@@ -426,12 +422,12 @@ function BalanceGame({ onWin, auraColor }: { onWin: (reward: number, type: strin
           </div>
           <div className="relative w-80 h-80 flex items-center justify-center">
             <motion.div
-              animate={{ x: targetPos.x * 4, y: targetPos.y * 4, scale: [1, 1.05, 1] }}
-              transition={{ x: { type: "spring", stiffness: 80 }, y: { type: "spring", stiffness: 80 }, scale: { duration: 2, repeat: Infinity } }}
+              animate={{ scale: [1, 1.05, 1] }}
+              transition={{ duration: 2, repeat: Infinity }}
               className="absolute rounded-full border-4 border-dashed"
-              style={{ width: currentPhase.targetSize * 2.5, height: currentPhase.targetSize * 2.5, borderColor: progress > 10 ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.2)' }}
+              style={{ width: currentPhase.targetSize * 2.5, height: currentPhase.targetSize * 2.5, borderColor: 'rgba(255,255,255,0.2)' }}
             />
-            <motion.div animate={{ x: tilt.x * 4, y: tilt.y * 4 }} transition={{ type: "spring", stiffness: 150 }} className="rounded-full border-4 border-white shadow-[0_0_50px_rgba(0,0,0,0.5)] z-20" style={{ backgroundColor: auraColor, width: currentPhase.ballSize * 2, height: currentPhase.ballSize * 2 }} />
+            <motion.div animate={{ x: tilt.x * 4, y: tilt.y * 4 }} transition={{ type: "spring", stiffness: 150 }} className="rounded-full border-4 border-white shadow-[0_0_50px_rgba(0,0,0,0.5)] z-20" style={{ backgroundColor: auraColor, width: currentPhase.ballSize * 1.5, height: currentPhase.ballSize * 1.5 }} />
           </div>
           <AnimatePresence>
             {showPhaseTransition && (
@@ -440,7 +436,7 @@ function BalanceGame({ onWin, auraColor }: { onWin: (reward: number, type: strin
                 <h2 className="text-4xl font-black uppercase italic text-white mb-2">Incrível!</h2>
                 <div className="bg-white/5 p-8 rounded-[2.5rem] border border-white/10 max-w-xs mb-10">
                    <Lightbulb className="w-8 h-8 text-yellow-500 mx-auto mb-4" />
-                   <h4 className="text-[10px] font-black uppercase text-yellow-500 tracking-widest mb-2">Aprendizado</h4>
+                   <h4 className="text-[10px] font-black uppercase text-yellow-500 tracking-widest mb-2">Ganhos Pedagógicos</h4>
                    <p className="text-[11px] font-medium leading-relaxed text-white/90">{currentPhase.benefit}</p>
                 </div>
                 <Button onClick={() => { setPhaseIdx(prev => prev + 1); setShowPhaseTransition(false); }} className="h-16 px-12 rounded-full bg-primary text-white font-black uppercase shadow-2xl flex gap-3 text-lg border-b-4 border-primary/70 active:border-b-0 active:translate-y-1">Próxima Fase <ArrowUp className="w-5 h-5 rotate-90" /></Button>
@@ -453,7 +449,6 @@ function BalanceGame({ onWin, auraColor }: { onWin: (reward: number, type: strin
   );
 }
 
-// --- JOGO 2: MAESTRO (Áudio Orquestral) ---
 function RhythmGame({ onWin, auraColor }: any) {
   const { t } = useI18n();
   const [active, setActive] = useState(false);
@@ -467,10 +462,8 @@ function RhythmGame({ onWin, auraColor }: any) {
   const wasMovingBeforePulseRef = useRef(false);
 
   const PHASES = [
-    { name: 'Brilhante', bpm: 55, reward: 30, goal: 4 },
-    { name: 'Harmônico', bpm: 75, reward: 45, goal: 6 },
-    { name: 'Vibrante', bpm: 95, reward: 60, goal: 8 },
-    { name: 'Maestro', bpm: 115, reward: 80, goal: 10 }
+    { name: 'Brilhante', bpm: 50, reward: 30, goal: 3 },
+    { name: 'Harmônico', bpm: 70, reward: 45, goal: 5 }
   ];
   const currentPhase = PHASES[phase] || PHASES[0];
 
@@ -481,39 +474,20 @@ function RhythmGame({ onWin, auraColor }: any) {
     }
   }, [hits, phase, onWin, currentPhase.goal, currentPhase.reward]);
 
-  const showFeedback = (msgKey: string) => {
-    setFeedback(t(`playground.modes.rhythm.${msgKey}`));
-    setTimeout(() => setFeedback(null), 800);
-  };
-
   const playNote = useCallback(() => {
     if (!audioContextRef.current) return;
     const ctx = audioContextRef.current;
     if (ctx.state === 'suspended') ctx.resume();
     const now = ctx.currentTime;
-    const baseFreq = 261.63 * Math.pow(2, hits / 12);
-
     const osc1 = ctx.createOscillator();
-    const osc2 = ctx.createOscillator();
     const gain = ctx.createGain();
-
-    osc1.type = 'sine';
-    osc2.type = 'triangle';
-    osc2.detune.setValueAtTime(5, now); 
-
-    osc1.frequency.setValueAtTime(baseFreq, now);
-    osc2.frequency.setValueAtTime(baseFreq * 2, now); 
-
+    osc1.frequency.setValueAtTime(261.63 * Math.pow(2, hits / 12), now);
     gain.gain.setValueAtTime(0, now);
     gain.gain.linearRampToValueAtTime(0.2, now + 0.05);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
-
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 1);
     osc1.connect(gain);
-    osc2.connect(gain);
     gain.connect(ctx.destination);
-
-    osc1.start(); osc1.stop(now + 1.3);
-    osc2.start(); osc2.stop(now + 1.3);
+    osc1.start(); osc1.stop(now + 1.1);
   }, [hits]);
 
   const start = async () => {
@@ -529,18 +503,14 @@ function RhythmGame({ onWin, auraColor }: any) {
   useEffect(() => {
     if (!active) return;
     const interval = setInterval(() => {
-      wasMovingBeforePulseRef.current = currentAccelRef.current > 12;
       setPulse(true); canHitRef.current = true;
-      setTimeout(() => setPulse(false), 250); 
+      setTimeout(() => setPulse(false), 300); 
     }, (60 / currentPhase.bpm) * 1000);
 
     const handleMotion = (e: DeviceMotionEvent) => {
       const accel = Math.sqrt((e.accelerationIncludingGravity?.x || 0) ** 2 + (e.accelerationIncludingGravity?.y || 0) ** 2 + (e.accelerationIncludingGravity?.z || 0) ** 2);
-      currentAccelRef.current = accel;
-      if (accel > 18 && canHitRef.current) {
-        if (!pulse) showFeedback('tooEarly');
-        else if (wasMovingBeforePulseRef.current) showFeedback('dontShake');
-        else { setHits(h => h + 1); canHitRef.current = false; playNote(); }
+      if (accel > 15 && canHitRef.current && pulse) {
+        setHits(h => h + 1); canHitRef.current = false; playNote();
       }
     };
     window.addEventListener('devicemotion', handleMotion);
@@ -554,21 +524,16 @@ function RhythmGame({ onWin, auraColor }: any) {
       ) : (
         <div className="flex flex-col items-center gap-12 text-center">
            <h3 className="text-5xl font-black uppercase italic text-white tracking-tighter">{currentPhase.name}</h3>
-           <motion.div animate={{ scale: pulse ? 1.3 : 1, opacity: pulse ? 1 : 0.4 }} className="w-48 h-48 rounded-[4rem] border-8 flex items-center justify-center shadow-2xl transition-colors" style={{ backgroundColor: pulse ? auraColor : 'transparent', borderColor: pulse ? 'white' : 'rgba(255,255,255,0.1)' }}>
-             <Music className={cn("w-20 h-20", pulse ? "text-white" : "text-white/20")} />
+           <motion.div animate={{ scale: pulse ? 1.2 : 1, opacity: pulse ? 1 : 0.4 }} className="w-48 h-48 rounded-[4rem] border-8 flex items-center justify-center shadow-2xl" style={{ backgroundColor: pulse ? auraColor : 'transparent', borderColor: 'white' }}>
+             <Music className="w-20 h-20 text-white" />
            </motion.div>
-           <div className="w-64 space-y-4">
-              <div className="flex justify-between text-[9px] font-black uppercase text-white/40"><span>Harmonia</span><span>{hits}/{currentPhase.goal}</span></div>
-              <div className="h-4 bg-white/10 rounded-full overflow-hidden border border-white/5 p-1"><motion.div animate={{ width: `${(hits/currentPhase.goal)*100}%` }} className="h-full bg-primary rounded-full" /></div>
-           </div>
-           <AnimatePresence>{feedback && (<motion.div initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1.2 }} exit={{ opacity: 0 }} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"><span className="bg-red-500 text-white px-6 py-2 rounded-full font-black uppercase text-[10px]">{feedback}</span></motion.div>)}</AnimatePresence>
+           <div className="w-64 h-4 bg-white/10 rounded-full overflow-hidden p-1"><motion.div animate={{ width: `${(hits/currentPhase.goal)*100}%` }} className="h-full bg-primary rounded-full" /></div>
         </div>
       )}
     </div>
   );
 }
 
-// --- JOGO 3: CAMINHO ---
 function PathGame({ onWin, auraColor }: any) {
   const [phase, setPhase] = useState(0);
   const [progress, setProgress] = useState(0);
@@ -577,8 +542,7 @@ function PathGame({ onWin, auraColor }: any) {
 
   const PHASES = [
     { name: 'Voo do Beija-Flor', path: 'M 50,450 L 50,50', reward: 30 },
-    { name: 'Deslize da Serpente', path: 'M 50,450 C 150,350 -50,150 50,50', reward: 45 },
-    { name: 'Zig Zag', path: 'M 50,450 L 150,350 L 50,250 L 150,150 L 50,50', reward: 60 }
+    { name: 'Zig Zag', path: 'M 50,450 L 150,350 L 50,250 L 150,150 L 50,50', reward: 45 }
   ];
   const currentPhase = PHASES[phase] || PHASES[0];
 
@@ -598,12 +562,12 @@ function PathGame({ onWin, auraColor }: any) {
     const path = pathRef.current;
     const length = path.getTotalLength();
     let bestDist = Infinity; let bestProg = 0;
-    for (let i = 0; i <= 100; i += 2) {
+    for (let i = 0; i <= 100; i += 5) {
       const p = path.getPointAtLength((i / 100) * length);
       const dist = Math.sqrt((p.x - x) ** 2 + (p.y - y) ** 2);
       if (dist < bestDist) { bestDist = dist; bestProg = i / 100; }
     }
-    if (bestDist < 50 && bestProg > progress - 0.08) setProgress(Math.max(progress, bestProg));
+    if (bestDist < 60 && bestProg > progress - 0.1) setProgress(Math.max(progress, bestProg));
   };
 
   const currentPoint = pathRef.current ? pathRef.current.getPointAtLength(progress * pathRef.current.getTotalLength()) : { x: 50, y: 450 };
@@ -612,16 +576,15 @@ function PathGame({ onWin, auraColor }: any) {
     <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-900">
       <div className="relative w-full max-w-xs aspect-[2/5] bg-white/5 rounded-[3rem] border-4 border-white/10 overflow-hidden">
         <svg ref={svgRef} viewBox="0 0 200 500" className="w-full h-full touch-none" onTouchMove={handleTouch}>
-          <path ref={pathRef} d={currentPhase.path} fill="none" stroke="white" strokeWidth="30" strokeLinecap="round" strokeOpacity="0.1" />
-          <path d={currentPhase.path} fill="none" stroke={auraColor} strokeWidth="30" strokeLinecap="round" strokeDasharray="1000" strokeDashoffset={1000 - (progress * 1000)} />
-          <circle cx={currentPoint.x} cy={currentPoint.y} r="15" fill="white" />
+          <path ref={pathRef} d={currentPhase.path} fill="none" stroke="white" strokeWidth="40" strokeLinecap="round" strokeOpacity="0.1" />
+          <path d={currentPhase.path} fill="none" stroke={auraColor} strokeWidth="40" strokeLinecap="round" strokeDasharray="1000" strokeDashoffset={1000 - (progress * 1000)} />
+          <circle cx={currentPoint.x} cy={currentPoint.y} r="20" fill="white" />
         </svg>
       </div>
     </div>
   );
 }
 
-// --- JOGO 4: SOPRO ---
 function BreathGame({ onWin, auraColor }: any) {
   const [active, setActive] = useState(false);
   const [level, setLevel] = useState(0);
@@ -640,8 +603,8 @@ function BreathGame({ onWin, auraColor }: any) {
       const update = () => {
         analyser.getByteFrequencyData(data);
         let average = data.reduce((a, b) => a + b) / data.length;
-        if (average > 25) { rotationRef.current += average / 4; setLevel(prev => Math.min(100, prev + 0.6)); }
-        else setLevel(prev => Math.max(0, prev - 0.2));
+        if (average > 20) { rotationRef.current += average / 3; setLevel(prev => Math.min(100, prev + 0.8)); }
+        else setLevel(prev => Math.max(0, prev - 0.3));
         const wheel = document.getElementById('sopro-wheel');
         if (wheel) wheel.style.transform = `rotate(${rotationRef.current}deg)`;
         if (level >= 99) { onWin(); return; }
@@ -666,7 +629,10 @@ function BreathGame({ onWin, auraColor }: any) {
   );
 }
 
-// --- JOGO 5: ELEVADOR DE VOZ ---
+/**
+ * --- JOGO 5: ELEVADOR DE VOZ (REFORMULADO) ---
+ * Sistema de fases com recompensas e mensagens pedagógicas.
+ */
 function VoiceGame({ onWin, auraColor }: { onWin: (reward: number, name: string) => void, auraColor: string }) {
   const [active, setActive] = useState(false);
   const [phaseIdx, setPhaseIdx] = useState(0);
@@ -677,14 +643,29 @@ function VoiceGame({ onWin, auraColor }: { onWin: (reward: number, name: string)
   const analyserRef = useRef<AnalyserNode | null>(null);
   const requestRef = useRef<number>(null);
 
-  const VOICE_LEVELS = Array.from({ length: 20 }, (_, i) => ({
-    name: `Andar ${i + 1}`,
-    duration: 3 + (i * 0.4), 
-    range: { min: 20 - (i * 0.4), max: 60 + (i * 0.4) }, 
-    targetFloor: 40 + (i * 2),
-    reward: 50 + (i * 5),
-    benefit: i === 0 ? "Controle inicial de fôlego e fluxo vocal." : `Sustentação avançada no nível ${i + 1}.`
-  }));
+  const VOICE_LEVELS = [
+    { 
+      name: 'Andar 1: Brisa Suave', 
+      duration: 5, 
+      range: { min: 15, max: 45 }, 
+      reward: 30, 
+      benefit: "Excelente! Você começou a controlar seu fluxo de ar de forma estável. Isso ajuda na clareza da sua fala." 
+    },
+    { 
+      name: 'Andar 2: Eco da Montanha', 
+      duration: 8, 
+      range: { min: 25, max: 55 }, 
+      reward: 50, 
+      benefit: "Muito bem! Sustentar sons por mais tempo fortalece os músculos da sua garganta e melhora o seu fôlego." 
+    },
+    { 
+      name: 'Andar 3: Canto do Herói', 
+      duration: 12, 
+      range: { min: 35, max: 70 }, 
+      reward: 80, 
+      benefit: "Incrível! Esse controle preciso de intensidade é fundamental para a expressividade e saúde da sua voz." 
+    }
+  ];
 
   const currentLevel = VOICE_LEVELS[phaseIdx];
 
@@ -708,15 +689,20 @@ function VoiceGame({ onWin, auraColor }: { onWin: (reward: number, name: string)
         const isInRange = average > currentLevel.range.min && average < currentLevel.range.max;
         
         if (isInRange) {
-          setProgress(p => Math.min(100, p + (100 / (currentLevel.duration * 60))));
+          setProgress(p => {
+            const next = p + (100 / (currentLevel.duration * 60));
+            if (next >= 100) {
+              handleLevelComplete();
+              return 100;
+            }
+            return next;
+          });
         } else {
-          setProgress(p => Math.max(0, p - 0.4));
+          setProgress(p => Math.max(0, p - 0.5));
         }
 
-        if (progress < 99) {
+        if (progress < 100) {
           requestRef.current = requestAnimationFrame(update);
-        } else {
-          handleLevelComplete();
         }
       };
       setActive(true);
@@ -741,9 +727,9 @@ function VoiceGame({ onWin, auraColor }: { onWin: (reward: number, name: string)
         setIsExploding(false);
         start();
       } else {
-        onWin(currentLevel.reward, 'Mestre do Elevador');
+        onWin(currentLevel.reward, 'Maestro da Voz');
       }
-    }, 1500);
+    }, 1200);
   };
 
   useEffect(() => {
@@ -762,16 +748,19 @@ function VoiceGame({ onWin, auraColor }: { onWin: (reward: number, name: string)
         </div>
       ) : (
         <div className="relative w-full max-w-sm h-full flex flex-col items-center">
+          {/* Poço do Elevador */}
           <div className="absolute inset-y-10 w-40 bg-slate-800/50 rounded-3xl border-x-4 border-white/5 overflow-hidden">
              <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 2px, transparent 2px)', backgroundSize: '100% 40px' }} />
              
+             {/* Target Zone */}
              <motion.div 
-               animate={{ y: 200 - (phaseIdx * 5) }} 
+               animate={{ y: 200 - (phaseIdx * 10) }} 
                className="absolute inset-x-0 h-24 bg-green-500/20 border-y-2 border-green-500/50 flex items-center justify-center"
              >
                 <div className="text-[8px] font-black text-green-500 uppercase tracking-widest animate-pulse">Zona Segura</div>
              </motion.div>
 
+             {/* Elevator Car */}
              <motion.div 
                animate={{ y: 400 - (volume * 4) }} 
                transition={{ type: "spring", stiffness: 100 }}
@@ -788,7 +777,7 @@ function VoiceGame({ onWin, auraColor }: { onWin: (reward: number, name: string)
                 <span className="text-sm font-black text-white">{Math.round(progress)}%</span>
              </div>
              <div className="h-3 bg-white/10 rounded-full overflow-hidden border border-white/5">
-                <motion.div animate={{ width: `${progress}%` }} className="h-full bg-pink-500" />
+                <motion.div animate={{ width: `${progress}%` }} className="h-full bg-pink-500 shadow-[0_0_15px_rgba(236,72,153,0.5)]" />
              </div>
           </div>
 
@@ -797,34 +786,58 @@ function VoiceGame({ onWin, auraColor }: { onWin: (reward: number, name: string)
               <motion.div 
                 initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
                 animate={{ opacity: 1, backdropFilter: "blur(12px)" }}
-                className="absolute inset-0 z-50 flex flex-col items-center justify-center text-center p-8 bg-slate-900/80"
+                className="absolute inset-0 z-50 flex flex-col items-center justify-center text-center p-10 bg-slate-900/80"
               >
                 {!isExploding ? (
-                  <>
-                    <motion.div 
-                      initial={{ scale: 0 }} 
-                      animate={{ scale: 1, rotate: [0, 10, -10, 0] }}
-                      className="p-8 bg-white rounded-[3rem] border-8 border-pink-500 shadow-2xl mb-8"
-                    >
-                      <Package className="w-20 h-20 text-pink-500" />
-                    </motion.div>
-                    <h2 className="text-3xl font-black text-white uppercase italic italic mb-2">Piso Alcançado!</h2>
+                  <motion.div 
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    className="space-y-8"
+                  >
+                    <div className="flex justify-center">
+                      <div className="relative">
+                        <motion.div 
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+                          className="absolute inset-0 bg-primary/20 rounded-full blur-2xl"
+                        />
+                        <div className="w-24 h-24 rounded-[2rem] bg-white border-4 border-green-500 flex items-center justify-center text-green-500 shadow-2xl relative">
+                          <CheckCircle2 className="w-12 h-12" />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <h2 className="text-3xl font-black text-white uppercase italic tracking-tighter">Andar Alcançado!</h2>
+                      <div className="bg-white/10 p-4 rounded-2xl flex items-center gap-3 w-fit mx-auto border border-white/10">
+                        <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                        <span className="text-xl font-black text-white">+{currentLevel.reward} Moedas</span>
+                      </div>
+                    </div>
+
+                    <div className="bg-white/5 p-6 rounded-[2.5rem] border border-white/10 max-w-xs mx-auto">
+                       <Lightbulb className="w-6 h-6 text-yellow-500 mx-auto mb-3" />
+                       <h4 className="text-[10px] font-black uppercase text-yellow-500 tracking-widest mb-2">Evolução do Mestre</h4>
+                       <p className="text-[11px] font-medium leading-relaxed text-white/90 italic">
+                         "{currentLevel.benefit}"
+                       </p>
+                    </div>
+
                     <Button 
                       onClick={nextLevel}
-                      className="h-16 px-12 rounded-full bg-green-500 text-white font-black uppercase shadow-2xl flex gap-3 text-lg border-b-8 border-green-700 active:border-b-0 active:translate-y-2"
+                      className="h-20 px-12 rounded-full bg-green-500 text-white font-black uppercase shadow-2xl flex gap-3 text-lg border-b-8 border-green-700 active:border-b-0 active:translate-y-2 transition-all w-full"
                     >
-                      Próximo Andar <Rocket className="w-6 h-6" />
+                      {phaseIdx === VOICE_LEVELS.length - 1 ? 'Finalizar Maestro' : 'Subir Mais'} <Rocket className="w-6 h-6" />
                     </Button>
-                  </>
+                  </motion.div>
                 ) : (
                   <motion.div 
                     initial={{ scale: 1 }} 
-                    animate={{ scale: [1, 2, 0], opacity: [1, 1, 0] }}
+                    animate={{ scale: [1, 1.5, 0], opacity: [1, 1, 0] }}
                     className="flex flex-col items-center"
                   >
-                    <Bomb className="w-32 h-32 text-red-500 animate-bounce" />
-                    <div className="text-4xl font-black text-red-500 uppercase italic">BOOOOM!</div>
-                    <Flame className="w-20 h-20 text-orange-500" />
+                    <Rocket className="w-32 h-32 text-primary animate-bounce" />
+                    <div className="text-4xl font-black text-primary uppercase italic">IMPULSO!</div>
                   </motion.div>
                 )}
               </motion.div>
