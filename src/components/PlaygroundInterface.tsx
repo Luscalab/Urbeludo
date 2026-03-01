@@ -152,8 +152,8 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
                 onSuggestBreath={() => setGameMode('breath')}
               />
             )}
-            {gameMode === 'balance' && <div className="flex-1 flex items-center justify-center text-white font-black uppercase">Modo Equilíbrio Ativo</div>}
-            {gameMode === 'breath' && <div className="flex-1 flex items-center justify-center text-white font-black uppercase">Modo Sopro Ativo</div>}
+            {gameMode === 'balance' && <div className="flex-1 flex items-center justify-center text-white font-black uppercase pt-24">Modo Equilíbrio Ativo</div>}
+            {gameMode === 'breath' && <div className="flex-1 flex items-center justify-center text-white font-black uppercase pt-24">Modo Sopro Ativo</div>}
           </AnimatePresence>
         </div>
       )}

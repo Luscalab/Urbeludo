@@ -28,29 +28,33 @@ self.onmessage = async (event) => {
       if (!extractor) {
         self.postMessage({ type: 'log', level: 'info', message: 'Iniciando pipeline Transformers: all-MiniLM-L6-v2' });
         
-        extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', {
-          progress_callback: (data: any) => {
-            if (data.status === 'progress') {
-              self.postMessage({ type: 'progress', progress: Math.round(data.progress) });
+        try {
+          extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', {
+            progress_callback: (data: any) => {
+              if (data.status === 'progress') {
+                self.postMessage({ type: 'progress', progress: Math.round(data.progress) });
+              }
             }
-          }
-        });
+          });
 
-        if (examples && Array.isArray(examples)) {
-          self.postMessage({ type: 'log', level: 'info', message: 'Vetorizando base de intenções (Pre-Embedding)...' });
-          intentCache = [];
-          for (const intent of examples) {
-            const vectors: number[][] = [];
-            for (const exampleText of intent.examples) {
-              const output = await extractor(exampleText, { pooling: 'mean', normalize: true });
-              vectors.push(Array.from(output.data as Float32Array));
+          if (examples && Array.isArray(examples)) {
+            self.postMessage({ type: 'log', level: 'info', message: 'Vetorizando base de intenções (Pre-Embedding)...' });
+            intentCache = [];
+            for (const intent of examples) {
+              const vectors: number[][] = [];
+              for (const exampleText of intent.examples) {
+                const output = await extractor(exampleText, { pooling: 'mean', normalize: true });
+                vectors.push(Array.from(output.data as Float32Array));
+              }
+              intentCache.push({ id: intent.id, vectors });
             }
-            intentCache.push({ id: intent.id, vectors });
           }
+          
+          self.postMessage({ type: 'ready' });
+          self.postMessage({ type: 'log', level: 'info', message: 'AuraWorker STATUS: ONLINE' });
+        } catch (pipeErr: any) {
+          self.postMessage({ type: 'error', message: `Erro no pipeline: ${pipeErr.message}` });
         }
-        
-        self.postMessage({ type: 'ready' });
-        self.postMessage({ type: 'log', level: 'info', message: 'AuraWorker STATUS: ONLINE' });
       } else {
         self.postMessage({ type: 'ready' });
       }
@@ -77,7 +81,6 @@ self.onmessage = async (event) => {
         }
       }
 
-      // Threshold de similaridade 0.4 conforme auditoria técnica
       const finalIntentId = bestMatch.score >= 0.4 ? bestMatch.id : 'fallback';
 
       self.postMessage({ 
@@ -94,6 +97,5 @@ self.onmessage = async (event) => {
     }
   } catch (error: any) {
     self.postMessage({ type: 'error', message: error.message || "Erro no Worker" });
-    self.postMessage({ type: 'log', level: 'error', message: 'Erro crítico na thread de IA', data: error });
   }
 };

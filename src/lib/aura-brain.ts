@@ -29,10 +29,11 @@ export const initAuraBrain = (onProgress?: (p: number) => void) => {
   }
 
   try {
+    // Inicialização robusta para Next.js 15
     worker = new Worker(new URL('./aura-worker.ts', import.meta.url), { type: 'module' });
 
     worker.onmessage = (event) => {
-      const { type, progress, intentId, message, level, data, score } = event.data;
+      const { type, progress, intentId, message, level, data } = event.data;
 
       switch (type) {
         case 'log':
@@ -48,13 +49,15 @@ export const initAuraBrain = (onProgress?: (p: number) => void) => {
           if (resolveClassification) resolveClassification(intentId);
           break;
         case 'error':
-          AuraLogger.error('AuraBrain', `Erro no Worker: ${message}`);
+          AuraLogger.error('AuraBrain', `Erro fatal no Worker: ${message}`);
+          if (onProgress) onProgress(0);
           if (resolveClassification) resolveClassification('fallback');
           break;
       }
     };
 
     worker.postMessage({ type: 'init', examples: INTENCOES });
+    AuraLogger.info('AuraBrain', 'Worker instanciado. Iniciando sincronização térmica...');
   } catch (err) {
     AuraLogger.error('AuraBrain', 'Falha ao instanciar Web Worker', err);
     onProgress?.(0);
