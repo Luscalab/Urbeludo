@@ -15,7 +15,8 @@ import {
   ChevronRight,
   ChevronLeft,
   Star,
-  Activity
+  Activity,
+  Volume2
 } from 'lucide-react';
 
 import { useUser, useDoc, useMemoFirebase } from '@/firebase';
@@ -26,7 +27,7 @@ import { UrbeLudoLogo } from '@/components/UrbeLudoLogo';
 
 type GameMode = 'select' | 'balance' | 'rhythm' | 'path';
 
-// Escala Orquestral (Pentatônica Maior)
+// Escala Orquestral (Pentatônica Maior de Dó)
 const ORCHESTRA_SCALE = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25];
 
 export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean }) {
@@ -294,7 +295,7 @@ function BalanceGame({ onWin, auraColor }: any) {
   );
 }
 
-// --- JOGO 2: MAESTRO ORQUESTRAL (REMODELADO COM FASES) ---
+// --- JOGO 2: MAESTRO ORQUESTRAL (RITMO) ---
 
 interface RhythmLevel {
   id: number;
@@ -325,43 +326,67 @@ function RhythmGame({ onWin, auraColor }: { onWin: (reward: number, name: string
 
   const level = RHYTHM_LEVELS[currentLevelIdx];
 
+  // Função Audível Robusta de Orquestra
   const playOrchestraNote = (freqIndex: number) => {
     if (!audioCtxRef.current) return;
     const ctx = audioCtxRef.current;
-    if (ctx.state === 'suspended') ctx.resume();
+    
+    // Resume o contexto se estiver suspenso (exigência mobile)
+    if (ctx.state === 'suspended') {
+      ctx.resume();
+    }
     
     const now = ctx.currentTime;
     const freq = ORCHESTRA_SCALE[freqIndex % ORCHESTRA_SCALE.length];
 
-    const oscillators = [0, 5, -5].map(detune => {
+    // Cria um som rico de orquestra com múltiplos harmônicos
+    [0, 0.01, -0.01].forEach((detune, i) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       
       osc.type = level.soundType;
+      // Frequência fundamental e leves desafinações para efeito de chorus
       osc.frequency.setValueAtTime(freq, now);
-      osc.detune.setValueAtTime(detune, now);
+      osc.detune.setValueAtTime(detune * 100, now);
       
       gain.gain.setValueAtTime(0, now);
-      gain.gain.linearRampToValueAtTime(0.15, now + 0.05);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+      // Envelope de Volume Suave (Simula um instrumento de corda/sopro)
+      gain.gain.linearRampToValueAtTime(i === 0 ? 0.3 : 0.1, now + 0.1);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
       
       osc.connect(gain);
       gain.connect(ctx.destination);
-      return { osc, gain };
-    });
-
-    oscillators.forEach(({ osc }) => {
       osc.start(now);
-      osc.stop(now + 1.0);
+      osc.stop(now + 1.5);
     });
   };
 
   const start = async () => {
+    // Solicita permissão de acelerômetro
     if (typeof (DeviceMotionEvent as any).requestPermission === 'function') {
-      const res = await (DeviceMotionEvent as any).requestPermission();
-      if (res !== 'granted') return;
+      try {
+        const res = await (DeviceMotionEvent as any).requestPermission();
+        if (res !== 'granted') return;
+      } catch (e) {
+        console.warn("Permissão de movimento negada ou erro:", e);
+      }
     }
-    audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+
+    // Inicializa Áudio via Gesto do Usuário
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    audioCtxRef.current = ctx;
+    if (ctx.state === 'suspended') await ctx.resume();
+
+    // Som de ativação
+    const warmOsc = ctx.createOscillator();
+    const warmGain = ctx.createGain();
+    warmGain.gain.setValueAtTime(0.05, ctx.currentTime);
+    warmGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+    warmOsc.connect(warmGain);
+    warmGain.connect(ctx.destination);
+    warmOsc.start();
+    warmOsc.stop(ctx.currentTime + 0.2);
+
     setActive(true);
   };
 
@@ -370,19 +395,23 @@ function RhythmGame({ onWin, auraColor }: { onWin: (reward: number, name: string
 
     const intervalMs = (60 / level.bpm) * 1000;
     
+    // Loop de batida visual e temporal
     intervalRef.current = setInterval(() => {
       setBeat(true);
-      setTimeout(() => setBeat(false), 350);
+      setTimeout(() => setBeat(false), 400); // Janela de batida
     }, intervalMs);
 
     const handleMotion = (e: DeviceMotionEvent) => {
       const acc = e.accelerationIncludingGravity;
       if (!acc) return;
+      
+      // Cálculo de aceleração total (Tonicidade)
       const totalAcc = Math.abs(acc.x || 0) + Math.abs(acc.y || 0) + Math.abs(acc.z || 0);
       
-      // Detecção de pico de aceleração (Tonicidade)
-      if (totalAcc > 24 && Date.now() - lastShakeRef.current > (60000 / level.bpm) * 0.4) {
-        lastShakeRef.current = Date.now();
+      // Detecção de pico de movimento com limitador (throttle)
+      const now = Date.now();
+      if (totalAcc > 22 && now - lastShakeRef.current > (60000 / level.bpm) * 0.5) {
+        lastShakeRef.current = now;
         checkRhythm();
       }
     };
@@ -392,12 +421,13 @@ function RhythmGame({ onWin, auraColor }: { onWin: (reward: number, name: string
       if (intervalRef.current) clearInterval(intervalRef.current);
       window.removeEventListener('devicemotion', handleMotion);
     };
-  }, [active, level, beat]);
+  }, [active, level]);
 
   const checkRhythm = () => {
     if (beat) {
       setScore(s => {
         const nextScore = s + 1;
+        // Toca a nota orquestral correspondente
         playOrchestraNote(nextScore);
         setFeedback('EXCELENTE!');
         
@@ -407,7 +437,7 @@ function RhythmGame({ onWin, auraColor }: { onWin: (reward: number, name: string
             setTimeout(() => {
               setCurrentLevelIdx(v => v + 1);
               setScore(0);
-            }, 1000);
+            }, 1200);
           } else {
             onWin(level.reward, `Grande Maestro Orquestral`);
           }
@@ -428,21 +458,21 @@ function RhythmGame({ onWin, auraColor }: { onWin: (reward: number, name: string
              <Music className="w-12 h-12 text-accent" />
            </div>
            <div className="space-y-2">
-             <h3 className="text-xl font-black uppercase italic text-white tracking-tighter">Prepare sua Batuta</h3>
-             <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest max-w-[240px] mx-auto">Balance o celular no ritmo da luz para reger a sinfonia.</p>
+             <h3 className="text-xl font-black uppercase italic text-white tracking-tighter">Maestro de Auras</h3>
+             <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest max-w-[240px] mx-auto">Balance o celular no ritmo da música para reger a orquestra.</p>
            </div>
-           <Button onClick={start} className="h-20 px-16 rounded-full bg-accent text-white font-black uppercase shadow-2xl text-lg border-b-8 border-accent/70 active:translate-y-2 active:border-b-0 transition-all">Reger Orquestra</Button>
+           <Button onClick={start} className="h-20 px-16 rounded-full bg-accent text-white font-black uppercase shadow-2xl text-lg border-b-8 border-accent/70 active:translate-y-2 active:border-b-0 transition-all">Iniciar Concerto</Button>
         </div>
       ) : (
         <>
           <div className="text-center space-y-4 w-full">
              <div className="flex items-center justify-center gap-4">
-                <Activity className="w-5 h-5 text-accent" />
+                <Volume2 className="w-5 h-5 text-accent animate-pulse" />
                 <h2 className="text-2xl font-black uppercase italic text-white tracking-tighter">{level.name}</h2>
              </div>
              <div className="flex justify-center gap-4">
-                {[...Array(RHYTHM_LEVELS.length)].map((_, i) => (
-                  <div key={i} className={`h-2 w-12 rounded-full ${i <= currentLevelIdx ? 'bg-accent' : 'bg-white/10'}`} />
+                {RHYTHM_LEVELS.map((l, i) => (
+                  <div key={l.id} className={`h-2 w-12 rounded-full transition-all duration-500 ${i <= currentLevelIdx ? 'bg-accent' : 'bg-white/10'}`} />
                 ))}
              </div>
           </div>
@@ -452,26 +482,26 @@ function RhythmGame({ onWin, auraColor }: { onWin: (reward: number, name: string
                {beat && (
                  <motion.div 
                    initial={{ scale: 0.8, opacity: 0 }}
-                   animate={{ scale: 1.6, opacity: 0.15 }}
+                   animate={{ scale: 1.8, opacity: 0.2 }}
                    exit={{ opacity: 0 }}
-                   className="absolute inset-0 bg-accent rounded-full blur-2xl"
+                   className="absolute inset-0 bg-accent rounded-full blur-3xl"
                  />
                )}
              </AnimatePresence>
              
              <motion.div 
                animate={{ 
-                 scale: beat ? 1.2 : 1, 
-                 borderColor: beat ? 'rgba(236, 72, 153, 0.8)' : 'rgba(255, 255, 255, 0.1)',
-                 boxShadow: beat ? '0 0 40px rgba(236, 72, 153, 0.3)' : '0 0 0px rgba(0,0,0,0)'
+                 scale: beat ? 1.25 : 1, 
+                 borderColor: beat ? 'rgba(236, 72, 153, 0.9)' : 'rgba(255, 255, 255, 0.1)',
+                 boxShadow: beat ? '0 0 60px rgba(236, 72, 153, 0.4)' : '0 0 0px rgba(0,0,0,0)'
                }}
                className="w-64 h-64 rounded-[4rem] border-8 flex flex-col items-center justify-center gap-6 bg-white/5 backdrop-blur-md shadow-2xl transition-all relative z-10"
              >
                 <div className="flex flex-col items-center gap-2">
-                   <Music className={`w-16 h-16 ${beat ? 'text-accent animate-bounce' : 'text-white/20'}`} />
+                   <Music className={`w-16 h-16 ${beat ? 'text-accent' : 'text-white/10'}`} />
                    <div className="text-5xl font-black text-white tracking-tighter">{score} <span className="text-sm opacity-30">/ {level.targetScore}</span></div>
                 </div>
-                <div className="text-[10px] font-black uppercase text-accent/60 tracking-[0.3em]">{Math.round(level.bpm)} BPM</div>
+                <div className="text-[10px] font-black uppercase text-accent/60 tracking-[0.3em]">{level.bpm} BPM</div>
              </motion.div>
 
              <AnimatePresence>
@@ -489,7 +519,7 @@ function RhythmGame({ onWin, auraColor }: { onWin: (reward: number, name: string
           </div>
           
           <div className="bg-white/5 p-6 rounded-[2rem] border border-white/5 text-center">
-             <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.4em]">Balance com vigor no pulso da luz!</p>
+             <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.4em]">Siga o pulso da luz com firmeza!</p>
           </div>
         </>
       )}
@@ -497,12 +527,12 @@ function RhythmGame({ onWin, auraColor }: { onWin: (reward: number, name: string
   );
 }
 
-// --- JOGO 3: CAMINHO DE LUZ (REMODELADO COM FASES) ---
+// --- JOGO 3: CAMINHO DE LUZ (COORDENAÇÃO FINA) ---
 
 interface PathLevel {
   id: number;
   name: string;
-  path: string; // SVG path data
+  path: string; 
   reward: number;
   difficulty: 'easy' | 'medium' | 'hard' | 'expert';
 }
@@ -540,7 +570,7 @@ const PATH_LEVELS: PathLevel[] = [
 
 function PathGame({ onWin, auraColor }: { onWin: (reward: number, name: string) => void, auraColor: string }) {
   const [currentLevelIdx, setCurrentLevelIdx] = useState(0);
-  const [progress, setProgress] = useState(0); // 0 to 1
+  const [progress, setProgress] = useState(0); 
   const [isOffPath, setIsOffPath] = useState(false);
   const [isStarted, setIsStarted] = useState(false);
   
@@ -584,10 +614,9 @@ function PathGame({ onWin, auraColor }: { onWin: (reward: number, name: string) 
     
     const pathLength = pathRef.current.getTotalLength();
     
-    // Find nearest point on path
     let bestDist = Infinity;
     let bestT = 0;
-    const precision = 50; // Points to check
+    const precision = 60; 
     
     for (let i = 0; i <= precision; i++) {
       const t = i / precision;
@@ -599,11 +628,9 @@ function PathGame({ onWin, auraColor }: { onWin: (reward: number, name: string) 
       }
     }
 
-    // Interaction rules
-    const tolerance = 40;
+    const tolerance = 35;
     if (bestDist < tolerance) {
       setIsOffPath(false);
-      // Only advance if touching near the current progress
       if (bestT >= progress && bestT <= progress + 0.15) {
         setProgress(bestT);
         updateAudio(true, bestT);
@@ -622,8 +649,8 @@ function PathGame({ onWin, auraColor }: { onWin: (reward: number, name: string) 
     if (!oscillatorRef.current || !gainRef.current || !audioCtxRef.current) return;
     const now = audioCtxRef.current.currentTime;
     
-    const freq = onPath ? 300 + t * 400 : 150;
-    const volume = onPath ? 0.15 : 0.05;
+    const freq = onPath ? 280 + t * 450 : 140;
+    const volume = onPath ? 0.2 : 0.05;
     
     oscillatorRef.current.frequency.setTargetAtTime(freq, now, 0.1);
     gainRef.current.gain.setTargetAtTime(volume, now, 0.1);
@@ -669,10 +696,9 @@ function PathGame({ onWin, auraColor }: { onWin: (reward: number, name: string) 
            </Button>
         </div>
         <div className="flex items-center gap-2">
-           <Star className={`w-4 h-4 ${level.id >= 1 ? 'text-yellow-400 fill-current' : 'text-white/20'}`} />
-           <Star className={`w-4 h-4 ${level.id >= 2 ? 'text-yellow-400 fill-current' : 'text-white/20'}`} />
-           <Star className={`w-4 h-4 ${level.id >= 3 ? 'text-yellow-400 fill-current' : 'text-white/20'}`} />
-           <Star className={`w-4 h-4 ${level.id >= 4 ? 'text-yellow-400 fill-current' : 'text-white/20'}`} />
+           {[...Array(4)].map((_, i) => (
+             <Star key={i} className={`w-4 h-4 ${i <= currentLevelIdx ? 'text-yellow-400 fill-current' : 'text-white/20'}`} />
+           ))}
         </div>
       </div>
 
@@ -684,54 +710,47 @@ function PathGame({ onWin, auraColor }: { onWin: (reward: number, name: string) 
           onTouchMove={handleTouch}
           onTouchEnd={() => { setIsOffPath(false); stopAudio(); }}
         >
-          {/* Base Path */}
           <path 
             ref={pathRef}
             d={level.path}
             fill="none"
-            stroke="rgba(255,255,255,0.1)"
-            strokeWidth="40"
+            stroke="rgba(255,255,255,0.05)"
+            strokeWidth="35"
             strokeLinecap="round"
-            strokeLinejoin="round"
           />
           
-          {/* Active Path Background */}
           <path 
             d={level.path}
             fill="none"
             stroke={auraColor}
-            strokeWidth="40"
+            strokeWidth="35"
             strokeLinecap="round"
-            strokeLinejoin="round"
             opacity="0.1"
           />
 
-          {/* User Progress Stroke */}
           <path 
             d={level.path}
             fill="none"
             stroke={auraColor}
-            strokeWidth="10"
-            strokeDasharray="1 10"
+            strokeWidth="8"
+            strokeDasharray="1 12"
             strokeLinecap="round"
-            opacity="0.5"
+            opacity="0.4"
           />
 
-          {/* Current Aura Marker */}
           <motion.circle 
             cx={pointOnPath.x}
             cy={pointOnPath.y}
-            r={isOffPath ? 15 : 25}
+            r={isOffPath ? 12 : 24}
             fill={isOffPath ? '#ef4444' : auraColor}
             initial={false}
             animate={{ 
-              r: isOffPath ? 15 : 25,
-              opacity: isOffPath ? 0.5 : 1
+              r: isOffPath ? 12 : 24,
+              opacity: isOffPath ? 0.6 : 1
             }}
             className="drop-shadow-[0_0_20px_rgba(147,51,234,0.8)]"
           />
           
-          {/* Goal Marker */}
           <circle cx="100" cy="50" r="15" fill="none" stroke="white" strokeWidth="2" strokeDasharray="4 4" className="animate-pulse" />
         </svg>
 
@@ -759,4 +778,3 @@ function PathGame({ onWin, auraColor }: { onWin: (reward: number, name: string) 
     </div>
   );
 }
-
