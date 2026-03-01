@@ -1,64 +1,50 @@
+
+'use client';
 /**
- * @fileOverview Motor de Arquitetura Ludo Online.
- * Refatorado para execução Client-Side (Offline Sovereignty).
+ * @fileOverview Motor de Arquitetura Ludo.
+ * Versão simplificada para evitar dependências Node.js.
  */
 
-import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { StudioItem } from '@/lib/types';
 
-const GenerateItemInputSchema = z.object({
-  prompt: z.string().describe("Descrição criativa do item"),
-  category: z.enum(['Essencial', 'Ativo', 'Estético', 'Especial']).default('Estético'),
-});
-export type GenerateItemInput = z.infer<typeof GenerateItemInputSchema>;
+const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
+const genAI = new GoogleGenerativeAI(API_KEY);
 
-const GenerateItemOutputSchema = z.object({
-  item: z.custom<StudioItem>(),
-});
-export type GenerateItemOutput = z.infer<typeof GenerateItemOutputSchema>;
+export interface GenerateItemInput {
+  prompt: string;
+  category: 'Essencial' | 'Ativo' | 'Estético' | 'Especial';
+}
 
-export async function generateStudioItem(input: GenerateItemInput): Promise<GenerateItemOutput> {
-  const architectPrompt = ai.definePrompt({
-    name: 'itemArchitect',
-    input: { schema: GenerateItemInputSchema },
-    output: {
-      schema: z.object({
-        name: z.string().describe("Nome futurista do item"),
-        description: z.string().describe("Descrição poética do item"),
-        technicalVisualPrompt: z.string().describe("Prompt detalhado para imagem"),
-        suggestedWidth: z.number(),
-        suggestedHeight: z.number(),
-      })
-    },
-    prompt: `Você é o Arquiteto Master do UrbeLudo. 
-Crie um item para um jogo isométrica futurista baseado em: "{{{prompt}}}".`
-  });
+export async function generateStudioItem(input: GenerateItemInput): Promise<{ item: StudioItem }> {
+  try {
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    
+    const architectPrompt = `Você é o Arquiteto Master do UrbeLudo. 
+    Crie um item para um jogo isométrico futurista baseado em: "${input.prompt}".
+    Retorne um JSON puro com: name, description, suggestedWidth, suggestedHeight.`;
 
-  const { output: meta } = await architectPrompt(input);
-  if (!meta) throw new Error("Falha na arquitetura.");
+    const result = await model.generateContent(architectPrompt);
+    const meta = JSON.parse(result.response.text().replace(/```json|```/g, "").trim());
 
-  const { media } = await ai.generate({
-    model: 'googleai/imagen-3.0-generate-001',
-    prompt: meta.technicalVisualPrompt,
-  });
+    const generatedItem: StudioItem = {
+      id: `ai-item-${Date.now()}`,
+      name: meta.name || "Item Futurista",
+      description: meta.description || "Gerado pela IA do Estúdio",
+      category: input.category,
+      price: 0,
+      assetPath: `https://picsum.photos/seed/${Date.now()}/400/300`, // Fallback para imagens
+      dimensions: { 
+        width: meta.suggestedWidth || 160, 
+        height: meta.suggestedHeight || 140 
+      },
+      gridSize: { w: 2, h: 2 },
+      isAiGenerated: true,
+    };
 
-  const assetPath = media?.url || `https://picsum.photos/seed/${Date.now()}/400/300`;
-
-  const generatedItem: StudioItem = {
-    id: `ai-item-${Date.now()}`,
-    name: meta.name,
-    description: meta.description,
-    category: input.category,
-    price: 0,
-    assetPath: assetPath,
-    dimensions: { 
-      width: meta.suggestedWidth || 160, 
-      height: meta.suggestedHeight || 140 
-    },
-    gridSize: { w: 2, h: 2 },
-    isAiGenerated: true,
-  };
-
-  return { item: generatedItem };
+    return { item: generatedItem };
+  } catch (error) {
+    console.error("Erro na geração de item:", error);
+    throw error;
+  }
 }

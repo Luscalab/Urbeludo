@@ -1,76 +1,81 @@
+
+'use client';
 /**
- * @fileOverview Flow para transformar uma foto real em um estilo de avatar seguro e lúdico.
- * Refatorado para execução Client-Side (Offline Sovereignty).
+ * @fileOverview AvatarizeUser - Transforma foto real em estilo de avatar seguro.
+ * Versão Client-Side direta via Google Generative AI SDK.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const AvatarizeUserInputSchema = z.object({
-  photoDataUri: z.string().describe("Foto do usuário para geração do avatar seguro."),
-});
-export type AvatarizeUserInput = z.infer<typeof AvatarizeUserInputSchema>;
+const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
+const genAI = new GoogleGenerativeAI(API_KEY);
 
-const AvatarTraitsSchema = z.object({
-  hair: z.object({
-    style: z.enum(['liso', 'ondulado', 'cacheado', 'crespo', 'careca', 'curto', 'longo']),
-    color: z.string().describe("Cor do cabelo em formato HEX"),
-    texture: z.string().describe("Textura identificada"),
-  }),
-  eyes: z.object({
-    shape: z.string().describe("Formato dos olhos"),
-    color: z.string().describe("Cor dos olhos em formato HEX"),
-    eyebrowShape: z.string().describe("Formato da sobrancelha"),
-  }),
-  face: z.object({
-    shape: z.string().describe("Formato do rosto"),
-    tone: z.string().describe("Tom de pele em formato HEX"),
-    undertone: z.string().describe("Subtom"),
-    noseShape: z.string().describe("Formato do nariz"),
-    mouthShape: z.string().describe("Formato da boca"),
-  }),
-  accessories: z.array(z.string()).describe("Lista de acessórios"),
-  dominantColor: z.string().describe("Cor principal sugerida para a aura"),
-  accessoryType: z.string().describe("Tipo de acessório futurista sugerido"),
-  avatarStyleDescription: z.string().describe("Resumo poético do estilo"),
-});
+export interface AvatarizeUserInput {
+  photoDataUri: string;
+}
 
-export type AvatarizeUserOutput = z.infer<typeof AvatarTraitsSchema>;
+export interface AvatarizeUserOutput {
+  hair: {
+    style: string;
+    color: string;
+    texture: string;
+  };
+  eyes: {
+    shape: string;
+    color: string;
+    eyebrowShape: string;
+  };
+  face: {
+    shape: string;
+    tone: string;
+    undertone: string;
+    noseShape: string;
+    mouthShape: string;
+  };
+  accessories: string[];
+  dominantColor: string;
+  accessoryType: string;
+  avatarStyleDescription: string;
+}
 
 export async function avatarizeUser(input: AvatarizeUserInput): Promise<AvatarizeUserOutput> {
-  const avatarizeUserPrompt = ai.definePrompt({
-    name: 'avatarizeUserPrompt',
-    input: {schema: AvatarizeUserInputSchema},
-    output: {schema: AvatarTraitsSchema},
-    config: {
-      safetySettings: [
-        { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
-        { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
-        { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
-        { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' }
-      ],
-    },
-    prompt: `Você é o Designer de Identidades do UrbeLudo. 
-Analise a foto fornecida e identifique detalhadamente as características faciais para criar um avatar artístico e futurista.
-Cabelo, olhos, tom de pele (HEX), acessórios e estilo.
+  const fallback: AvatarizeUserOutput = {
+    hair: { style: 'curto', color: '#333333', texture: 'Liso' },
+    eyes: { shape: 'Amendoado', color: '#33993D', eyebrowShape: 'Natural' },
+    face: { shape: 'Oval', tone: '#e0ac69', undertone: 'Quente', noseShape: 'Natural', mouthShape: 'Natural' },
+    accessories: [],
+    dominantColor: "#9333ea",
+    accessoryType: "Visor de Neon Pulse",
+    avatarStyleDescription: "Explorador Padrão do UrbeLudo"
+  };
 
-Foto: {{media url=photoDataUri}}`,
-  });
+  if (!API_KEY) return fallback;
 
   try {
-    const {output} = await avatarizeUserPrompt(input);
-    if (!output) throw new Error("IA não gerou resposta");
-    return output;
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    
+    const [mimeType, base64Data] = input.photoDataUri.split(',');
+    const pureMime = mimeType.match(/data:(.*?);/)?.[1] || "image/jpeg";
+
+    const prompt = `Você é o Designer de Identidades do UrbeLudo. 
+    Analise a foto fornecida e identifique detalhadamente as características faciais para criar um avatar artístico e futurista.
+    Retorne um JSON puro com os campos: hair (style, color hex, texture), eyes (shape, color hex, eyebrowShape), face (shape, tone hex, undertone, noseShape, mouthShape), accessories (array), dominantColor (hex), accessoryType, avatarStyleDescription.`;
+
+    const result = await model.generateContent([
+      prompt,
+      {
+        inlineData: {
+          data: base64Data,
+          mimeType: pureMime
+        }
+      }
+    ]);
+
+    const response = await result.response;
+    const text = response.text().replace(/```json|```/g, "").trim();
+    return JSON.parse(text) as AvatarizeUserOutput;
   } catch (error) {
-    console.error("Erro na Avatarização Offline:", error);
-    return {
-      hair: { style: 'curto', color: '#333333', texture: 'Liso' },
-      eyes: { shape: 'Amendoado', color: '#33993D', eyebrowShape: 'Natural' },
-      face: { shape: 'Oval', tone: '#e0ac69', undertone: 'Quente', noseShape: 'Natural', mouthShape: 'Natural' },
-      accessories: [],
-      dominantColor: "#33993D",
-      accessoryType: "Visor de Neon Pulse",
-      avatarStyleDescription: "Explorador Padrão do UrbeLudo"
-    };
+    console.error("Erro na Avatarização:", error);
+    return fallback;
   }
 }
