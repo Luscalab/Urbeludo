@@ -2,6 +2,7 @@
 import type {NextConfig} from 'next';
 import path from 'path';
 
+/** @type {import('next').NextConfig} */
 const nextConfig: NextConfig = {
   output: 'export', // OBRIGATÓRIO para gerar arquivos estáticos para o APK (Capacitor)
   distDir: 'out',
@@ -21,6 +22,8 @@ const nextConfig: NextConfig = {
     '@tensorflow/tfjs-converter',
     '@mediapipe/pose'
   ],
+  // Comentado para teste de estabilidade em ambientes de preview/proxy
+  /*
   experimental: {
     turbo: {
       resolveAlias: {
@@ -28,6 +31,7 @@ const nextConfig: NextConfig = {
       },
     },
   },
+  */
   webpack: (config) => {
     config.resolve.alias = {
       ...config.resolve.alias,
