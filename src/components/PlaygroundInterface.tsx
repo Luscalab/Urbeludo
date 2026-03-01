@@ -41,7 +41,6 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 type GameMode = 'select' | 'balance' | 'rhythm' | 'path' | 'jump' | 'twister' | 'radar' | 'breath' | 'voice';
 
-// Mapeamento estático e relativo para a pasta public/games/elevador/
 const VOICE_ASSETS = {
   fundo: "games/elevador/1.png",
   roboParado: "games/elevador/2.png",
@@ -55,9 +54,6 @@ const VOICE_ASSETS = {
   caixaAberta: "games/elevador/10.png"
 };
 
-/**
- * Componente de Partículas para Recompensa.
- */
 const CoinRain = () => {
   const coins = Array.from({ length: 15 });
   return (
@@ -158,6 +154,7 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
     
     if (userProgressRef && profile) {
       const history = profile.history || [];
+      const completedCount = profile.totalChallengesCompleted || 0;
       const newHistory = [{
         id: `act-${Date.now()}`,
         timestamp: new Date().toISOString(),
@@ -168,9 +165,9 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
       
       updateDocumentNonBlocking(userProgressRef, { 
         ludoCoins: (profile.ludoCoins || 0) + reward,
-        totalChallengesCompleted: (profile.totalChallengesCompleted || 0) + 1,
+        totalChallengesCompleted: completedCount + 1,
         history: newHistory,
-        psychomotorLevel: Math.floor((profile.totalChallengesCompleted + 1) / 5) + 1
+        psychomotorLevel: Math.floor((completedCount + 1) / 5) + 1
       });
     }
   }, [isWin, userProgressRef, profile, speak]);
@@ -215,23 +212,22 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
         </div>
 
         <div className="grid gap-4 w-full max-w-sm pb-10">
-          <GameModeCard icon={<Move />} mode="balance" title={t('playground.modes.balance.title')} desc={t('playground.modes.balance.desc')} goal={t('playground.modes.balance.goal')} color="bg-blue-500" onClick={() => handleModeSelect('balance')} onInfo={() => setActiveInfoMode('balance')} />
-          <GameModeCard icon={<Music />} mode="rhythm" title={t('playground.modes.rhythm.title')} desc={t('playground.modes.rhythm.desc')} goal={t('playground.modes.rhythm.goal')} color="bg-primary" onClick={() => handleModeSelect('rhythm')} onInfo={() => setActiveInfoMode('rhythm')} />
-          <GameModeCard icon={<Fingerprint />} mode="path" title={t('playground.modes.path.title')} desc={t('playground.modes.path.desc')} goal={t('playground.modes.path.goal')} color="bg-accent" onClick={() => handleModeSelect('path')} onInfo={() => setActiveInfoMode('path')} />
+          <GameModeCard icon={<Move />} title={t('playground.modes.balance.title')} desc={t('playground.modes.balance.desc')} goal={t('playground.modes.balance.goal')} color="bg-blue-500" onClick={() => handleModeSelect('balance')} onInfo={() => setActiveInfoMode('balance')} />
+          <GameModeCard icon={<Music />} title={t('playground.modes.rhythm.title')} desc={t('playground.modes.rhythm.desc')} goal={t('playground.modes.rhythm.goal')} color="bg-primary" onClick={() => handleModeSelect('rhythm')} onInfo={() => setActiveInfoMode('rhythm')} />
+          <GameModeCard icon={<Fingerprint />} title={t('playground.modes.path.title')} desc={t('playground.modes.path.desc')} goal={t('playground.modes.path.goal')} color="bg-accent" onClick={() => handleModeSelect('path')} onInfo={() => setActiveInfoMode('path')} />
           
           <div className="w-full border-t border-white/10 pt-4 mt-2">
             <p className="text-[8px] font-black text-white/30 uppercase tracking-[0.4em] mb-4 text-center">Fonoaudiologia e Respiração</p>
           </div>
 
-          <GameModeCard icon={<Wind />} mode="breath" title={t('playground.modes.breath.title')} desc={t('playground.modes.breath.desc')} goal={t('playground.modes.breath.goal')} color="bg-teal-500" onClick={() => handleModeSelect('breath')} onInfo={() => setActiveInfoMode('breath')} />
-          <GameModeCard icon={<Volume2 />} mode="voice" title={t('playground.modes.voice.title')} desc={t('playground.modes.voice.desc')} goal={t('playground.modes.voice.goal')} color="bg-pink-500" onClick={() => handleModeSelect('voice')} onInfo={() => setActiveInfoMode('voice')} />
+          <GameModeCard icon={<Wind />} title={t('playground.modes.breath.title')} desc={t('playground.modes.breath.desc')} goal={t('playground.modes.breath.goal')} color="bg-teal-500" onClick={() => handleModeSelect('breath')} onInfo={() => setActiveInfoMode('breath')} />
+          <GameModeCard icon={<Volume2 />} title={t('playground.modes.voice.title')} desc={t('playground.modes.voice.desc')} goal={t('playground.modes.voice.goal')} color="bg-pink-500" onClick={() => handleModeSelect('voice')} onInfo={() => setActiveInfoMode('voice')} />
         </div>
         
         <Link href="/dashboard" className="text-[10px] font-black uppercase text-white/40 hover:text-white transition-colors tracking-widest mt-auto pb-4 flex items-center gap-2">
           <ArrowLeft className="w-4 h-4" /> {t('common.back')}
         </Link>
 
-        {/* Tutorial Dialog */}
         <Dialog open={showTutorial} onOpenChange={setShowTutorial}>
           <DialogContent className="max-w-md rounded-[3rem] border-8 border-primary/20 bg-slate-900 text-white p-10 overflow-hidden">
             <div className="absolute inset-0 bg-mesh-game opacity-20 pointer-events-none" />
@@ -260,7 +256,6 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
           </DialogContent>
         </Dialog>
 
-        {/* Info Dialog */}
         <Dialog open={!!activeInfoMode} onOpenChange={() => setActiveInfoMode(null)}>
           <DialogContent className="max-w-md rounded-[3rem] border-4 border-white/20 bg-slate-900 text-white p-8 overflow-hidden">
             <div className="absolute inset-0 bg-mesh-game opacity-20 pointer-events-none" />
@@ -316,8 +311,8 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
 
       <AnimatePresence mode="wait">
         {gameMode === 'balance' && <BalanceGame key="balance" onWin={(reward, name) => handleWin(reward, name)} auraColor={auraColor} />}
-        {gameMode === 'rhythm' && <RhythmGame key="rhythm" onWin={(reward, name) => handleWin(reward, name)} auraColor={auraColor} />}
-        {gameMode === 'path' && <PathGame key="path" onWin={(reward, name) => handleWin(reward, name)} auraColor={auraColor} />}
+        {gameMode === 'rhythm' && <RhythmGame key="rhythm" onWin={(reward: number, name: string) => handleWin(reward, name)} auraColor={auraColor} />}
+        {gameMode === 'path' && <PathGame key="path" onWin={(reward: number, name: string) => handleWin(reward, name)} auraColor={auraColor} />}
         {gameMode === 'breath' && <BreathGame key="breath" onWin={() => handleWin(40, 'Mestre do Sopro')} auraColor={auraColor} />}
         {gameMode === 'voice' && <VoiceGame key="voice" onWin={(reward, name) => handleWin(reward, name)} auraColor={auraColor} ludoCoins={profile?.ludoCoins || 0} />}
       </AnimatePresence>
@@ -350,6 +345,7 @@ function BalanceGame({ onWin, auraColor }: { onWin: (reward: number, type: strin
     if (audioContextRef.current?.state === 'suspended') await audioContextRef.current.resume();
     
     const ctx = audioContextRef.current;
+    if (!ctx) return;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = 'sine';
@@ -377,12 +373,12 @@ function BalanceGame({ onWin, auraColor }: { onWin: (reward: number, type: strin
   }, [active, showPhaseTransition]);
 
   useEffect(() => {
-    if (!active || showPhaseTransition || !gainRef.current || !oscRef.current) return;
+    if (!active || showPhaseTransition || !gainRef.current || !oscRef.current || !audioContextRef.current) return;
     const dist = Math.sqrt(Math.pow(tilt.x - targetPos.x, 2) + Math.pow(tilt.y - targetPos.y, 2));
     const proximity = Math.max(0, 1 - (dist / 200));
     
-    gainRef.current.gain.setTargetAtTime(proximity * 0.08, audioContextRef.current!.currentTime, 0.15);
-    oscRef.current.frequency.setTargetAtTime(220 + (proximity * 220), audioContextRef.current!.currentTime, 0.2);
+    gainRef.current.gain.setTargetAtTime(proximity * 0.08, audioContextRef.current.currentTime, 0.15);
+    oscRef.current.frequency.setTargetAtTime(220 + (proximity * 220), audioContextRef.current.currentTime, 0.2);
 
     const isInside = dist < currentPhase.threshold;
 

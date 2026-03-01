@@ -15,6 +15,7 @@ import { useI18n } from '@/components/I18nProvider';
 import { LanguageSelector } from '@/components/LanguageSelector';
 import { AccessibilityToolbar } from '@/components/AccessibilityToolbar';
 import { LocalPersistence } from '@/lib/local-persistence';
+import { STATIC_AVATAR_LIST } from '@/lib/avatar-catalog';
 
 export default function AuthPage() {
   const router = useRouter();
@@ -28,17 +29,8 @@ export default function AuthPage() {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const getDefaultAvatar = async () => {
-    try {
-      const res = await fetch('/api/avatars');
-      if (res.ok) {
-        const list = await res.json();
-        return list[0] || '';
-      }
-    } catch (e) {
-      return '';
-    }
-    return '';
+  const getDefaultAvatar = () => {
+    return STATIC_AVATAR_LIST[0] || 'hero_default.png';
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -55,7 +47,7 @@ export default function AuthPage() {
     setIsLoading(true);
     
     const uid = `URBE_${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-    const firstAvatar = await getDefaultAvatar();
+    const firstAvatar = getDefaultAvatar();
 
     await LocalPersistence.saveUserId(uid);
     await LocalPersistence.saveProgress({
@@ -82,7 +74,7 @@ export default function AuthPage() {
   const handleGuestSignIn = async () => {
     setIsLoading(true);
     const uid = `GUEST_${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
-    const firstAvatar = await getDefaultAvatar();
+    const firstAvatar = getDefaultAvatar();
 
     await LocalPersistence.saveUserId(uid);
     await LocalPersistence.saveProgress({
@@ -173,9 +165,7 @@ export default function AuthPage() {
               <Checkbox 
                 id="terms" 
                 checked={termsAccepted} 
-                onCheckedChange={(checked) => {
-                  setTimeout(() => setTermsAccepted(!!checked), 0);
-                }}
+                onCheckedChange={(checked) => setTermsAccepted(!!checked)}
                 className="w-5 h-5 rounded-md border-2 border-primary"
               />
               <label htmlFor="terms" className="text-[9px] font-bold text-muted-foreground leading-tight">
