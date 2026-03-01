@@ -1,10 +1,11 @@
 'use client';
 /**
  * @fileOverview AuraHelper - Motor de Inteligência Semântica do UrbeLudo.
- * Implementa triagem de intenções para respostas instantâneas e fallback para Gemini.
+ * Implementa triagem via AuraBrain (Borda) e fallback para Gemini.
  */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { classifyIntent } from "@/lib/aura-brain";
 
 const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
 const genAI = new GoogleGenerativeAI(API_KEY);
@@ -20,139 +21,74 @@ export interface AuraHelperOutput {
 }
 
 /**
- * Matriz de Conhecimento Semântica.
- * Cada entrada possui um conjunto de "tokens" de intenção para matching flexível.
+ * Base de Respostas Fixas (Determinísticas) para o UrbeLudo.
  */
-const KNOWLEDGE_BASE = [
-  // --- JOGABILIDADE & INSTRUÇÕES ---
-  {
-    intent: "instruções_gerais",
-    tags: ["jogar", "funciona", "instruções", "como faço", "brincar", "objetivo", "começar", "ajuda"],
-    response: "Para começar, escolha um desafio no painel! O 'Elevador' treina sua voz, o 'Caminho de Luz' sua precisão e o 'Equilíbrio' sua postura. Siga as cores e os sons para vencer!",
-    action: "Explore o Laboratório de Movimento!"
+const RESPOSTAS_FIXAS: Record<string, { response: string, action: string }> = {
+  jogar_elevador: {
+    response: "Use sua voz para subir! Mantenha um som constante e tente ficar dentro da Zona de Estabilidade para encher a barra até 100%.",
+    action: "Tente manter o som firme!"
   },
-  {
-    intent: "elevador_voz",
-    tags: ["voz", "fala", "elevador", "ajuda minha voz", "garganta", "maestro", "cantar", "som", "subir", "instrução elevador"],
-    response: "O jogo do Elevador treina sua 'estabilidade fonatória'. Ele ajuda a manter sua voz firme e seu pulmão forte, o que melhora a clareza da fala e evita o cansaço ao conversar!",
-    action: "Tente manter o som na Zona Verde!"
+  zona_estabilidade: {
+    response: "A Zona de Estabilidade é a área verde na tela. Ela indica que sua voz está firme e controlada, o que é fundamental para o seu treino fonatário!",
+    action: "Foque no verde!"
   },
-  {
-    intent: "caminho_luz",
-    tags: ["precisão", "caminho", "luz", "mão", "dedo", "coordenação", "desenho", "trilha", "seguir", "instrução caminho"],
-    response: "O Caminho de Luz treina sua 'Praxia Fina' e coordenação olho-mão. É como um GPS para seus dedos, ensinando eles a serem precisos para escrever e desenhar!",
-    action: "Siga a trilha sem sair da linha!"
-  },
-  {
-    intent: "nuvem_sopro",
-    tags: ["sopro", "nuvem", "respiração", "ar", "pulmão", "expiração", "assoprar", "moinho", "instrução sopro"],
-    response: "Soprar de forma controlada treina seus músculos da face e do diafragma. Isso ajuda na respiração correta, na dicção e até na regulação das suas emoções!",
-    action: "Sopre suavemente no microfone."
-  },
-
-  // --- CIÊNCIA & PSICOMOTRICIDADE (SPSP/UNICV) ---
-  {
-    intent: "psicomotricidade",
-    tags: ["psicomotricidade", "corpo e mente", "ciência", "unicv", "spsp", "por que treinar", "benefício", "ajuda o corpo"],
-    response: "A psicomotricidade estuda como nossa mente comanda nosso corpo. No UrbeLudo, cada jogo é um exercício para que sua mente comande seu corpo com alegria e autonomia!",
+  clinico_psico: {
+    response: "A psicomotricidade estuda como nossos pensamentos e movimentos trabalham juntos! No UrbeLudo, ajudamos seu corpo e mente a dançarem no mesmo ritmo.",
     action: "O movimento consciente é a chave!"
   },
-  {
-    intent: "tonicidade",
-    tags: ["tonicidade", "músculo", "tônus", "força", "firmeza", "musculatura"],
-    response: "A tonicidade é o controle do seu tônus muscular. Quando você mantém o som estável ou o corpo equilibrado, está ensinando seus músculos a trabalharem com a força certa!",
-    action: "Sinta a firmeza nos seus movimentos."
+  tonicidade: {
+    response: "A tonicidade é o controle dos seus músculos. No Elevador de Voz, quando você mantém o som estável, treina o tônus das pregas vocais e do diafragma!",
+    action: "Sinta a firmeza muscular."
   },
-  {
-    intent: "esquema_corporal",
-    tags: ["esquema corporal", "consciência", "percepção", "meu corpo", "imagem", "avatar"],
-    response: "O esquema corporal é saber onde cada parte do seu corpo está. Ver seu progresso e seu avatar na tela ajuda seu cérebro a criar um 'mapa' melhor das suas capacidades!",
-    action: "Você está evoluindo sua percepção!"
-  },
-  {
-    intent: "pressao_subglotica",
-    tags: ["pressão", "pulmão", "ar", "força voz", "estabilidade", "zona verde"],
-    response: "A Zona de Estabilidade indica que sua pressão de ar está constante e saudável. Ter esse controle é fundamental para uma fala clara e para o fôlego do dia a dia!",
-    action: "Mantenha o ar fluindo devagar."
-  },
-
-  // --- RECOMPENSAS & ECONOMIA ---
-  {
-    intent: "moedas",
-    tags: ["moedas", "ludocoins", "lc", "ganhar", "comprar", "loja", "dinheiro", "prêmio", "bau", "tesouro"],
-    response: "As LudoCoins (LC) são suas moedas de mestre! Você as ganha completando desafios e pode usá-las na Loja para comprar itens incríveis para o seu Estúdio.",
+  moedas: {
+    response: "As LudoCoins (LC) são suas moedas de mestre! Você as ganha completando desafios e pode usá-las na Loja para seu Estúdio.",
     action: "Visite a Loja no Painel!"
   },
-
-  // --- SUPORTE TÉCNICO ---
-  {
-    intent: "tecnico_hardware",
-    tags: ["não funciona", "erro", "problema", "bug", "travou", "ajuda técnica", "microfone", "camera", "som", "calibrar"],
-    response: "Puxa, vamos resolver! Verifique se deu permissão de câmera e microfone ao app. No Android, confira se o volume está alto e se você está em um lugar bem iluminado.",
-    action: "Reinicie o desafio se necessário."
+  tecnico_ajuda: {
+    response: "Verifique se o microfone está ativo e se deu permissão ao app. No Android, confira se o volume está alto e se o ambiente está silencioso.",
+    action: "Calibrar Hardware"
   },
-  {
-    intent: "quem_sou_eu",
-    tags: ["quem é você", "aurahelper", "robô", "bot", "aura", "ajudante"],
-    response: "Eu sou o AuraHelper, seu guia digital de saúde e movimento! Estou aqui para explicar como cada brincadeira ajuda seu corpo a ficar mais forte e inteligente.",
-    action: "Pergunte-me sobre qualquer jogo!"
+  praxia_fina: {
+    response: "A praxia fina é a nossa capacidade de fazer movimentos pequenos e precisos. Seguir o Caminho de Luz treina seus dedos e olhos para agirem em harmonia!",
+    action: "Precisão é poder!"
+  },
+  esquema_corporal: {
+    response: "O esquema corporal é a consciência que você tem do seu corpo. Ver seu progresso ajuda seu cérebro a mapear melhor suas capacidades físicas!",
+    action: "Evolua sua percepção."
   }
-];
+};
 
 /**
- * Função principal que decide se usa a base fixa ou o Gemini.
+ * Função principal que decide se usa a base fixa via IA de Borda ou o Gemini.
  */
 export async function askAuraHelper(input: AuraHelperInput): Promise<AuraHelperOutput> {
-  const query = input.question.toLowerCase();
+  const query = input.question;
   
-  // MOTOR DE TRIAGEM SEMÂNTICA (Scoring system)
-  let bestMatch = null;
-  let highestScore = 0;
+  // 1. TRIAGEM SEMÂNTICA (IA de Borda - Offline First)
+  const intentId = await classifyIntent(query);
 
-  for (const entry of KNOWLEDGE_BASE) {
-    let currentScore = 0;
-    for (const tag of entry.tags) {
-      if (query.includes(tag)) {
-        // Atribui peso maior para frases mais completas
-        currentScore += tag.split(' ').length;
-      }
-    }
-
-    if (currentScore > highestScore) {
-      highestScore = currentScore;
-      bestMatch = entry;
-    }
-  }
-
-  // Se encontramos um match sólido (score > 0), retornamos instantaneamente
-  if (bestMatch && highestScore > 0) {
+  if (intentId !== 'fallback' && RESPOSTAS_FIXAS[intentId]) {
     return {
-      answer: bestMatch.response,
-      suggestedAction: bestMatch.action
+      answer: RESPOSTAS_FIXAS[intentId].response,
+      suggestedAction: RESPOSTAS_FIXAS[intentId].action
     };
   }
 
-  // FALLBACK PARA IA (Perguntas únicas ou complexas)
+  // 2. FALLBACK PARA GEMINI (Perguntas complexas)
   if (!API_KEY) {
     return {
       answer: "Minha percepção sensorial oscilou, mas lembre-se: cada movimento seu é uma vitória! Tente perguntar sobre um jogo específico.",
-      suggestedAction: "Verifique suas configurações de rede."
+      suggestedAction: "Verifique sua rede."
     };
   }
 
   try {
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-    const prompt = `Você é o AuraHelper, assistente especialista em Psicomotricidade e Fonoaudiologia do UrbeLudo.
-    Sua missão é explicar os benefícios dos jogos usando conceitos como tonicidade, praxia fina, esquema corporal e pressão subglótica, mas de forma lúdica e acessível.
-
-    REGRAS:
-    - Seja encorajador, educativo e tecnológico.
-    - Máximo 3 frases.
-    - Se for sobre progresso, fale de LudoCoins.
-    - Retorne APENAS um JSON: {"answer": "...", "suggestedAction": "..."}
-
-    Pergunta do Usuário: ${input.question}`;
+    const prompt = `Você é o AuraHelper, assistente especialista em Psicomotricidade do UrbeLudo.
+    Explique os benefícios usando conceitos como tonicidade, praxia fina e esquema corporal de forma lúdica.
+    Máximo 3 frases. Retorne APENAS um JSON: {"answer": "...", "suggestedAction": "..."}
+    Pergunta: ${query}`;
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
@@ -160,10 +96,10 @@ export async function askAuraHelper(input: AuraHelperInput): Promise<AuraHelperO
     
     return JSON.parse(text) as AuraHelperOutput;
   } catch (error) {
-    console.error("Erro no AuraHelper (IA):", error);
+    console.error("AuraHelper IA Fallback Error:", error);
     return {
-      answer: "Minha conexão com a Grande Aura está instável, mas continue se movendo! Como posso te ajudar a brilhar hoje?",
-      suggestedAction: "Tente perguntar sobre o 'Elevador' ou 'Moedas'."
+      answer: "Minha conexão com a Grande Aura está instável, mas continue brilhando! Como posso te ajudar hoje?",
+      suggestedAction: "Pergunte sobre 'Moedas' ou 'Voz'."
     };
   }
 }
