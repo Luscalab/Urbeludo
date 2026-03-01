@@ -7,7 +7,7 @@ import { Loader2 } from 'lucide-react';
 
 /**
  * Componente que garante a inicialização correta do estado do usuário.
- * Versão Standalone - Fix de Hidratação e Avatares Dinâmicos.
+ * Versão Standalone - Gerenciamento Dinâmico de Identidade.
  */
 export function AuthInitializer({ children }: { children: React.ReactNode }) {
   const [isReady, setIsReady] = useState(false);
@@ -16,42 +16,50 @@ export function AuthInitializer({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setMounted(true);
     const initLocalAuth = async () => {
-      let uid = await LocalPersistence.getUserId();
-      let currentProgress = await LocalPersistence.getProgress();
+      try {
+        let uid = await LocalPersistence.getUserId();
+        let currentProgress = await LocalPersistence.getProgress();
 
-      if (!uid || !currentProgress) {
-        if (!uid) {
-          uid = `URBE_${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-          await LocalPersistence.saveUserId(uid);
-        }
-
-        // Tenta descobrir o primeiro avatar disponível via API interna
-        let defaultAvatar = null; 
-        try {
-          const res = await fetch('/api/avatars');
-          const list = await res.json();
-          if (list && list.length > 0) {
-            defaultAvatar = list[0];
+        // Se o usuário não tem perfil ou UID, inicializamos
+        if (!uid || !currentProgress) {
+          if (!uid) {
+            uid = `URBE_${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+            await LocalPersistence.saveUserId(uid);
           }
-        } catch (e) {
-          console.warn("Não foi possível listar avatares no init, usando placeholder.");
-        }
 
-        const initialData = {
-          id: uid,
-          displayName: `Explorador_${uid.slice(-4)}`,
-          ludoCoins: 50,
-          psychomotorLevel: 1,
-          totalChallengesCompleted: 0,
-          currentStreak: 0,
-          hasSeenTutorial: false,
-          dominantColor: '#9333ea',
-          avatar: { avatarId: defaultAvatar || 'placeholder.png' },
-          history: []
-        };
-        await LocalPersistence.saveProgress(initialData);
+          // Busca o primeiro herói disponível na pasta public/assets/avatars
+          let defaultAvatar = 'placeholder.png';
+          try {
+            const res = await fetch('/api/avatars');
+            if (res.ok) {
+              const list = await res.json();
+              if (list && list.length > 0) {
+                defaultAvatar = list[0];
+              }
+            }
+          } catch (e) {
+            console.warn("API de avatares inacessível no boot, usando placeholder.");
+          }
+
+          const initialData = {
+            id: uid,
+            displayName: `Explorador_${uid.slice(-4)}`,
+            ludoCoins: 50,
+            psychomotorLevel: 1,
+            totalChallengesCompleted: 0,
+            currentStreak: 0,
+            hasSeenTutorial: false,
+            dominantColor: '#9333ea',
+            avatar: { avatarId: defaultAvatar },
+            history: []
+          };
+          await LocalPersistence.saveProgress(initialData);
+        }
+      } catch (error) {
+        console.error("Falha fatal na sincronização de aura:", error);
+      } finally {
+        setIsReady(true);
       }
-      setIsReady(true);
     };
     initLocalAuth();
   }, []);
@@ -60,8 +68,8 @@ export function AuthInitializer({ children }: { children: React.ReactNode }) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          <p className="text-[10px] font-black uppercase text-primary tracking-widest">Sincronizando Aura...</p>
+          <Loader2 className="w-10 h-10 animate-spin text-primary" />
+          <p className="text-[10px] font-black uppercase text-primary tracking-widest animate-pulse">Invocando Heróis...</p>
         </div>
       </div>
     );
