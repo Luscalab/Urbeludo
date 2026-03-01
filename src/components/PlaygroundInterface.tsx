@@ -15,24 +15,19 @@ import {
   Zap,
   Rocket,
   Wind,
-  ArrowUp,
   ShieldCheck,
   Sparkles,
   Info,
-  Play,
   Volume2,
   AlertTriangle,
-  Lightbulb,
   CheckCircle2,
-  BookOpen,
-  Star
+  BookOpen
 } from 'lucide-react';
 
 import { useUser, useDoc, useMemoFirebase } from '@/firebase';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useI18n } from '@/components/I18nProvider';
 import { AccessibilityToolbar } from '@/components/AccessibilityToolbar';
-import { UrbeLudoLogo } from '@/components/UrbeLudoLogo';
 import { cn } from '@/lib/utils';
 import {
   Dialog,
@@ -46,8 +41,19 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 type GameMode = 'select' | 'balance' | 'rhythm' | 'path' | 'jump' | 'twister' | 'radar' | 'breath' | 'voice';
 
-// Helper robusto para carregar assets de jogos (Caminho relativo para compatibilidade APK/Studio/Proxy)
-const getGameAsset = (game: string, file: string) => `assets/images/games/${game}/${file}`;
+// Mapeamento direto para a pasta public/games/elevador/ sem barra inicial para caminhos relativos
+const VOICE_ASSETS = {
+  fundo: "games/elevador/1.png",
+  roboParado: "games/elevador/2.png",
+  roboCantando: "games/elevador/3.png",
+  torre: "games/elevador/4.png",
+  cabine: "games/elevador/5.png",
+  medidor: "games/elevador/6.png",
+  caixaFechada: "games/elevador/7.png",
+  ludocoin: "games/elevador/8.png",
+  pilhaMoedas: "games/elevador/9.png",
+  caixaAberta: "games/elevador/10.png"
+};
 
 export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean }) {
   const router = useRouter();
@@ -259,7 +265,7 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
         {gameMode === 'rhythm' && <RhythmGame key="rhythm" onWin={(reward, name) => handleWin(reward, name)} auraColor={auraColor} />}
         {gameMode === 'path' && <PathGame key="path" onWin={(reward, name) => handleWin(reward, name)} auraColor={auraColor} />}
         {gameMode === 'breath' && <BreathGame key="breath" onWin={() => handleWin(40, 'Mestre do Sopro')} auraColor={auraColor} />}
-        {gameMode === 'voice' && <VoiceGame key="voice" onWin={(reward, name) => handleWin(reward, name)} auraColor={auraColor} />}
+        {gameMode === 'voice' && <VoiceGame key="voice" onWin={(reward, name) => handleWin(reward, name)} auraColor={auraColor} ludoCoins={profile?.ludoCoins || 0} />}
       </AnimatePresence>
     </div>
   );
@@ -293,7 +299,7 @@ function BalanceGame({ onWin, auraColor }: { onWin: (reward: number, type: strin
   const [progress, setProgress] = useState(0);
   const [active, setActive] = useState(false);
   const [phaseIdx, setPhaseIdx] = useState(0);
-  const [targetPos, setTargetPos] = useState({ x: 0, y: 0 });
+  const [targetPos] = useState({ x: 0, y: 0 });
   const [showPhaseTransition, setShowPhaseTransition] = useState(false);
   const audioContextRef = useRef<AudioContext | null>(null);
   const oscRef = useRef<OscillatorNode | null>(null);
@@ -615,10 +621,7 @@ function BreathGame({ onWin, auraColor }: any) {
   );
 }
 
-/**
- * --- JOGO: O ELEVADOR DE VOZ (IMERSIVO 2026) ---
- */
-function VoiceGame({ onWin, auraColor }: { onWin: (reward: number, name: string) => void, auraColor: string }) {
+function VoiceGame({ onWin, auraColor, ludoCoins }: { onWin: (reward: number, name: string) => void, auraColor: string, ludoCoins: number }) {
   const [active, setActive] = useState(false);
   const [phaseIdx, setPhaseIdx] = useState(0);
   const [volume, setVolume] = useState(0);
@@ -633,18 +636,6 @@ function VoiceGame({ onWin, auraColor }: { onWin: (reward: number, name: string)
   const analyserRef = useRef<AnalyserNode | null>(null);
   const requestRef = useRef<number>(null);
 
-  // Mapeamento de Ativos Estáticos (Relativos para compatibilidade Cloud Proxy/APK)
-  const getPath = (file: string) => `assets/images/games/elevador/${file}`;
-
-  useEffect(() => {
-    if (active) {
-      console.log("[UrbeLudo] VoiceGame Active - Path Check:");
-      for (let i = 1; i <= 10; i++) {
-        console.log(`- Layer ${i}: assets/images/games/elevador/${i}.png`);
-      }
-    }
-  }, [active]);
-
   const VOICE_LEVELS = [
     { name: 'Nível 1: Brisa Suave', duration: 5, range: { min: 10, max: 45 }, reward: 30, benefit: "Sustentação básica e controle respiratório." },
     { name: 'Nível 2: Eco da Torre', duration: 8, range: { min: 20, max: 60 }, reward: 50, benefit: "Fortalecimento da musculatura vocal." },
@@ -652,6 +643,17 @@ function VoiceGame({ onWin, auraColor }: { onWin: (reward: number, name: string)
   ];
 
   const currentLevel = VOICE_LEVELS[phaseIdx];
+
+  // Log de carregamento das imagens para depuração
+  useEffect(() => {
+    if (active) {
+      console.log("[UrbeLudo] Carregando ativos de Voz com caminhos relativos:");
+      Object.entries(VOICE_ASSETS).forEach(([key, path]) => {
+        const absoluteUrl = new URL(path, window.location.href).href;
+        console.log(`- ${key}: ${absoluteUrl}`);
+      });
+    }
+  }, [active]);
 
   const start = async () => {
     setError(null);
@@ -700,13 +702,13 @@ function VoiceGame({ onWin, auraColor }: { onWin: (reward: number, name: string)
       setChestOpen(false);
       update();
     } catch (e: any) {
-      console.error("Hardware de áudio bloqueado ou não encontrado:", e);
+      console.error("Erro no hardware de áudio:", e);
       if (e.name === 'NotFoundError' || e.message === 'Requested device not found') {
-        setError("Microfone não encontrado. Verifique se ele está conectado ou se o navegador tem permissão.");
+        setError("Microfone não encontrado. Verifique a conexão.");
       } else if (e.name === 'NotAllowedError') {
-        setError("Acesso ao microfone negado. Por favor, ative as permissões nas configurações do navegador.");
+        setError("Acesso ao microfone negado.");
       } else {
-        setError("Erro ao acessar áudio: " + e.message);
+        setError("Erro ao acessar áudio.");
       }
       setActive(false);
     }
@@ -736,9 +738,9 @@ function VoiceGame({ onWin, auraColor }: { onWin: (reward: number, name: string)
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center relative overflow-hidden bg-slate-950">
-      {/* 1. Cenário Base */}
+      {/* 1. FUNDO */}
       <div className="absolute inset-0 z-0">
-        <img src={getPath('1.png')} alt="" className="w-full h-full object-cover opacity-50" />
+        <img src={VOICE_ASSETS.fundo} alt="" className="w-full h-full object-cover opacity-60" />
       </div>
 
       {!active ? (
@@ -750,7 +752,7 @@ function VoiceGame({ onWin, auraColor }: { onWin: (reward: number, name: string)
           {error && (
             <Alert variant="destructive" className="mb-6 rounded-3xl border-2 bg-red-950/20">
               <AlertTriangle className="h-4 w-4" />
-              <AlertTitle className="text-xs">Falha Técnica</AlertTitle>
+              <AlertTitle className="text-xs">Atenção</AlertTitle>
               <AlertDescription className="text-[10px] font-bold uppercase">{error}</AlertDescription>
             </Alert>
           )}
@@ -761,7 +763,7 @@ function VoiceGame({ onWin, auraColor }: { onWin: (reward: number, name: string)
           <div className="space-y-4">
             <h2 className="text-4xl font-black text-white uppercase italic tracking-tighter">Elevador de Voz</h2>
             <div className="p-4 bg-white/5 rounded-2xl border border-white/10 text-[9px] font-bold text-white/60 uppercase tracking-widest leading-relaxed">
-              Mantenha o tom estável para subir na torre de cristal. Atividade fonoaudiológica de 2026.
+              Mantenha o tom estável para subir na torre de cristal.
             </div>
           </div>
           <div className="flex flex-col gap-4">
@@ -769,91 +771,89 @@ function VoiceGame({ onWin, auraColor }: { onWin: (reward: number, name: string)
               Iniciar Missão
             </Button>
             <button onClick={() => setIsExplorationMode(!isExplorationMode)} className={cn("text-[9px] font-black uppercase tracking-widest transition-colors", isExplorationMode ? "text-green-400" : "text-white/30")}>
-              {isExplorationMode ? "Modo Explorador: Ativo" : "Ativar Modo Explorador (Sem Erros)"}
+              {isExplorationMode ? "Exploração: Ativa" : "Ativar Exploração"}
             </button>
           </div>
         </motion.div>
       ) : (
         <div className="relative w-full max-w-lg h-full flex items-center justify-center">
           
-          {/* 4. Arquitetura da Torre */}
-          <div className="absolute inset-y-10 w-72 z-10 flex items-center justify-center">
-             <img src={getPath('4.png')} alt="" className="w-full h-full object-contain filter drop-shadow-[0_0_30px_rgba(255,255,255,0.1)]" />
+          {/* 6. MEDIDOR LATERAL */}
+          <div className="absolute left-8 top-1/2 -translate-y-1/2 w-20 z-30">
+            <div className="relative">
+              <img src={VOICE_ASSETS.medidor} alt="Volume" className="w-full h-auto" />
+              <div 
+                className="absolute bottom-[12%] left-1/2 -translate-x-1/2 w-3 bg-cyan-400 shadow-[0_0_15px_cyan] transition-all duration-100 rounded-full"
+                style={{ height: `${volume * 0.7}%` }}
+              />
+            </div>
+          </div>
+
+          {/* 4. ESTRUTURA DA TORRE */}
+          <div className="absolute left-1/2 bottom-0 -translate-x-1/2 h-[85%] z-10 flex items-center justify-center">
+             <img src={VOICE_ASSETS.torre} alt="" className="h-full w-auto object-contain filter drop-shadow-[0_0_30px_rgba(255,255,255,0.1)]" />
              
+             {/* Zona de Estabilidade */}
              <motion.div 
                animate={{ y: 200 - (phaseIdx * 25) }}
-               className="absolute inset-x-12 h-36 bg-green-500/5 border-y-2 border-green-500/30 backdrop-blur-sm flex items-center justify-center rounded-2xl"
+               className="absolute inset-x-8 h-32 bg-green-500/5 border-y-2 border-green-500/30 backdrop-blur-sm flex items-center justify-center rounded-2xl"
              >
-                <div className="text-[7px] font-black text-green-500/50 uppercase tracking-[0.4em] animate-pulse">Zona de Estabilidade</div>
+                <div className="text-[7px] font-black text-green-500/50 uppercase tracking-[0.4em] animate-pulse">Zona Alvo</div>
              </motion.div>
-          </div>
 
-          {/* 5, 2, 3. Cabine e Herói */}
-          <motion.div 
-            animate={{ y: 320 - (smoothedVolume * 5.8) }} 
-            transition={{ type: "spring", stiffness: 50, damping: 18 }}
-            className="absolute w-44 h-72 z-20 flex flex-col items-center justify-center"
-          >
-             <div className="absolute inset-0">
-                <img src={getPath('5.png')} alt="" className="w-full h-full object-contain filter drop-shadow-2xl" />
-             </div>
-             <div className="relative z-30 w-24 h-24 mb-6">
-                <img 
-                  src={isSinging ? getPath('3.png') : getPath('2.png')} 
-                  alt="" 
-                  className="w-full h-full object-contain" 
-                />
-             </div>
-          </motion.div>
-
-          {/* 6. Feedback Lateral */}
-          <div className="absolute right-12 bottom-40 w-14 h-72 z-30 bg-black/40 rounded-full border-2 border-white/10 overflow-hidden shadow-2xl">
+             {/* 5, 2, 3. CABINE + ROBÔ */}
              <motion.div 
-               animate={{ height: `${volume}%` }}
-               className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-pink-600 to-accent"
+               animate={{ bottom: `${15 + (smoothedVolume * 0.7)}%` }} 
+               transition={{ type: "spring", stiffness: 50, damping: 18 }}
+               className="absolute left-1/2 -translate-x-1/2 w-32 h-56 z-20 flex flex-col items-center justify-center"
              >
-                <img src={getPath('6.png')} alt="" className="w-full h-full object-cover mix-blend-overlay" />
+                <img src={VOICE_ASSETS.cabine} alt="" className="w-full h-full object-contain filter drop-shadow-2xl relative z-20" />
+                <img 
+                  src={isSinging ? VOICE_ASSETS.roboCantando : VOICE_ASSETS.roboParado} 
+                  alt="" 
+                  className="absolute top-[45%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 z-30" 
+                />
              </motion.div>
-          </div>
 
-          {/* 7, 10, 8. Recompensa */}
-          <div className="absolute top-10 left-1/2 -translate-x-1/2 z-40 w-28 h-28">
-             <AnimatePresence mode="wait">
-               {!chestOpen ? (
-                 <motion.img 
-                   key="closed"
-                   initial={{ scale: 0.9 }} animate={{ scale: 1 }} 
-                   src={getPath('7.png')} 
-                   className="w-full h-full object-contain filter drop-shadow-2xl"
-                 />
-               ) : (
-                 <motion.div 
-                   key="open" 
-                   initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
-                   className="relative w-full h-full"
-                 >
-                    <img src={getPath('10.png')} className="w-full h-full object-contain" />
+             {/* 7, 10, 8. RECOMPENSA NO TOPO */}
+             <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40 w-24 h-24">
+                <AnimatePresence mode="wait">
+                  {!chestOpen ? (
                     <motion.img 
-                      initial={{ y: 0, opacity: 1 }} animate={{ y: -70, opacity: 0 }}
-                      transition={{ duration: 1.5 }}
-                      src={getPath('8.png')} 
-                      className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-12" 
+                      key="closed"
+                      initial={{ scale: 0.9 }} animate={{ scale: 1 }} 
+                      src={VOICE_ASSETS.caixaFechada} 
+                      className="w-full h-full object-contain filter drop-shadow-2xl"
                     />
-                 </motion.div>
-               )}
-             </AnimatePresence>
+                  ) : (
+                    <motion.div 
+                      key="open" 
+                      initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
+                      className="relative w-full h-full"
+                    >
+                       <img src={VOICE_ASSETS.caixaAberta} className="w-full h-full object-contain" />
+                       <motion.img 
+                         initial={{ y: 0, opacity: 1 }} animate={{ y: -70, opacity: 0 }}
+                         transition={{ duration: 1.5 }}
+                         src={VOICE_ASSETS.ludocoin} 
+                         className="absolute top-0 left-1/2 -translate-x-1/2 w-10 h-10" 
+                       />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+             </div>
           </div>
 
-          {/* HUD de Progresso e Moedas (9.png) */}
-          <div className="absolute bottom-20 inset-x-12 z-50 flex flex-col gap-4">
-             <div className="flex justify-between items-center bg-black/40 backdrop-blur-xl p-4 rounded-[2rem] border border-white/10">
+          {/* 9. PLACAR DE MOEDAS E HUD */}
+          <div className="absolute bottom-10 inset-x-12 z-50 flex flex-col gap-4">
+             <div className="flex justify-between items-center bg-black/60 backdrop-blur-xl p-4 rounded-[2rem] border border-white/10">
                 <div className="flex items-center gap-3">
                    <div className="w-10 h-10 rounded-xl bg-yellow-500/20 flex items-center justify-center">
-                      <img src={getPath('9.png')} className="w-6 h-6" alt="Saldo" />
+                      <img src={VOICE_ASSETS.pilhaMoedas} className="w-6 h-6" alt="Saldo" />
                    </div>
                    <div className="flex flex-col">
                       <span className="text-[10px] font-black text-white uppercase tracking-tighter">{currentLevel.name}</span>
-                      <span className="text-[8px] font-bold text-white/40 uppercase tracking-widest">Sincronia Biomecânica</span>
+                      <span className="text-[8px] font-bold text-white/40 uppercase tracking-widest">{ludoCoins} LC</span>
                    </div>
                 </div>
                 <div className="text-2xl font-black text-white italic">{Math.round(progress)}%</div>
@@ -886,7 +886,7 @@ function VoiceGame({ onWin, auraColor }: { onWin: (reward: number, name: string)
               <div className="space-y-3">
                 <h3 className="text-3xl font-black uppercase italic tracking-tighter text-slate-900">Andar Superado!</h3>
                 <div className="flex items-center justify-center gap-3 bg-yellow-100 px-6 py-2 rounded-full w-fit mx-auto border border-yellow-200">
-                   <img src={getPath('8.png')} className="w-5 h-5" />
+                   <img src={VOICE_ASSETS.ludocoin} className="w-5 h-5" />
                    <span className="text-xl font-black text-yellow-800">+{currentLevel.reward} LC</span>
                 </div>
               </div>

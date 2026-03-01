@@ -12,7 +12,7 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   images: {
-    unoptimized: true, // Vital para garantir que as imagens .png carreguem offline sem servidor de otimização
+    unoptimized: true, // Vital para garantir que as imagens funcionem offline
   },
   transpilePackages: [
     '@tensorflow-models/pose-detection',

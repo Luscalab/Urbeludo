@@ -5,11 +5,11 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/button';
 import { UrbeLudoLogo } from '@/components/UrbeLudoLogo';
-import { History, LayoutDashboard, Loader2, Bug } from 'lucide-react';
+import { LayoutDashboard, Loader2, Bug } from 'lucide-react';
 import { useState } from 'react';
 import { useUser, useDoc, useMemoFirebase } from '@/firebase';
 
-// Carregamento dinâmico do PlaygroundInterface com SSR desativado para evitar erros de Web Audio/Media no server
+// Carregamento dinâmico do PlaygroundInterface com SSR desativado
 const PlaygroundInterface = dynamic(
   () => import('@/components/PlaygroundInterface').then(mod => mod.PlaygroundInterface),
   { 
