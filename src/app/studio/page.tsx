@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -11,7 +12,8 @@ import {
   Coins,
   ShoppingBag,
   Trophy,
-  Battery
+  Battery,
+  Sparkles
 } from 'lucide-react';
 
 import { useStudio } from '@/hooks/use-studio';
@@ -20,6 +22,7 @@ import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { StudioItem } from '@/components/studio/StudioItem';
 import { ShopDrawer } from '@/components/studio/ShopDrawer';
 import { TutorialOverlay } from '@/components/studio/TutorialOverlay';
+import { AiGeneratorDialog } from '@/components/studio/AiGeneratorDialog';
 import { cn } from '@/lib/utils';
 import { STUDIO_CATALOG } from '@/lib/studio-catalog';
 import { getAvatarById } from '@/lib/avatar-catalog';
@@ -39,6 +42,7 @@ export default function StudioPage() {
   const viewportRef = useRef<HTMLDivElement>(null);
   const [mode, setMode] = useState<'explore' | 'edit'>('explore');
   const [isShopOpen, setIsShopOpen] = useState(false);
+  const [isAiDialogOpen, setIsAiDialogOpen] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
   
   const userProgressRef = useMemoFirebase(() => user ? { id: user.uid, path: `user_progress/${user.uid}` } : null, [user]);
@@ -201,6 +205,14 @@ export default function StudioPage() {
               </button>
 
               <button 
+                onClick={() => setIsAiDialogOpen(true)}
+                className="w-20 h-20 rounded-full bg-white text-primary flex flex-col items-center justify-center gap-1 shadow-xl border-b-4 border-zinc-100 active:border-b-0 active:translate-y-1 transition-all hover:scale-110"
+              >
+                <Sparkles className="w-8 h-8 animate-pulse" />
+                <span className="text-[8px] font-black uppercase">IA</span>
+              </button>
+
+              <button 
                 id="btn-shop"
                 onClick={() => setIsShopOpen(true)}
                 className="w-24 h-24 rounded-full bg-primary text-white flex flex-col items-center justify-center gap-1 shadow-2xl border-b-8 border-primary/70 active:border-b-0 active:translate-y-2 transition-all hover:scale-110"
@@ -227,6 +239,15 @@ export default function StudioPage() {
         onBuyItem={buyItem}
         onPlaceItem={placeItem}
         userName={profile?.displayName}
+      />
+
+      <AiGeneratorDialog 
+        isOpen={isAiDialogOpen}
+        onClose={() => setIsAiDialogOpen(false)}
+        onItemGenerated={(item) => {
+          // No MVP Standalone, o item é adicionado diretamente à mochila sem custo
+          placeItem(item.id); 
+        }}
       />
     </div>
   );
