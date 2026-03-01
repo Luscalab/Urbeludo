@@ -57,11 +57,13 @@ export default function StudioPage() {
       const rect = world.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
+      // Move o avatar apenas para a metade inferior (chão)
       if (y > 400) updateAvatarPosition(x, y);
     }
   };
 
-  const avatarSrc = `/assets/avatars/${profile?.avatar?.avatarId || '1.png'}`;
+  // Caminho sincronizado para assets em public/studio/avatares/
+  const avatarSrc = `/studio/avatares/${profile?.avatar?.avatarId || '1.png'}`;
   const auraColor = profile?.dominantColor || '#9333ea';
   const avatarPos = studioState.avatar.lastPosition;
   const isSapient = profile?.displayName?.toLowerCase() === 'sapient';

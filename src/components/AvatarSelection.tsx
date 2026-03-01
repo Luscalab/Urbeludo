@@ -24,6 +24,7 @@ interface AvatarSelectionProps {
 /**
  * Seletor de Avatar Gigante e Imersivo.
  * Otimizado para visualização de "Heróis Ludo" com estética Cyber-Orgânica.
+ * Busca assets diretamente de /studio/avatares/
  */
 export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionProps) {
   const [avatars, setAvatars] = useState<string[]>([]);
@@ -38,15 +39,24 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
       const response = await fetch('/api/avatars');
       if (!response.ok) throw new Error('API Indisponível');
       const files = await response.json();
-      const validFiles = files.filter((f: string) => /\.(png|jpe?g|webp|svg)$/i.test(f));
-      setAvatars(validFiles);
       
-      if (initialAvatarId) {
-        const idx = validFiles.indexOf(initialAvatarId);
-        if (idx !== -1) setCurrentIndex(idx);
+      // Filtra apenas arquivos de imagem válidos
+      const validFiles = files.filter((f: string) => /\.(png|jpe?g|webp|svg)$/i.test(f));
+      
+      if (validFiles.length > 0) {
+        setAvatars(validFiles);
+        
+        // Sincroniza índice inicial se fornecido
+        if (initialAvatarId) {
+          const idx = validFiles.indexOf(initialAvatarId);
+          if (idx !== -1) setCurrentIndex(idx);
+        }
+      } else {
+        // Fallback local se a pasta estiver vazia
+        setAvatars(['1.png']);
       }
     } catch (error) {
-      console.warn("Modo Offline Ativo - Usando fallback");
+      console.warn("Modo Offline ou Erro de API - Usando fallback 1.png");
       setAvatars(['1.png']); 
     } finally {
       setIsLoadingList(false);
@@ -67,8 +77,9 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
     setCurrentIndex((prev) => (prev - 1 + avatars.length) % avatars.length);
   };
 
+  // Notifica o componente pai sempre que o índice muda
   useEffect(() => {
-    if (avatars[currentIndex]) {
+    if (avatars.length > 0 && avatars[currentIndex]) {
       onSelect(avatars[currentIndex]);
     }
   }, [currentIndex, avatars, onSelect]);
@@ -83,6 +94,8 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
   }
 
   const currentAvatar = avatars[currentIndex] || '1.png';
+  // O caminho absoluto para o asset no Next.js (pasta public)
+  const avatarPath = `/studio/avatares/${currentAvatar}`;
 
   return (
     <div className="w-full space-y-12 relative select-none max-w-2xl mx-auto">
@@ -155,10 +168,19 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
                 <div className="absolute inset-0 bg-destructive/5 flex flex-col items-center justify-center z-10 p-12 text-center">
                   <AlertCircle className="w-16 h-16 text-destructive/30 mb-6" />
                   <span className="text-[10px] font-black uppercase text-destructive/60 tracking-widest leading-relaxed">Erro de Sensor.<br/>Tente outro perfil.</span>
+                  <button 
+                    onClick={() => {
+                      setLoadError(prev => ({ ...prev, [currentAvatar]: false }));
+                      fetchAvatars();
+                    }}
+                    className="mt-4 text-[8px] font-black uppercase text-primary underline"
+                  >
+                    Tentar Novamente
+                  </button>
                 </div>
               ) : (
                 <img 
-                  src={`/assets/avatars/${currentAvatar}`} 
+                  src={avatarPath} 
                   alt="Avatar Hero" 
                   onLoad={() => setLoadedImages(prev => ({ ...prev, [currentAvatar]: true }))}
                   onError={() => setLoadError(prev => ({ ...prev, [currentAvatar]: true }))}
@@ -178,7 +200,7 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
                  <Maximize2 className="w-6 h-6 text-primary" />
               </div>
 
-              {/* Botão de Check Estilizado */}
+              {/* Botão de Status Estilizado */}
               <motion.div 
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
