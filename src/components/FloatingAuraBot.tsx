@@ -46,14 +46,16 @@ export function FloatingAuraBot() {
   
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Privilégio administrativo baseado no e-mail solicitado
+  // Privilégio administrativo baseado no e-mail do usuário logado
   const isSapient = profile?.email === 'sapientcontato@gmail.com';
 
   useEffect(() => {
-    AuraLogger.info('AuraBot', 'Inicializando componente. Disparando warmup semântico...');
+    AuraLogger.info('AuraBot', 'Iniciando sincronização técnica da Aura...');
     initAuraBrain((p) => {
       setLoadProgress(p);
-      if (p === 100) AuraLogger.info('AuraBot', 'Aura sincronizada e operante.');
+      if (p === 100) {
+        AuraLogger.info('AuraBot', 'Sincronização concluída. Cérebro local operante.');
+      }
     });
   }, []);
 
@@ -67,12 +69,7 @@ export function FloatingAuraBot() {
   }, [messages, isLoading]);
 
   const processMessage = useCallback(async (text: string) => {
-    if (!text.trim() || isLoading || loadProgress < 100) {
-      if (loadProgress < 100) {
-        AuraLogger.warn('AuraBot', 'Tentativa de mensagem ignorada: Cérebro ainda sincronizando.');
-      }
-      return;
-    }
+    if (!text.trim() || isLoading || loadProgress < 100) return;
 
     AuraLogger.info('AuraBot', `Mensagem recebida: "${text}"`);
     setMessages(prev => [...prev, { role: 'user', text }]);
@@ -85,9 +82,8 @@ export function FloatingAuraBot() {
       });
       
       setMessages(prev => [...prev, { role: 'bot', text: response.answer }]);
-      AuraLogger.info('AuraBot', 'Resposta gerada com sucesso.');
     } catch (error) {
-      AuraLogger.error('AuraBot', 'Erro fatal no processamento da mensagem', error);
+      AuraLogger.error('AuraBot', 'Erro no processamento da mensagem', error);
       setMessages(prev => [...prev, { role: 'bot', text: "Minha percepção sensorial oscilou. Verifique o console de telemetria." }]);
     } finally {
       setIsLoading(false);
@@ -103,7 +99,7 @@ export function FloatingAuraBot() {
   };
 
   const handleIconClick = () => {
-    // Clique secreto: 5 vezes abre o console de logs técnico (apenas para Sapient)
+    // Clique secreto: 5 vezes abre o console de logs técnico (Apenas para sapientcontato@gmail.com)
     if (isSapient) {
       const newCount = clickCount + 1;
       setClickCount(newCount);
@@ -115,7 +111,6 @@ export function FloatingAuraBot() {
     }
     
     setIsOpen(!isOpen);
-    AuraLogger.debug('AuraBot', `Interface ${!isOpen ? 'aberta' : 'fechada'}`);
   };
 
   const isReady = useMemo(() => loadProgress === 100, [loadProgress]);
@@ -159,6 +154,8 @@ export function FloatingAuraBot() {
                     <h3 className="text-sm font-black uppercase italic tracking-tighter">Guia de Sensibilidade</h3>
                     <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">Processamento Híbrido Ativo</p>
                   </div>
+                  
+                  {/* Botão de Logs exclusivo para sapientcontato@gmail.com */}
                   {isSapient && (
                     <button 
                       onClick={() => setIsLogViewerOpen(true)} 
@@ -175,7 +172,7 @@ export function FloatingAuraBot() {
                     {!isReady ? (
                       <div className="flex flex-col items-center justify-center p-8 bg-slate-50 rounded-[2.5rem] border-2 border-slate-100 space-y-5">
                         <div className="text-primary text-[10px] font-black uppercase tracking-[0.2em] animate-pulse text-center">
-                          Aura está expandindo o cérebro em background...
+                          Aura está expandindo o cérebro em segundo plano...
                         </div>
                         <div className="w-full bg-white h-3 rounded-full overflow-hidden shadow-inner border">
                           <motion.div 
@@ -188,7 +185,7 @@ export function FloatingAuraBot() {
                         <div className="flex justify-between w-full">
                           <span className="text-[8px] font-black text-primary uppercase">{loadProgress}% sincronizado</span>
                           <p className="text-muted-foreground text-[8px] font-black uppercase italic">
-                            Modelo: all-MiniLM-L6 (25MB)
+                            Modo Offline em breve
                           </p>
                         </div>
                       </div>
@@ -217,7 +214,7 @@ export function FloatingAuraBot() {
                     {isLoading && (
                       <div className="flex items-center gap-2 p-4 bg-slate-50 rounded-2xl w-fit">
                         <Loader2 className="w-3 h-3 animate-spin text-primary" />
-                        <span className="text-[8px] font-black uppercase text-muted-foreground">Interpretando intenção local...</span>
+                        <span className="text-[8px] font-black uppercase text-muted-foreground">Interpretando intenção...</span>
                       </div>
                     )}
                   </div>

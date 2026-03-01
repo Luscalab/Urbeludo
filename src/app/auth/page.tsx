@@ -51,11 +51,11 @@ export default function AuthPage() {
     const uid = `URBE_${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
     const firstAvatar = getDefaultAvatar();
 
-    // Persistência Offline
+    // Persistência Offline - Agora salvando o e-mail para privilégios administrativos
     await LocalPersistence.saveUserId(uid);
     await LocalPersistence.saveProgress({
       id: uid,
-      email: email, // Salva o e-mail para validação de privilégios (ex: Sapient)
+      email: email.toLowerCase(), // Normaliza o e-mail para comparação
       displayName: name || `Explorador_${uid.slice(-4)}`,
       ludoCoins: 50,
       psychomotorLevel: 1,
@@ -199,14 +199,6 @@ export default function AuthPage() {
             >
               {isLogin ? t('auth.toggleSignUp') : t('auth.toggleLogin')}
             </button>
-            <div className="block pt-2">
-              <button 
-                onClick={handleGuestSignIn}
-                className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest hover:text-foreground"
-              >
-                {t('auth.guestSignIn')}
-              </button>
-            </div>
           </div>
         </Card>
 
