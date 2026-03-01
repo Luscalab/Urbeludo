@@ -42,6 +42,7 @@ import {
 } from '@/components/ui/dialog';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { generateAuraBotReport, AuraBotReport } from '@/lib/gemini';
+import { sincronizarComPlanilha } from '@/lib/sheets-service';
 
 type GameMode = 'select' | 'balance' | 'rhythm' | 'path' | 'jump' | 'twister' | 'radar' | 'breath' | 'voice';
 
@@ -283,7 +284,7 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
         {gameMode === 'rhythm' && <RhythmGame key="rhythm" onWin={(reward: number, name: string) => handleWin(reward, name)} auraColor={auraColor} />}
         {gameMode === 'path' && <PathGame key="path" onWin={(reward: number, name: string) => handleWin(reward, name)} auraColor={auraColor} />}
         {gameMode === 'breath' && <BreathGame key="breath" onWin={() => handleWin(40, 'Mestre do Sopro')} auraColor={auraColor} />}
-        {gameMode === 'voice' && <VoiceGame key="voice" onWin={(reward, name) => handleWin(reward, name)} auraColor={auraColor} ludoCoins={profile?.ludoCoins || 0} />}
+        {gameMode === 'voice' && <VoiceGame key="voice" onWin={(reward, name) => handleWin(reward, name)} auraColor={auraColor} ludoCoins={profile?.ludoCoins || 0} userName={profile?.displayName || "Explorador"} />}
       </AnimatePresence>
     </div>
   );
@@ -595,7 +596,7 @@ function BreathGame({ onWin, auraColor }: any) {
   );
 }
 
-function VoiceGame({ onWin, auraColor, ludoCoins }: { onWin: (reward: number, name: string) => void, auraColor: string, ludoCoins: number }) {
+function VoiceGame({ onWin, auraColor, ludoCoins, userName }: { onWin: (reward: number, name: string) => void, auraColor: string, ludoCoins: number, userName: string }) {
   const [active, setActive] = useState(false);
   const [phaseIdx, setPhaseIdx] = useState(0);
   const [sustensionProgress, setSustensionProgress] = useState(0);
@@ -638,8 +639,21 @@ function VoiceGame({ onWin, auraColor, ludoCoins }: { onWin: (reward: number, na
 
     setAiReport(report);
     setIsGeneratingReport(false);
+
+    // Sincronização com Planilha (Painel Clínico)
+    sincronizarComPlanilha({
+      paciente: userName,
+      fase: currentLevel.name,
+      volume: Math.round(currentLevel.range.min + (currentLevel.range.max - currentLevel.range.min) / 2),
+      sustentacao: currentLevel.duration,
+      tentativas: attemptsRef.current,
+      feedback: report.childFeedback,
+      relatorio: report.therapistFeedback,
+      data: new Date().toLocaleString()
+    });
+
     setTimeout(() => setShowTransition(true), 2500); 
-  }, [currentLevel, attemptsRef]);
+  }, [currentLevel, attemptsRef, userName]);
 
   useEffect(() => {
     if (!active || showTransition) return;
@@ -658,14 +672,11 @@ function VoiceGame({ onWin, auraColor, ludoCoins }: { onWin: (reward: number, na
         });
       } else if (!isExplorationMode) {
         setSustensionProgress(p => Math.max(0, p - 0.6)); 
-        if (sustensionProgress < 5) {
-          // attemptsRef.current += 0.01; // Pequeno incremento lúdico
-        }
       }
     }, 100);
 
     return () => { if (interval) clearInterval(interval); };
-  }, [active, volume, currentLevel, isExplorationMode, handleLevelComplete, showTransition, sustensionProgress]);
+  }, [active, volume, currentLevel, isExplorationMode, handleLevelComplete, showTransition]);
 
   const nextLevel = () => {
     setAiReport(null);
@@ -832,7 +843,6 @@ function VoiceGame({ onWin, auraColor, ludoCoins }: { onWin: (reward: number, na
                 </div>
               </div>
 
-              {/* RELATÓRIO GEMINI */}
               <div className="space-y-4">
                 <div className="p-6 bg-pink-50 rounded-[2.5rem] border-2 border-pink-100 relative overflow-hidden">
                    <div className="absolute top-4 right-4 text-pink-200"><BrainCircuit className="w-8 h-8" /></div>
