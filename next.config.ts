@@ -1,4 +1,3 @@
-
 import type {NextConfig} from 'next';
 import path from 'path';
 
@@ -22,16 +21,6 @@ const nextConfig: NextConfig = {
     '@tensorflow/tfjs-converter',
     '@mediapipe/pose'
   ],
-  // Comentado para teste de estabilidade em ambientes de preview/proxy
-  /*
-  experimental: {
-    turbo: {
-      resolveAlias: {
-        '@mediapipe/pose': './src/lib/mediapipe-shim.ts',
-      },
-    },
-  },
-  */
   webpack: (config) => {
     config.resolve.alias = {
       ...config.resolve.alias,
