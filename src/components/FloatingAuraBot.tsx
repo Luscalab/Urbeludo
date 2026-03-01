@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -7,7 +8,8 @@ import {
   Loader2, 
   Sparkles, 
   BrainCircuit,
-  ChevronDown
+  ChevronDown,
+  AlertCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -41,9 +43,8 @@ export function FloatingAuraBot() {
     try {
       await initAuraBrain((p) => setLoadProgress(p));
     } catch (err) {
-      console.error("Erro ao ativar motor semântico:", err);
+      console.error("❌ AuraHelper UI: Erro ao ativar motor semântico:", err);
     } finally {
-      // Pequeno delay para garantir que a UI mostre o 100%
       setTimeout(() => setIsInitializing(false), 800);
     }
   };
@@ -61,7 +62,7 @@ export function FloatingAuraBot() {
   }, [messages, isLoading]);
 
   const processMessage = async (text: string) => {
-    if (!text.trim() || isLoading || isInitializing) return;
+    if (!text.trim() || isLoading || isInitializing || loadProgress < 100) return;
 
     setMessages(prev => [...prev, { role: 'user', text }]);
     setIsLoading(true);
@@ -74,7 +75,7 @@ export function FloatingAuraBot() {
       
       setMessages(prev => [...prev, { role: 'bot', text: response.answer }]);
     } catch (error) {
-      setMessages(prev => [...prev, { role: 'bot', text: "Minha percepção sensorial falhou. Pode repetir?" }]);
+      setMessages(prev => [...prev, { role: 'bot', text: "Minha percepção sensorial oscilou. Pode repetir?" }]);
     } finally {
       setIsLoading(false);
     }
@@ -87,6 +88,8 @@ export function FloatingAuraBot() {
       setInputValue('');
     }
   };
+
+  const isReady = loadProgress === 100 && !isInitializing;
 
   return (
     <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[1000] pointer-events-none w-full max-w-lg px-6">
@@ -127,14 +130,14 @@ export function FloatingAuraBot() {
                   <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">IA Semântica de Borda</p>
                 </div>
                 <div className="flex items-center gap-2 px-3 py-1 bg-green-100 rounded-full">
-                   <div className={cn("w-1.5 h-1.5 rounded-full", isInitializing ? "bg-yellow-500" : "bg-green-500")} />
-                   <span className="text-[7px] font-black text-green-700 uppercase">{isInitializing ? "Sincronizando..." : "Online"}</span>
+                   <div className={cn("w-1.5 h-1.5 rounded-full", !isReady ? "bg-yellow-500" : "bg-green-500")} />
+                   <span className="text-[7px] font-black text-green-700 uppercase">{!isReady ? "Sincronizando..." : "Online"}</span>
                 </div>
               </div>
 
               <ScrollArea className="flex-1 p-6" ref={scrollRef}>
                 <div className="space-y-4 pb-4">
-                  {isInitializing ? (
+                  {isInitializing || loadProgress < 100 ? (
                     <div className="flex flex-col items-center justify-center p-8 bg-primary/5 rounded-[2rem] border-2 border-primary/10 space-y-4">
                       <div className="text-primary text-[10px] font-black uppercase tracking-widest animate-pulse">
                         Aura está expandindo o cérebro...
@@ -149,7 +152,7 @@ export function FloatingAuraBot() {
                       <div className="flex justify-between w-full">
                         <span className="text-[8px] font-black text-primary/40 uppercase">{loadProgress}% sincronizado</span>
                         <p className="text-primary/40 text-[8px] font-black uppercase italic">
-                          Modo Offline Ativando!
+                          Download único de 25MB
                         </p>
                       </div>
                     </div>
@@ -180,13 +183,13 @@ export function FloatingAuraBot() {
                   {isLoading && (
                     <div className="flex items-center gap-2 p-4 bg-slate-50 rounded-2xl w-fit">
                       <Loader2 className="w-3 h-3 animate-spin text-primary" />
-                      <span className="text-[8px] font-black uppercase text-muted-foreground">Processando Borda...</span>
+                      <span className="text-[8px] font-black uppercase text-muted-foreground">Interpretando intenção...</span>
                     </div>
                   )}
                 </div>
               </ScrollArea>
 
-              {!isInitializing && (
+              {isReady && (
                 <>
                   <div className="px-6 py-2 border-t bg-slate-50/30">
                     <div className="flex gap-2 overflow-x-auto no-scrollbar py-2">
@@ -210,6 +213,7 @@ export function FloatingAuraBot() {
                         value={inputValue}
                         onChange={(e) => setInputValue(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                        disabled={isLoading}
                         placeholder="Dúvidas técnicas ou sobre o corpo..."
                         className="h-14 rounded-2xl pr-14 pl-6 border-transparent bg-white shadow-inner font-bold text-xs focus:ring-primary"
                       />
@@ -224,6 +228,13 @@ export function FloatingAuraBot() {
                     </div>
                   </div>
                 </>
+              )}
+
+              {!isReady && !isInitializing && (
+                <div className="p-4 bg-yellow-50 flex items-center gap-3 border-t">
+                  <AlertCircle className="w-4 h-4 text-yellow-600" />
+                  <span className="text-[8px] font-bold text-yellow-700 uppercase">Aura precisa carregar o cérebro antes de conversar.</span>
+                </div>
               )}
             </motion.div>
           )}

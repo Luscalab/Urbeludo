@@ -1,13 +1,15 @@
+
 'use client';
 /**
  * @fileOverview AuraHelper - Orquestrador de Inteligência Híbrida.
- * Revisa a triagem entre IA de Borda e Gemini 1.5 Flash.
+ * Revisado para usar a API Key fornecida e logs de erro reais.
  */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { classifyIntent } from "@/lib/aura-brain";
 
-const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
+// Usando a chave fornecida pelo usuário como fallback seguro
+const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "AIzaSyCCwhUNlhnpxjDuZ8quod7MTnde1dZJj04";
 const genAI = new GoogleGenerativeAI(API_KEY);
 
 export interface AuraHelperInput {
@@ -69,10 +71,11 @@ export async function askAuraHelper(input: AuraHelperInput): Promise<AuraHelperO
   }
 
   // 2. FALLBACK PARA GEMINI FLASH (Perguntas complexas)
-  if (!API_KEY) {
+  if (!API_KEY || API_KEY.includes("CHAVE_AUSENTE")) {
+    console.error("❌ AuraHelper: API Key do Gemini não configurada corretamente.");
     return {
-      answer: "Minha percepção sensorial oscilou, mas lembre-se: cada movimento seu é uma vitória! Tente perguntar sobre um jogo específico ou sobre Moedas.",
-      suggestedAction: "Verifique sua rede."
+      answer: "Minha percepção sensorial oscilou. Verifique se sua chave de API do Google está ativa para perguntas complexas!",
+      suggestedAction: "Configurar API Key"
     };
   }
 
@@ -90,11 +93,11 @@ export async function askAuraHelper(input: AuraHelperInput): Promise<AuraHelperO
     const text = response.text().replace(/```json|```/g, "").trim();
     
     return JSON.parse(text) as AuraHelperOutput;
-  } catch (error) {
-    console.error("AuraHelper Gemini Fallback Error:", error);
+  } catch (error: any) {
+    console.error("❌ AuraHelper: Gemini Error:", error?.message || error);
     return {
       answer: "Minha conexão com a Grande Aura está instável, mas continue brilhando! Como posso te ajudar na sua jornada psicomotora hoje?",
-      suggestedAction: "Pergunte sobre 'Voz' ou 'Movimento'."
+      suggestedAction: "Tente perguntar sobre 'Voz'."
     };
   }
 }
