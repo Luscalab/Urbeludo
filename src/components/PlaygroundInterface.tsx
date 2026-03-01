@@ -651,6 +651,16 @@ function VoiceGame({ onWin, auraColor, ludoCoins }: { onWin: (reward: number, na
 
   const currentLevel = VOICE_LEVELS[phaseIdx];
 
+  // Auditoria de ativos no console para depuração no editor
+  useEffect(() => {
+    if (active) {
+      console.log("Laboratório de Voz: Carregando ativos de camada...");
+      Object.entries(VOICE_ASSETS).forEach(([key, path]) => {
+        console.log(`- Camada [${key}]: ${path}`);
+      });
+    }
+  }, [active]);
+
   const start = () => {
     setChestOpen(false);
     setSustensionProgress(0);
@@ -660,14 +670,12 @@ function VoiceGame({ onWin, auraColor, ludoCoins }: { onWin: (reward: number, na
   const handleLevelComplete = useCallback(() => {
     setActive(false);
     setChestOpen(true);
-    setTimeout(() => setShowTransition(true), 2500); // Mais tempo para ver as moedas caindo
+    setTimeout(() => setShowTransition(true), 2500); 
   }, []);
 
   useEffect(() => {
     if (!active || showTransition) return;
 
-    // Normalização: Cabine sobe baseada no volume
-    // Vitória ocorre quando sustenta na "Zona de Estabilidade"
     const isInRange = volume > currentLevel.range.min / 4 && volume < currentLevel.range.max / 2;
     
     const interval = setInterval(() => {
@@ -681,7 +689,7 @@ function VoiceGame({ onWin, auraColor, ludoCoins }: { onWin: (reward: number, na
           return next;
         });
       } else if (!isExplorationMode) {
-        setSustensionProgress(p => Math.max(0, p - 0.8)); // Penalidade suave por sair da zona
+        setSustensionProgress(p => Math.max(0, p - 0.8)); 
       }
     }, 100);
 
@@ -702,7 +710,7 @@ function VoiceGame({ onWin, auraColor, ludoCoins }: { onWin: (reward: number, na
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center relative overflow-hidden bg-slate-950">
-      {/* 1. FUNDO */}
+      {/* 1. FUNDO - Caminho Relativo */}
       <div className="absolute inset-0 z-0">
         <img src={VOICE_ASSETS.fundo} alt="" className="w-full h-full object-cover opacity-60" />
       </div>
@@ -789,7 +797,6 @@ function VoiceGame({ onWin, auraColor, ludoCoins }: { onWin: (reward: number, na
                         src={VOICE_ASSETS.caixaFechada} 
                         className="w-full h-auto object-contain filter drop-shadow-2xl"
                       />
-                      {/* Barra de progresso de sustentação */}
                       {!isExplorationMode && sustensionProgress > 0 && (
                         <div className="absolute -bottom-4 left-0 w-full h-2 bg-black/50 rounded-full overflow-hidden border border-white/10">
                           <motion.div 
