@@ -5,10 +5,10 @@ import path from 'path';
 
 /**
  * API para listar dinamicamente todos os arquivos de imagem na pasta de avatares do estúdio.
- * Caminho atualizado: public/studio/avatares
+ * Caminho atualizado: public/assets/studio/avatares
  */
 export async function GET() {
-  const avatarsDir = path.join(process.cwd(), 'public/studio/avatares');
+  const avatarsDir = path.join(process.cwd(), 'public/assets/studio/avatares');
   
   try {
     if (!fs.existsSync(avatarsDir)) {

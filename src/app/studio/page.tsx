@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -11,8 +12,7 @@ import {
   Coins,
   ShoppingBag,
   Trophy,
-  Battery,
-  Palette
+  Battery
 } from 'lucide-react';
 
 import { useStudio } from '@/hooks/use-studio';
@@ -57,18 +57,15 @@ export default function StudioPage() {
       const rect = world.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
-      // Move o avatar apenas para a metade inferior (chão)
       if (y > 400) updateAvatarPosition(x, y);
     }
   };
 
-  // Caminho sincronizado para assets em public/studio/avatares/
-  const avatarSrc = `/studio/avatares/${profile?.avatar?.avatarId || '1.png'}`;
+  const avatarSrc = `/assets/studio/avatares/${profile?.avatar?.avatarId || '1.png'}`;
   const auraColor = profile?.dominantColor || '#9333ea';
   const avatarPos = studioState.avatar.lastPosition;
   const isSapient = profile?.displayName?.toLowerCase() === 'sapient';
 
-  // Get current wall and floor styles
   const currentWallpaper = STUDIO_CATALOG.find(i => i.id === studioState.wallpaperId);
   const currentFloor = STUDIO_CATALOG.find(i => i.id === studioState.floorId);
 
@@ -124,7 +121,6 @@ export default function StudioPage() {
           className="w-[1800px] h-[1800px] relative bg-white flex flex-col shadow-[0_0_150px_rgba(0,0,0,0.1)]"
           initial={{ x: -450, y: -450 }} 
         >
-          {/* PAREDES ISOMÉTRICAS - Wallpaper Support */}
           <div className="relative w-full h-[35%] flex">
             <div 
               className="flex-1 border-r-4 border-white/20 transition-all duration-700"
@@ -144,7 +140,6 @@ export default function StudioPage() {
             />
           </div>
 
-          {/* CHÃO ISOMÉTRICO - Floor Support */}
           <div className="relative w-full h-[65%] overflow-hidden transition-all duration-700"
             style={{ 
               backgroundImage: currentFloor ? `url(${currentFloor.assetPath})` : 'none',
@@ -152,7 +147,6 @@ export default function StudioPage() {
               backgroundSize: '250px'
             }}
           >
-            {/* Grid de Lajotas Realista */}
             <div className="absolute inset-0 opacity-[0.05] pointer-events-none" style={{ 
                backgroundImage: `linear-gradient(45deg, #000 1px, transparent 1px), linear-gradient(-45deg, #000 1px, transparent 1px)`,
                backgroundSize: '80px 80px',
@@ -160,7 +154,6 @@ export default function StudioPage() {
             }} />
           </div>
 
-          {/* Depth Sorting Layer */}
           <div className="absolute inset-0 z-20 pointer-events-none">
             <AnimatePresence>
               {studioState.placedItems.map(item => (
@@ -178,7 +171,6 @@ export default function StudioPage() {
             </AnimatePresence>
           </div>
 
-          {/* Avatar com Oclusão Real */}
           <motion.div 
             id="studio-avatar"
             animate={{ x: avatarPos.x - 64, y: avatarPos.y - 160 }}
@@ -200,7 +192,6 @@ export default function StudioPage() {
           </motion.div>
         </motion.div>
 
-        {/* Cafeland Control Menu */}
         <div className="fixed bottom-10 inset-x-0 flex justify-center items-end gap-6 z-[250] pointer-events-none">
            <div className="flex items-center gap-4 bg-white/80 backdrop-blur-2xl p-4 rounded-[3.5rem] shadow-2xl border-b-8 border-zinc-200 pointer-events-auto">
               <button 

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from "react";
@@ -6,7 +7,6 @@ import {
   Check, 
   AlertCircle, 
   Loader2, 
-  Sparkles, 
   ChevronLeft, 
   ChevronRight,
   ShieldCheck,
@@ -24,7 +24,7 @@ interface AvatarSelectionProps {
 /**
  * Seletor de Avatar Gigante e Imersivo.
  * Otimizado para visualização de "Heróis Ludo" com estética Cyber-Orgânica.
- * Busca assets diretamente de /studio/avatares/
+ * Busca assets diretamente de /assets/studio/avatares/
  */
 export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionProps) {
   const [avatars, setAvatars] = useState<string[]>([]);
@@ -40,19 +40,15 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
       if (!response.ok) throw new Error('API Indisponível');
       const files = await response.json();
       
-      // Filtra apenas arquivos de imagem válidos
       const validFiles = files.filter((f: string) => /\.(png|jpe?g|webp|svg)$/i.test(f));
       
       if (validFiles.length > 0) {
         setAvatars(validFiles);
-        
-        // Sincroniza índice inicial se fornecido
         if (initialAvatarId) {
           const idx = validFiles.indexOf(initialAvatarId);
           if (idx !== -1) setCurrentIndex(idx);
         }
       } else {
-        // Fallback local se a pasta estiver vazia
         setAvatars(['1.png']);
       }
     } catch (error) {
@@ -77,7 +73,6 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
     setCurrentIndex((prev) => (prev - 1 + avatars.length) % avatars.length);
   };
 
-  // Notifica o componente pai sempre que o índice muda
   useEffect(() => {
     if (avatars.length > 0 && avatars[currentIndex]) {
       onSelect(avatars[currentIndex]);
@@ -94,12 +89,10 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
   }
 
   const currentAvatar = avatars[currentIndex] || '1.png';
-  // O caminho absoluto para o asset no Next.js (pasta public)
-  const avatarPath = `/studio/avatares/${currentAvatar}`;
+  const avatarPath = `/assets/studio/avatares/${currentAvatar}`;
 
   return (
     <div className="w-full space-y-12 relative select-none max-w-2xl mx-auto">
-      {/* Cabeçalho da Identidade */}
       <div className="flex flex-col items-center text-center space-y-4">
         <div className="inline-flex items-center gap-3 px-6 py-2 rounded-full bg-primary/10 border-2 border-primary/20 text-primary text-[10px] font-black uppercase tracking-[0.3em] shadow-lg shadow-primary/5">
            <Zap className="w-3 h-3 animate-pulse" /> Câmara de Identidade 2026
@@ -112,10 +105,7 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
         </p>
       </div>
       
-      {/* Display do Avatar */}
       <div className="relative flex justify-center items-center h-[500px] sm:h-[650px] group px-4">
-        
-        {/* Aura de Fundo Animada */}
         <motion.div 
           animate={{ 
             rotate: [0, 360],
@@ -126,7 +116,6 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
           className="absolute w-[80%] aspect-square bg-gradient-to-tr from-primary via-accent to-secondary rounded-full blur-[80px] -z-10"
         />
 
-        {/* Setas de Navegação Futuristas */}
         <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between items-center z-50 pointer-events-none px-2 sm:px-0">
           <button 
             onClick={handlePrev}
@@ -143,7 +132,6 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
           </button>
         </div>
 
-        {/* Moldura do Avatar */}
         <div className="relative w-full max-w-sm aspect-[4/5] z-10">
           <AnimatePresence mode="wait">
             <motion.div
@@ -154,7 +142,6 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
               transition={{ type: "spring", stiffness: 200, damping: 25 }}
               className="relative w-full h-full rounded-[4rem] sm:rounded-[6rem] border-[12px] sm:border-[20px] border-white bg-white/40 backdrop-blur-md shadow-[0_60px_120px_rgba(0,0,0,0.15)] overflow-hidden flex items-center justify-center p-6 sm:p-12"
             >
-              {/* Efeito de Scanner */}
               <div className="absolute inset-0 bg-[linear-gradient(rgba(147,51,234,0.03)_1px,transparent_1px)] bg-[size:100%_8px] pointer-events-none" />
               
               {(!loadedImages[currentAvatar] && !loadError[currentAvatar]) && (
@@ -191,7 +178,6 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
                 />
               )}
 
-              {/* HUD do Visor Ludo */}
               <div className="absolute inset-8 border-2 border-primary/5 rounded-[4rem] pointer-events-none" />
               <div className="absolute top-10 left-10 opacity-40">
                  <ShieldCheck className="w-6 h-6 text-primary" />
@@ -200,7 +186,6 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
                  <Maximize2 className="w-6 h-6 text-primary" />
               </div>
 
-              {/* Botão de Status Estilizado */}
               <motion.div 
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
@@ -214,7 +199,6 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
         </div>
       </div>
 
-      {/* Miniaturas de Navegação (Dots) */}
       <div className="flex justify-center gap-2 px-8 overflow-x-auto no-scrollbar py-2">
          {avatars.map((_, i) => (
            <div 
