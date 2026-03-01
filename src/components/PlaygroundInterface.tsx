@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -21,6 +22,7 @@ import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useI18n } from '@/components/I18nProvider';
 import { AccessibilityToolbar } from '@/components/AccessibilityToolbar';
 import { useAudioProcessor } from '@/hooks/use-audio-processor';
+import { AuraLogger } from '@/lib/logs/aura-logger';
 import { cn } from '@/lib/utils';
 import {
   Dialog,
@@ -80,6 +82,10 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
   const userProgressRef = useMemoFirebase(() => user ? { id: user.uid, path: `user_progress/${user.uid}` } : null, [user]);
   const { data: profile } = useDoc(userProgressRef);
 
+  useEffect(() => {
+    AuraLogger.info('Playground', `Mudança de estado: Navegando para modo ${gameMode.toUpperCase()}`);
+  }, [gameMode]);
+
   const speak = useCallback((text: string) => {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       window.speechSynthesis.cancel();
@@ -91,6 +97,7 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
   }, []);
 
   const handleModeSelect = (mode: GameMode) => {
+    AuraLogger.debug('Playground', `Pré-seleção de desafio: ${mode}`);
     setPendingMode(mode);
     setShowTutorial(true);
     const tutorialText = t(`playground.modes.${mode}.info`);
@@ -99,6 +106,7 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
 
   const handleWin = useCallback((reward: number = 30, type: string = 'Desafio Concluído') => {
     if (isWin) return;
+    AuraLogger.info('Playground', `VITÓRIA DETECTADA: ${type} (+${reward} LC)`);
     setIsWin(true);
     setRewardAmount(reward);
     speak("Incrível! Sua aura está brilhando!");
@@ -159,7 +167,11 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
                 {pendingMode ? t(`playground.modes.${pendingMode}.info`) : t('playground.selectGame')}
               </DialogDescription>
             </DialogHeader>
-            <Button onClick={() => { setGameMode(pendingMode!); setShowTutorial(false); }} className="w-full h-20 rounded-full bg-primary text-white font-black uppercase text-lg border-b-8 border-primary/70 active:translate-y-2 transition-all">Iniciar Desafio</Button>
+            <Button onClick={() => { 
+               AuraLogger.info('Playground', `Iniciando desafio: ${pendingMode}`);
+               setGameMode(pendingMode!); 
+               setShowTutorial(false); 
+            }} className="w-full h-20 rounded-full bg-primary text-white font-black uppercase text-lg border-b-8 border-primary/70 active:translate-y-2 transition-all">Iniciar Desafio</Button>
           </DialogContent>
         </Dialog>
       </div>
@@ -178,14 +190,14 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
       </header>
 
       <AnimatePresence mode="wait">
-        {gameMode === 'balance' && <BalanceGame key="balance" onWin={handleWin} auraColor={auraColor} />}
-        {gameMode === 'voice' && <VoiceGame key="voice" onWin={handleWin} auraColor={auraColor} ludoCoins={profile?.ludoCoins || 0} userName={profile?.displayName || "Explorador"} />}
+        {gameMode === 'balance' && <BalanceGame key="balance" onWin={handleWin} />}
+        {gameMode === 'voice' && <VoiceGame key="voice" onWin={handleWin} ludoCoins={profile?.ludoCoins || 0} userName={profile?.displayName || "Explorador"} />}
       </AnimatePresence>
     </div>
   );
 }
 
-function BalanceGame({ onWin, auraColor }: any) {
+function BalanceGame({ onWin }: any) {
   return (
     <div className="flex-1 flex flex-col items-center justify-center text-white space-y-4">
       <Move className="w-20 h-20 text-blue-500 animate-pulse" />
@@ -194,7 +206,7 @@ function BalanceGame({ onWin, auraColor }: any) {
   );
 }
 
-function VoiceGame({ onWin, auraColor, ludoCoins, userName }: any) {
+function VoiceGame({ onWin, ludoCoins, userName }: any) {
   const { volume, isSinging } = useAudioProcessor(true);
   const [progress, setProgress] = useState(0);
   const [chestOpen, setChestOpen] = useState(false);
@@ -205,6 +217,7 @@ function VoiceGame({ onWin, auraColor, ludoCoins, userName }: any) {
         if (p >= 100) {
           if (!chestOpen) {
             setChestOpen(true);
+            AuraLogger.info('VoiceGame', 'Sincronizando relatório biomecânico com Sheets...');
             saveToSheets({ 
               paciente: userName, 
               volume: Math.round(volume), 
