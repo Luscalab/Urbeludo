@@ -17,7 +17,10 @@ import {
   Star,
   Activity,
   Volume2,
-  AlertCircle
+  AlertCircle,
+  Rocket,
+  Hand,
+  Radar
 } from 'lucide-react';
 
 import { useUser, useDoc, useMemoFirebase } from '@/firebase';
@@ -26,7 +29,7 @@ import { useI18n } from '@/components/I18nProvider';
 import { AccessibilityToolbar } from '@/components/AccessibilityToolbar';
 import { UrbeLudoLogo } from '@/components/UrbeLudoLogo';
 
-type GameMode = 'select' | 'balance' | 'rhythm' | 'path';
+type GameMode = 'select' | 'balance' | 'rhythm' | 'path' | 'jump' | 'twister' | 'radar';
 
 // Escala Orquestral (Pentatônica Maior de Dó)
 const ORCHESTRA_SCALE = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25];
@@ -101,9 +104,9 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
 
   if (gameMode === 'select') {
     return (
-      <div className="flex-1 bg-slate-900 p-8 flex flex-col items-center justify-center gap-10 relative">
+      <div className="flex-1 bg-slate-900 p-8 flex flex-col items-center justify-start gap-10 relative overflow-y-auto no-scrollbar">
         <AccessibilityToolbar />
-        <div className="text-center space-y-4">
+        <div className="text-center space-y-4 pt-4">
            <div className="p-4 bg-primary/20 rounded-[2rem] inline-block mb-2">
              <UrbeLudoLogo className="w-16 h-16 text-primary" />
            </div>
@@ -111,7 +114,7 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
            <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.4em]">Laboratório Psicomotor Offline</p>
         </div>
 
-        <div className="grid gap-6 w-full max-w-sm">
+        <div className="grid gap-4 w-full max-w-sm pb-10">
           <GameModeCard 
             icon={<Move className="w-8 h-8" />}
             title={t('playground.modes.balance.title')}
@@ -142,9 +145,41 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
               speak(t('playground.modes.path.title') + ". " + t('playground.modes.path.desc'));
             }}
           />
+          <GameModeCard 
+            icon={<Rocket className="w-8 h-8" />}
+            title={t('playground.modes.jump.title')}
+            desc={t('playground.modes.jump.desc')}
+            color="bg-orange-500"
+            onClick={() => {
+              setGameMode('jump');
+              speak(t('playground.modes.jump.title'));
+            }}
+          />
+          <GameModeCard 
+            icon={<Hand className="w-8 h-8" />}
+            title={t('playground.modes.twister.title')}
+            desc={t('playground.modes.twister.desc')}
+            color="bg-green-500"
+            onClick={() => {
+              setGameMode('twister');
+              speak(t('playground.modes.twister.title'));
+            }}
+          />
+          <GameModeCard 
+            icon={<Radar className="w-8 h-8" />}
+            title={t('playground.modes.radar.title')}
+            desc={t('playground.modes.radar.desc')}
+            color="bg-indigo-500"
+            onClick={() => {
+              setGameMode('radar');
+              speak(t('playground.modes.radar.title'));
+            }}
+          />
         </div>
         
-        <Link href="/dashboard" className="text-[10px] font-black uppercase text-white/40 hover:text-white transition-colors tracking-widest">{t('common.back')}</Link>
+        <Link href="/dashboard" className="text-[10px] font-black uppercase text-white/40 hover:text-white transition-colors tracking-widest mt-auto pb-4">
+          <ArrowLeft className="w-4 h-4 inline mr-2" /> {t('common.back')}
+        </Link>
       </div>
     );
   }
@@ -174,6 +209,9 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
         {gameMode === 'balance' && <BalanceGame key="balance" onWin={() => handleWin(50, 'Mestre do Equilíbrio')} auraColor={auraColor} />}
         {gameMode === 'rhythm' && <RhythmGame key="rhythm" onWin={(reward, name) => handleWin(reward, name)} auraColor={auraColor} />}
         {gameMode === 'path' && <PathGame key="path" onWin={(reward, name) => handleWin(reward, name)} auraColor={auraColor} />}
+        {gameMode === 'jump' && <JumpGame key="jump" onWin={() => handleWin(60, 'Salto de Gigante')} auraColor={auraColor} />}
+        {gameMode === 'twister' && <TwisterGame key="twister" onWin={() => handleWin(45, 'Mestre do Twister Digital')} auraColor={auraColor} />}
+        {gameMode === 'radar' && <RadarGame key="radar" onWin={() => handleWin(70, 'Explorador de Radares')} auraColor={auraColor} />}
       </AnimatePresence>
     </div>
   );
@@ -185,14 +223,14 @@ function GameModeCard({ icon, title, desc, color, onClick }: any) {
       whileHover={{ scale: 1.02, x: 5 }}
       whileTap={{ scale: 0.95 }}
       onClick={onClick}
-      className="p-6 rounded-[2.5rem] bg-white/5 border border-white/10 flex items-center gap-6 text-left group transition-colors hover:bg-white/10"
+      className="p-5 rounded-[2.5rem] bg-white/5 border border-white/10 flex items-center gap-5 text-left group transition-colors hover:bg-white/10 w-full"
     >
-      <div className={`w-16 h-16 rounded-[1.5rem] ${color} flex items-center justify-center text-white shadow-2xl group-hover:rotate-6 transition-transform`}>
+      <div className={`w-14 h-14 rounded-[1.5rem] ${color} flex items-center justify-center text-white shadow-2xl group-hover:rotate-6 transition-transform shrink-0`}>
         {icon}
       </div>
       <div className="flex-1 min-w-0">
-        <h3 className="text-base font-black uppercase italic tracking-tighter text-white leading-tight">{title}</h3>
-        <p className="text-[9px] text-white/40 font-bold uppercase leading-relaxed mt-1">{desc}</p>
+        <h3 className="text-sm font-black uppercase italic tracking-tighter text-white leading-tight">{title}</h3>
+        <p className="text-[8px] text-white/40 font-bold uppercase leading-relaxed mt-1">{desc}</p>
       </div>
     </motion.button>
   );
@@ -296,8 +334,7 @@ function BalanceGame({ onWin, auraColor }: any) {
   );
 }
 
-// --- JOGO 2: MAESTRO ORQUESTRAL (RITMO) ---
-
+// --- JOGO 2: MAESTRO ORQUESTRAL ---
 interface RhythmLevel {
   id: number;
   name: string;
@@ -328,30 +365,22 @@ function RhythmGame({ onWin, auraColor }: { onWin: (reward: number, name: string
 
   const level = RHYTHM_LEVELS[currentLevelIdx];
 
-  // Função Audível Robusta de Orquestra
   const playOrchestraNote = useCallback((freqIndex: number) => {
     if (!audioCtxRef.current) return;
     const ctx = audioCtxRef.current;
-    
-    if (ctx.state === 'suspended') {
-      ctx.resume();
-    }
+    if (ctx.state === 'suspended') ctx.resume();
     
     const now = ctx.currentTime;
     const freq = ORCHESTRA_SCALE[freqIndex % ORCHESTRA_SCALE.length];
 
-    // Síntese Polifônica Premium
     [0, 1.01, 2.02].forEach((ratio, i) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-      
       osc.type = level.soundType;
       osc.frequency.setValueAtTime(freq * (1 + ratio * 0.002), now);
-      
       gain.gain.setValueAtTime(0, now);
       gain.gain.linearRampToValueAtTime(i === 0 ? 0.2 : 0.05, now + 0.05);
       gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
-      
       osc.connect(gain);
       gain.connect(ctx.destination);
       osc.start(now);
@@ -360,29 +389,17 @@ function RhythmGame({ onWin, auraColor }: { onWin: (reward: number, name: string
   }, [level.soundType]);
 
   const start = async () => {
-    // Inicializa Áudio via Gesto do Usuário IMEDIATO
     const AudioContextClass = (window as any).AudioContext || (window as any).webkitAudioContext;
-    const ctx = new AudioContextClass();
-    audioCtxRef.current = ctx;
-    await ctx.resume();
+    audioCtxRef.current = new AudioContextClass();
+    await audioCtxRef.current.resume();
 
-    // Solicita permissão de acelerômetro
     if (typeof (DeviceMotionEvent as any).requestPermission === 'function') {
       try {
         const res = await (DeviceMotionEvent as any).requestPermission();
-        if (res !== 'granted') {
-          setSensorError(true);
-        }
-      } catch (e) {
-        console.warn("Permissão de movimento negada ou erro:", e);
-        setSensorError(true);
-      }
-    } else if (!(window as any).DeviceMotionEvent) {
-      setSensorError(true);
+        if (res !== 'granted') setSensorError(true);
+      } catch (e) { setSensorError(true); }
     }
-
     setActive(true);
-    playOrchestraNote(0); // Som de aquecimento
   };
 
   const checkRhythm = useCallback(() => {
@@ -391,44 +408,20 @@ function RhythmGame({ onWin, auraColor }: { onWin: (reward: number, name: string
         const nextScore = s + 1;
         playOrchestraNote(nextScore);
         setFeedback('EXCELENTE!');
-        
         if (nextScore >= level.targetScore) {
           if (currentLevelIdx < RHYTHM_LEVELS.length - 1) {
-            setFeedback('FASE CONCLUÍDA!');
-            setTimeout(() => {
-              setCurrentLevelIdx(v => v + 1);
-              setScore(0);
-            }, 1200);
-          } else {
-            onWin(level.reward, `Grande Maestro Orquestral`);
-          }
+            setTimeout(() => { setCurrentLevelIdx(v => v + 1); setScore(0); }, 1200);
+          } else { onWin(level.reward, `Grande Maestro Orquestral`); }
         }
         return nextScore;
       });
-    } else {
-      setFeedback('OPS!');
-      // Pequeno som dissonante para erro
-      if (audioCtxRef.current) {
-        const osc = audioCtxRef.current.createOscillator();
-        const gain = audioCtxRef.current.createGain();
-        osc.frequency.setValueAtTime(120, audioCtxRef.current.currentTime);
-        gain.gain.setValueAtTime(0.1, audioCtxRef.current.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, audioCtxRef.current.currentTime + 0.3);
-        osc.connect(gain);
-        gain.connect(audioCtxRef.current.destination);
-        osc.start();
-        osc.stop(audioCtxRef.current.currentTime + 0.3);
-      }
-    }
+    } else { setFeedback('OPS!'); }
     setTimeout(() => setFeedback(''), 500);
   }, [beat, level, currentLevelIdx, onWin, playOrchestraNote]);
 
   useEffect(() => {
     if (!active) return;
-
     const intervalMs = (60 / level.bpm) * 1000;
-    
-    // Motor Rítmico Estável
     intervalRef.current = setInterval(() => {
       setBeat(true);
       setTimeout(() => setBeat(false), 450); 
@@ -437,12 +430,8 @@ function RhythmGame({ onWin, auraColor }: { onWin: (reward: number, name: string
     const handleMotion = (e: DeviceMotionEvent) => {
       const acc = e.accelerationIncludingGravity;
       if (!acc) return;
-      
-      // Tonicidade: Detecção de pico dinâmico
       const totalAcc = Math.sqrt((acc.x || 0)**2 + (acc.y || 0)**2 + (acc.z || 0)**2);
       const now = Date.now();
-      
-      // Filtro de movimento brusco (Chicotada)
       if (totalAcc > 20 && now - lastShakeRef.current > (60000 / level.bpm) * 0.4) {
         lastShakeRef.current = now;
         checkRhythm();
@@ -460,337 +449,229 @@ function RhythmGame({ onWin, auraColor }: { onWin: (reward: number, name: string
     <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-900 gap-12">
       {!active ? (
         <div className="text-center space-y-8">
-           <div className="w-32 h-32 bg-accent/10 rounded-full flex items-center justify-center mx-auto border-4 border-dashed border-accent/30 animate-pulse">
-             <Music className="w-12 h-12 text-accent" />
-           </div>
-           <div className="space-y-2">
-             <h3 className="text-xl font-black uppercase italic text-white tracking-tighter">Maestro de Auras</h3>
-             <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest max-w-[240px] mx-auto">Regente a orquestra balançando o celular no ritmo da luz!</p>
-           </div>
-           <Button onClick={start} className="h-20 px-16 rounded-full bg-accent text-white font-black uppercase shadow-2xl text-lg border-b-8 border-accent/70 active:translate-y-2 active:border-b-0 transition-all">Iniciar Concerto</Button>
+           <Music className="w-20 h-20 text-accent mx-auto animate-pulse" />
+           <Button onClick={start} className="h-20 px-16 rounded-full bg-accent text-white font-black uppercase">Iniciar Concerto</Button>
         </div>
       ) : (
-        <>
-          <div className="text-center space-y-4 w-full">
-             <div className="flex items-center justify-center gap-4">
-                <Volume2 className="w-5 h-5 text-accent animate-pulse" />
-                <h2 className="text-2xl font-black uppercase italic text-white tracking-tighter">{level.name}</h2>
-             </div>
-             <div className="flex justify-center gap-4">
-                {RHYTHM_LEVELS.map((l, i) => (
-                  <div key={l.id} className={`h-2 w-12 rounded-full transition-all duration-500 ${i <= currentLevelIdx ? 'bg-accent' : 'bg-white/10'}`} />
-                ))}
-             </div>
-          </div>
-
-          <div className="relative w-80 h-80 flex items-center justify-center">
-             <AnimatePresence>
-               {beat && (
-                 <motion.div 
-                   initial={{ scale: 0.8, opacity: 0 }}
-                   animate={{ scale: 1.8, opacity: 0.2 }}
-                   exit={{ opacity: 0 }}
-                   className="absolute inset-0 bg-accent rounded-full blur-3xl"
-                 />
-               )}
-             </AnimatePresence>
-             
-             <motion.button 
-               onClick={checkRhythm} // Fallback para toque caso acelerômetro falhe
-               animate={{ 
-                 scale: beat ? 1.25 : 1, 
-                 borderColor: beat ? 'rgba(236, 72, 153, 0.9)' : 'rgba(255, 255, 255, 0.1)',
-                 boxShadow: beat ? '0 0 60px rgba(236, 72, 153, 0.4)' : '0 0 0px rgba(0,0,0,0)'
-               }}
-               className="w-64 h-64 rounded-[4rem] border-8 flex flex-col items-center justify-center gap-6 bg-white/5 backdrop-blur-md shadow-2xl transition-all relative z-10"
-             >
-                <div className="flex flex-col items-center gap-2">
-                   <Music className={`w-16 h-16 ${beat ? 'text-accent' : 'text-white/10'}`} />
-                   <div className="text-5xl font-black text-white tracking-tighter">{score} <span className="text-sm opacity-30">/ {level.targetScore}</span></div>
-                </div>
-                <div className="text-[10px] font-black uppercase text-accent/60 tracking-[0.3em]">{level.bpm} BPM</div>
-             </motion.button>
-
-             <AnimatePresence>
-                {feedback && (
-                  <motion.div 
-                    initial={{ scale: 0.5, opacity: 0, y: 0 }}
-                    animate={{ scale: 3.5, opacity: 1, y: -160 }}
-                    exit={{ opacity: 0 }}
-                    className={`absolute font-black text-7xl italic ${feedback === 'OPS!' ? 'text-red-500' : 'text-accent'} pointer-events-none z-50 whitespace-nowrap`}
-                  >
-                    {feedback}
-                  </motion.div>
-                )}
-             </AnimatePresence>
-          </div>
-          
-          <div className="bg-white/5 p-6 rounded-[2rem] border border-white/5 text-center max-w-xs">
-             {sensorError ? (
-               <div className="flex items-center gap-2 text-yellow-500 justify-center">
-                 <AlertCircle className="w-4 h-4" />
-                 <p className="text-[8px] font-black uppercase tracking-widest">Sensores bloqueados. Jogue tocando na tela!</p>
-               </div>
-             ) : (
-               <p className="text-[8px] font-black text-white/40 uppercase tracking-[0.4em]">Balance com firmeza no pulso da luz!</p>
-             )}
-          </div>
-        </>
+        <div className="relative w-64 h-64 flex items-center justify-center">
+           <AnimatePresence>{beat && <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1.8, opacity: 0.2 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-accent rounded-full blur-3xl" />}</AnimatePresence>
+           <button onClick={checkRhythm} className="w-48 h-48 rounded-[3rem] border-4 border-accent flex flex-col items-center justify-center gap-2 bg-white/5 relative z-10">
+              <Music className="w-12 h-12 text-accent" />
+              <div className="text-3xl font-black text-white">{score} / {level.targetScore}</div>
+           </button>
+           <AnimatePresence>{feedback && <motion.div initial={{ opacity: 0, y: 0 }} animate={{ opacity: 1, y: -100 }} exit={{ opacity: 0 }} className="absolute font-black text-3xl text-accent">{feedback}</motion.div>}</AnimatePresence>
+        </div>
       )}
     </div>
   );
 }
 
-// --- JOGO 3: CAMINHO DE LUZ (COORDENAÇÃO FINA) ---
-
-interface PathLevel {
-  id: number;
-  name: string;
-  path: string; 
-  reward: number;
-  difficulty: 'easy' | 'medium' | 'hard' | 'expert';
-}
-
-const PATH_LEVELS: PathLevel[] = [
-  {
-    id: 1,
-    name: "O Voo do Beija-Flor",
-    path: "M 100 450 L 100 50",
-    reward: 20,
-    difficulty: 'easy'
-  },
-  {
-    id: 2,
-    name: "O Deslize da Serpente",
-    path: "M 100 450 C 200 350, 0 150, 100 50",
-    reward: 35,
-    difficulty: 'medium'
-  },
-  {
-    id: 3,
-    name: "Montanhas de Cristal",
-    path: "M 50 450 L 150 350 L 50 250 L 150 150 L 100 50",
-    reward: 50,
-    difficulty: 'hard'
-  },
-  {
-    id: 4,
-    name: "O Portal do Zen",
-    path: "M 100 450 C 300 450, 300 50, 100 50 C -100 50, -100 450, 100 450 L 100 250",
-    reward: 70,
-    difficulty: 'expert'
-  }
-];
-
+// --- JOGO 3: CAMINHO DE LUZ ---
 function PathGame({ onWin, auraColor }: { onWin: (reward: number, name: string) => void, auraColor: string }) {
-  const [currentLevelIdx, setCurrentLevelIdx] = useState(0);
   const [progress, setProgress] = useState(0); 
-  const [isOffPath, setIsOffPath] = useState(false);
-  const [isStarted, setIsStarted] = useState(false);
-  
-  const svgRef = useRef<SVGSVGElement>(null);
   const pathRef = useRef<SVGPathElement>(null);
-  const audioCtxRef = useRef<AudioContext | null>(null);
-  const oscillatorRef = useRef<OscillatorNode | null>(null);
-  const gainRef = useRef<GainNode | null>(null);
-
-  const level = PATH_LEVELS[currentLevelIdx];
-
-  const initAudio = () => {
-    if (audioCtxRef.current) return;
-    const AudioContextClass = (window as any).AudioContext || (window as any).webkitAudioContext;
-    const ctx = new AudioContextClass();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    
-    osc.type = 'sine';
-    gain.gain.setValueAtTime(0, ctx.currentTime);
-    
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start();
-    
-    audioCtxRef.current = ctx;
-    oscillatorRef.current = osc;
-    gainRef.current = gain;
-  };
+  const svgRef = useRef<SVGSVGElement>(null);
 
   const handleTouch = (e: React.TouchEvent) => {
-    if (!isStarted) {
-      initAudio();
-      setIsStarted(true);
-    }
-
     if (!pathRef.current || !svgRef.current) return;
-    
     const rect = svgRef.current.getBoundingClientRect();
     const touchX = (e.touches[0].clientX - rect.left) * (200 / rect.width);
     const touchY = (e.touches[0].clientY - rect.top) * (500 / rect.height);
-    
     const pathLength = pathRef.current.getTotalLength();
-    
-    let bestDist = Infinity;
-    let bestT = 0;
-    const precision = 80; 
-    
-    for (let i = 0; i <= precision; i++) {
-      const t = i / precision;
+    let bestDist = Infinity, bestT = 0;
+    for (let i = 0; i <= 100; i++) {
+      const t = i / 100;
       const point = pathRef.current.getPointAtLength(t * pathLength);
       const dist = Math.sqrt((point.x - touchX)**2 + (point.y - touchY)**2);
-      if (dist < bestDist) {
-        bestDist = dist;
-        bestT = t;
-      }
+      if (dist < bestDist) { bestDist = dist; bestT = t; }
     }
-
-    const tolerance = 40;
-    if (bestDist < tolerance) {
-      setIsOffPath(false);
-      // Impede saltos: só progride se estiver perto do último ponto
-      if (bestT >= progress && bestT <= progress + 0.2) {
-        setProgress(bestT);
-        updateAudio(true, bestT);
-        if (bestT > 0.98) {
-          stopAudio();
-          onWin(level.reward, `Mestre de ${level.name}`);
-        }
-      }
-    } else {
-      setIsOffPath(true);
-      updateAudio(false, progress);
+    if (bestDist < 40 && bestT >= progress && bestT <= progress + 0.1) {
+      setProgress(bestT);
+      if (bestT > 0.98) onWin(40, 'Mestre do Caminho');
     }
   };
-
-  const updateAudio = (onPath: boolean, t: number) => {
-    if (!oscillatorRef.current || !gainRef.current || !audioCtxRef.current) return;
-    const now = audioCtxRef.current.currentTime;
-    
-    const freq = onPath ? 280 + t * 450 : 140;
-    const volume = onPath ? 0.2 : 0.05;
-    
-    oscillatorRef.current.frequency.setTargetAtTime(freq, now, 0.1);
-    gainRef.current.gain.setTargetAtTime(volume, now, 0.1);
-  };
-
-  const stopAudio = () => {
-    if (gainRef.current && audioCtxRef.current) {
-      gainRef.current.gain.setTargetAtTime(0, audioCtxRef.current.currentTime, 0.1);
-    }
-  };
-
-  useEffect(() => {
-    return () => {
-      if (oscillatorRef.current) oscillatorRef.current.stop();
-      if (audioCtxRef.current) audioCtxRef.current.close();
-    };
-  }, []);
 
   const pointOnPath = pathRef.current ? pathRef.current.getPointAtLength(progress * pathRef.current.getTotalLength()) : { x: 100, y: 450 };
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-6 bg-black gap-8">
-      <div className="flex flex-col items-center gap-2 text-center">
-        <div className="flex items-center gap-4">
-           <Button 
-             variant="ghost" 
-             size="icon" 
-             disabled={currentLevelIdx === 0}
-             onClick={() => { setCurrentLevelIdx(v => v - 1); setProgress(0); stopAudio(); }}
-             className="text-white/40"
-           >
-             <ChevronLeft className="w-8 h-8" />
-           </Button>
-           <h2 className="text-2xl font-black uppercase italic text-white tracking-tighter">{level.name}</h2>
-           <Button 
-             variant="ghost" 
-             size="icon" 
-             disabled={currentLevelIdx === PATH_LEVELS.length - 1}
-             onClick={() => { setCurrentLevelIdx(v => v + 1); setProgress(0); stopAudio(); }}
-             className="text-white/40"
-           >
-             <ChevronRight className="w-8 h-8" />
-           </Button>
+    <div className="flex-1 flex flex-col items-center justify-center bg-black p-6">
+      <svg ref={svgRef} viewBox="0 0 200 500" className="w-full h-full max-w-[300px] touch-none" onTouchMove={handleTouch}>
+        <path ref={pathRef} d="M 100 450 C 200 350, 0 150, 100 50" fill="none" stroke="white" strokeWidth="30" strokeOpacity="0.1" />
+        <path d="M 100 450 C 200 350, 0 150, 100 50" fill="none" stroke={auraColor} strokeWidth="8" strokeDasharray="5 10" />
+        <circle cx={pointOnPath.x} cy={pointOnPath.y} r="20" fill={auraColor} className="drop-shadow-[0_0_15px_rgba(255,255,255,0.5)]" />
+      </svg>
+    </div>
+  );
+}
+
+// --- JOGO 4: O PULO DO GIGANTE ---
+function JumpGame({ onWin, auraColor }: { onWin: () => void, auraColor: string }) {
+  const [active, setActive] = useState(false);
+  const [jumpPower, setJumpPower] = useState(0);
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const [jumping, setJumping] = useState(false);
+  const maxAccRef = useRef(0);
+
+  const start = async () => {
+    if (typeof (DeviceMotionEvent as any).requestPermission === 'function') {
+      const res = await (DeviceMotionEvent as any).requestPermission();
+      if (res !== 'granted') return;
+    }
+    setActive(true);
+    setCountdown(3);
+  };
+
+  useEffect(() => {
+    if (countdown === null) return;
+    if (countdown > 0) {
+      const t = setTimeout(() => setCountdown(countdown - 1), 1000);
+      return () => clearTimeout(t);
+    } else {
+      setJumping(true);
+      setTimeout(() => {
+        setJumping(false);
+        if (maxAccRef.current > 15) onWin();
+        else { setJumpPower(0); setCountdown(3); maxAccRef.current = 0; }
+      }, 2000);
+    }
+  }, [countdown, onWin]);
+
+  useEffect(() => {
+    if (!jumping) return;
+    const handleMotion = (e: DeviceMotionEvent) => {
+      const acc = e.accelerationIncludingGravity;
+      if (!acc) return;
+      const total = Math.sqrt((acc.x || 0)**2 + (acc.y || 0)**2 + (acc.z || 0)**2);
+      if (total > maxAccRef.current) {
+        maxAccRef.current = total;
+        setJumpPower(Math.min(100, (total - 9.8) * 5));
+      }
+    };
+    window.addEventListener('devicemotion', handleMotion);
+    return () => window.removeEventListener('devicemotion', handleMotion);
+  }, [jumping]);
+
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center bg-slate-900 p-8">
+      {!active ? (
+        <Button onClick={start} className="h-24 px-12 rounded-full bg-orange-500 font-black text-xl">PREPARAR SALTO!</Button>
+      ) : (
+        <div className="text-center space-y-10">
+          <div className="text-7xl font-black text-white">{countdown === 0 ? "PULA!!!" : countdown}</div>
+          <motion.div animate={{ y: -jumpPower * 4 }} className="w-32 h-32 rounded-full mx-auto shadow-2xl" style={{ backgroundColor: auraColor }}>
+             <Rocket className="w-16 h-16 text-white m-8" />
+          </motion.div>
+          <p className="text-white/40 font-black uppercase tracking-widest">Segure firme no peito e pule!</p>
         </div>
-        <div className="flex items-center gap-2">
-           {[...Array(4)].map((_, i) => (
-             <Star key={i} className={`w-4 h-4 ${i <= currentLevelIdx ? 'text-yellow-400 fill-current' : 'text-white/20'}`} />
-           ))}
-        </div>
+      )}
+    </div>
+  );
+}
+
+// --- JOGO 5: TWISTER DE AURAS ---
+function TwisterGame({ onWin, auraColor }: { onWin: () => void, auraColor: string }) {
+  const [points, setPoints] = useState<{ id: number, x: number, y: number, active: boolean }[]>([]);
+  const [winProgress, setWinProgress] = useState(0);
+
+  useEffect(() => {
+    const newPoints = [
+      { id: 1, x: 20 + Math.random() * 20, y: 20 + Math.random() * 20, active: false },
+      { id: 2, x: 60 + Math.random() * 20, y: 30 + Math.random() * 20, active: false },
+      { id: 3, x: 40 + Math.random() * 20, y: 60 + Math.random() * 20, active: false },
+    ];
+    setPoints(newPoints);
+  }, []);
+
+  const handleTouch = (e: React.TouchEvent) => {
+    const touches = Array.from(e.touches);
+    const updatedPoints = points.map(p => {
+      const isTouched = touches.some(t => {
+        const dx = t.clientX - (p.x * window.innerWidth / 100);
+        const dy = t.clientY - (p.y * window.innerHeight / 100);
+        return Math.sqrt(dx*dx + dy*dy) < 60;
+      });
+      return { ...p, active: isTouched };
+    });
+    setPoints(updatedPoints);
+    if (updatedPoints.every(p => p.active)) {
+      setWinProgress(prev => {
+        if (prev >= 100) { onWin(); return 100; }
+        return prev + 2;
+      });
+    } else { setWinProgress(0); }
+  };
+
+  return (
+    <div className="flex-1 bg-black relative touch-none" onTouchMove={handleTouch} onTouchStart={handleTouch} onTouchEnd={handleTouch}>
+      <div className="absolute top-32 left-10 right-10 h-2 bg-white/10 rounded-full overflow-hidden">
+        <div className="h-full bg-green-500 transition-all" style={{ width: `${winProgress}%` }} />
       </div>
+      {points.map(p => (
+        <div key={p.id} className={`absolute w-20 h-20 rounded-full border-4 transition-all ${p.active ? 'scale-125 border-white bg-white/20' : 'border-green-500'}`} style={{ left: `${p.x}%`, top: `${p.y}%`, transform: 'translate(-50%, -50%)' }} />
+      ))}
+      <div className="absolute bottom-20 inset-x-0 text-center text-[10px] font-black text-white/20 uppercase tracking-[0.4em]">Use 3 dedos ao mesmo tempo!</div>
+    </div>
+  );
+}
 
-      <div className="relative w-full max-w-[320px] aspect-[2/5] bg-white/5 rounded-[3rem] border-4 border-white/10 overflow-hidden">
-        <svg 
-          ref={svgRef}
-          viewBox="0 0 200 500" 
-          className="w-full h-full touch-none"
-          onTouchMove={handleTouch}
-          onTouchEnd={() => { setIsOffPath(false); stopAudio(); }}
-        >
-          <path 
-            ref={pathRef}
-            d={level.path}
-            fill="none"
-            stroke="rgba(255,255,255,0.05)"
-            strokeWidth="35"
-            strokeLinecap="round"
-          />
-          
-          <path 
-            d={level.path}
-            fill="none"
-            stroke={auraColor}
-            strokeWidth="35"
-            strokeLinecap="round"
-            opacity="0.1"
-          />
+// --- JOGO 6: RADAR CEGO ---
+function RadarGame({ onWin, auraColor }: { onWin: () => void, auraColor: string }) {
+  const [active, setActive] = useState(false);
+  const [bearing, setBearing] = useState(0);
+  const [targetAngle] = useState(Math.random() * 360);
+  const [intensity, setIntensity] = useState(0);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const pannerRef = useRef<PannerNode | null>(null);
 
-          <path 
-            d={level.path}
-            fill="none"
-            stroke={auraColor}
-            strokeWidth="8"
-            strokeDasharray="1 12"
-            strokeLinecap="round"
-            opacity="0.4"
-          />
+  const start = async () => {
+    const AudioContextClass = (window as any).AudioContext || (window as any).webkitAudioContext;
+    audioCtxRef.current = new AudioContextClass();
+    const osc = audioCtxRef.current.createOscillator();
+    const gain = audioCtxRef.current.createGain();
+    pannerRef.current = audioCtxRef.current.createPanner();
+    
+    osc.connect(pannerRef.current);
+    pannerRef.current.connect(gain);
+    gain.connect(audioCtxRef.current.destination);
+    osc.start();
+    
+    if (typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
+      const res = await (DeviceOrientationEvent as any).requestPermission();
+      if (res !== 'granted') return;
+    }
+    setActive(true);
+  };
 
-          <motion.circle 
-            cx={pointOnPath.x}
-            cy={pointOnPath.y}
-            r={isOffPath ? 12 : 24}
-            fill={isOffPath ? '#ef4444' : auraColor}
-            initial={false}
-            animate={{ 
-              r: isOffPath ? 12 : 24,
-              opacity: isOffPath ? 0.6 : 1
-            }}
-            className="drop-shadow-[0_0_20px_rgba(147,51,234,0.8)]"
-          />
-          
-          <circle cx="100" cy="50" r="15" fill="none" stroke="white" strokeWidth="2" strokeDasharray="4 4" className="animate-pulse" />
-        </svg>
+  useEffect(() => {
+    if (!active) return;
+    const handleOrientation = (e: DeviceOrientationEvent) => {
+      const alpha = e.alpha || 0;
+      setBearing(alpha);
+      const diff = Math.abs(alpha - targetAngle);
+      const dist = Math.min(diff, 360 - diff);
+      const newIntensity = Math.max(0, 1 - dist / 60);
+      setIntensity(newIntensity);
+      
+      if (pannerRef.current) {
+        const x = Math.sin((alpha - targetAngle) * (Math.PI / 180));
+        pannerRef.current.positionX.setValueAtTime(x, 0);
+      }
+      if (newIntensity > 0.98) onWin();
+    };
+    window.addEventListener('deviceorientation', handleOrientation);
+    return () => window.removeEventListener('deviceorientation', handleOrientation);
+  }, [active, targetAngle, onWin]);
 
-        <AnimatePresence>
-          {isOffPath && (
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-red-500/10 pointer-events-none flex items-center justify-center"
-            >
-              <div className="text-[10px] font-black uppercase text-red-500 tracking-[0.5em] animate-bounce">Volte ao Caminho</div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <div className="absolute top-4 right-4 bg-white/10 px-3 py-1 rounded-full text-[8px] font-black uppercase text-white/60 tracking-widest">
-           {Math.round(progress * 100)}%
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center bg-black" style={{ backgroundColor: `rgba(147, 51, 234, ${intensity * 0.3})` }}>
+      {!active ? (
+        <Button onClick={start} className="h-20 px-12 rounded-full bg-indigo-500 font-black">LIGAR RADAR</Button>
+      ) : (
+        <div className="text-center space-y-10">
+           <Radar className={`w-32 h-32 mx-auto transition-all ${intensity > 0.5 ? 'text-white' : 'text-white/10'}`} style={{ transform: `rotate(${bearing}deg)` }} />
+           <p className="text-[10px] font-black uppercase text-white/40 tracking-[0.5em]">Gire o corpo para achar o som</p>
         </div>
-      </div>
-
-      <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.4em] max-w-[200px] text-center leading-relaxed">
-        Guie o ponto pela luz sem tirar o dedo da tela.
-      </p>
+      )}
     </div>
   );
 }

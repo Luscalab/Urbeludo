@@ -77,6 +77,18 @@ export const translations = {
         path: {
           title: 'Caminho de Luz',
           desc: 'Guie a Aura pelo labirinto sem tirar o dedo.'
+        },
+        jump: {
+          title: 'O Pulo do Gigante',
+          desc: 'Dê o maior pulo que conseguir para decolar sua Aura!'
+        },
+        twister: {
+          title: 'Twister de Auras',
+          desc: 'Segure todos os pontos na tela ao mesmo tempo.'
+        },
+        radar: {
+          title: 'O Radar Cego',
+          desc: 'Siga o som e aponte para encontrar a Aura escondida.'
         }
       }
     },
@@ -145,6 +157,18 @@ export const translations = {
         path: {
           title: 'Path of Light',
           desc: 'Guide the Aura through the maze without lifting your finger.'
+        },
+        jump: {
+          title: 'The Giant\'s Jump',
+          desc: 'Jump as high as you can to launch your Aura!'
+        },
+        twister: {
+          title: 'Aura Twister',
+          desc: 'Hold all points on the screen at the same time.'
+        },
+        radar: {
+          title: 'The Blind Radar',
+          desc: 'Follow the sound and point to find the hidden Aura.'
         }
       }
     }
