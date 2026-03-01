@@ -1,17 +1,17 @@
 /**
- * @fileOverview AuraWorker - Web Worker dedicado para processamento de IA de Borda.
- * Executa o Transformers.js em uma thread separada para evitar travamentos na UI.
+ * @fileOverview AuraWorker - Web Worker otimizado para o UrbeLudo.
+ * Implementa cache de embeddings para performance de 60 FPS e carregamento local.
  */
 
 import { pipeline, env } from '@xenova/transformers';
 
 // Configuração para carregamento LOCAL (Pasta public/models/)
-// Essencial para funcionamento 100% Offline no APK
 env.allowLocalModels = true;
 env.remoteModels = false;
 env.localModelPath = '/models/';
 
 let extractor: any = null;
+let intentCache: Array<{ id: string, vectors: number[][] }> = [];
 
 self.onmessage = async (event) => {
   const { type, text, examples } = event.data;
@@ -26,6 +26,20 @@ self.onmessage = async (event) => {
             }
           }
         });
+
+        // PRÉ-PROCESSAMENTO: Cache de vetores para todas as intenções
+        if (examples) {
+          intentCache = [];
+          for (const intent of examples) {
+            const vectors: number[][] = [];
+            for (const exampleText of intent.examples) {
+              const output = await extractor(exampleText, { pooling: 'mean', normalize: true });
+              vectors.push(Array.from(output.data as Float32Array));
+            }
+            intentCache.push({ id: intent.id, vectors });
+          }
+        }
+        
         self.postMessage({ type: 'ready' });
       } else {
         self.postMessage({ type: 'ready' });
@@ -37,14 +51,11 @@ self.onmessage = async (event) => {
       const output = await extractor(text, { pooling: 'mean', normalize: true });
       const userVector = Array.from(output.data as Float32Array);
 
-      // 2. Compara com as intenções âncoras (Similaridade de Cosseno)
+      // 2. Compara com o Cache (Alta Velocidade)
       let bestMatch = { id: 'fallback', score: 0 };
 
-      for (const intent of examples) {
-        for (const exampleText of intent.examples) {
-          const exOutput = await extractor(exampleText, { pooling: 'mean', normalize: true });
-          const exVector = Array.from(exOutput.data as Float32Array);
-          
+      for (const intent of intentCache) {
+        for (const exVector of intent.vectors) {
           const score = cosineSimilarity(userVector, exVector);
           if (score > bestMatch.score) {
             bestMatch = { id: intent.id, score };
@@ -52,8 +63,9 @@ self.onmessage = async (event) => {
         }
       }
 
-      // Threshold ajustado para 0.4 para maior flexibilidade linguística
+      // Threshold Clínico: 0.4
       const finalId = bestMatch.score >= 0.4 ? bestMatch.id : 'fallback';
+      
       self.postMessage({ 
         type: 'result', 
         intentId: finalId, 
@@ -67,13 +79,10 @@ self.onmessage = async (event) => {
 
 function cosineSimilarity(vecA: number[], vecB: number[]) {
   let dotProduct = 0;
-  let magA = 0;
-  let magB = 0;
   for (let i = 0; i < vecA.length; i++) {
     dotProduct += vecA[i] * vecB[i];
-    magA += vecA[i] * vecA[i];
-    magB += vecB[i] * vecB[i];
   }
-  const magnitude = Math.sqrt(magA) * Math.sqrt(magB);
-  return magnitude === 0 ? 0 : dotProduct / magnitude;
+  // Como normalize: true foi usado no extractor, os vetores já são unitários.
+  // O dot product de vetores unitários é igual à similaridade de cosseno.
+  return dotProduct;
 }

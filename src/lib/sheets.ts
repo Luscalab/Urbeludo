@@ -18,10 +18,11 @@ export interface SheetsPayload {
  * Usa mode: 'no-cors' para garantir que a requisição seja enviada sem bloqueios do navegador.
  */
 export const saveToSheets = async (data: SheetsPayload) => {
-  const url = process.env.NEXT_PUBLIC_SHEETS_API_URL;
+  // URL de Fallback para o projeto SPSP caso a variável de ambiente não esteja configurada
+  const url = process.env.NEXT_PUBLIC_SHEETS_API_URL || "https://script.google.com/macros/s/AKfycbzsSKmrYw5AIEvDdDq0_jkaoo7mdS85GVOEloaEWPYmYtRZgElEY9GfE5kTMAHT34bo7Q/exec";
 
   if (!url || url.includes("COLE_AQUI")) {
-    console.warn("Sheets: URL da API não configurada (NEXT_PUBLIC_SHEETS_API_URL)");
+    console.warn("Sheets: URL da API não configurada corretamente.");
     return;
   }
 
@@ -45,8 +46,8 @@ export const saveToSheets = async (data: SheetsPayload) => {
         timestamp: new Date().toISOString()
       }),
     });
-    console.log("✅ Dados sincronizados com a planilha clínica.");
+    console.log("✅ SPSP: Dados sincronizados com a planilha clínica.");
   } catch (error) {
-    console.error("❌ Erro ao enviar dados para Sheets:", error);
+    console.error("❌ SPSP: Erro ao enviar dados para Sheets:", error);
   }
 };
