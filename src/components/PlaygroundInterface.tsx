@@ -5,25 +5,28 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
 import { 
-  Sparkles,
   Trophy,
   ArrowLeft,
   Move,
   Music,
   Fingerprint,
-  CheckCircle2,
+  Zap,
   Volume2,
-  Zap
+  Hand,
+  X
 } from 'lucide-react';
 
 import { useUser, useDoc, useMemoFirebase } from '@/firebase';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useI18n } from '@/components/I18nProvider';
 import { AccessibilityToolbar } from '@/components/AccessibilityToolbar';
+import { UrbeLudoLogo } from '@/components/UrbeLudoLogo';
 
 type GameMode = 'select' | 'balance' | 'rhythm' | 'path';
+
+// Escala Orquestral (Pentatônica Maior para soar sempre harmônico)
+const ORCHESTRA_SCALE = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25];
 
 export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean }) {
   const router = useRouter();
@@ -138,7 +141,7 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
           />
         </div>
         
-        <Link href="/dashboard" className="text-[10px] font-black uppercase text-white/30 hover:text-white transition-colors tracking-widest">{t('common.back')}</Link>
+        <Link href="/dashboard" className="text-[10px] font-black uppercase text-white/40 hover:text-white transition-colors tracking-widest">{t('common.back')}</Link>
       </div>
     );
   }
@@ -192,12 +195,11 @@ function GameModeCard({ icon, title, desc, color, onClick }: any) {
   );
 }
 
-// --- JOGO 1: EQUILIBRISTA (REFORÇADO) ---
+// --- JOGO 1: EQUILIBRISTA ---
 function BalanceGame({ onWin, auraColor }: any) {
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const [progress, setProgress] = useState(0);
   const [active, setActive] = useState(false);
-  const audioCtxRef = useRef<AudioContext | null>(null);
 
   const start = async () => {
     if (typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
@@ -214,8 +216,6 @@ function BalanceGame({ onWin, auraColor }: any) {
     if (!active) return;
 
     const handleOrientation = (e: DeviceOrientationEvent) => {
-      // Gamma: Esquerda/Direita (-90 a 90)
-      // Beta: Frente/Trás (-180 a 180)
       setTilt({ x: e.gamma || 0, y: (e.beta || 0) - 45 });
     };
 
@@ -227,7 +227,7 @@ function BalanceGame({ onWin, auraColor }: any) {
     if (!active) return;
     
     const distance = Math.sqrt(tilt.x * tilt.x + tilt.y * tilt.y);
-    const isCentered = distance < 10;
+    const isCentered = distance < 12;
 
     let timer: NodeJS.Timeout;
     if (isCentered) {
@@ -271,10 +271,8 @@ function BalanceGame({ onWin, auraColor }: any) {
           </div>
           
           <div className="relative w-80 h-80 flex items-center justify-center">
-            {/* Alvos visuais */}
             <div className="absolute inset-0 border-4 border-dashed border-white/10 rounded-full animate-spin-slow opacity-20" />
             <div className={`absolute w-40 h-40 border-4 border-white/20 rounded-full transition-all duration-300 ${progress > 0 ? 'scale-110 border-primary shadow-[0_0_40px_rgba(147,51,234,0.2)]' : ''}`} />
-            <div className="absolute w-12 h-12 border-2 border-white/40 rounded-full" />
             
             <motion.div 
               animate={{ 
@@ -295,19 +293,53 @@ function BalanceGame({ onWin, auraColor }: any) {
   );
 }
 
-// --- JOGO 2: MAESTRO (REFATORADO) ---
+// --- JOGO 2: MAESTRO ORQUESTRAL ---
 function RhythmGame({ onWin, auraColor }: any) {
   const [active, setActive] = useState(false);
   const [beat, setBeat] = useState(false);
   const [score, setScore] = useState(0);
   const [feedback, setFeedback] = useState('');
   const lastShakeRef = useRef(0);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+
+  // Inicializa a Orquestra Digital
+  const playOrchestraNote = (freqIndex: number) => {
+    if (!audioCtxRef.current) return;
+    const ctx = audioCtxRef.current;
+    const now = ctx.currentTime;
+    const freq = ORCHESTRA_SCALE[freqIndex % ORCHESTRA_SCALE.length];
+
+    // Criamos 3 osciladores desafinados para simular cordas (strings)
+    const oscillators = [0, 5, -5].map(detune => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      
+      osc.type = 'triangle'; // Onda rica para cordas
+      osc.frequency.setValueAtTime(freq, now);
+      osc.detune.setValueAtTime(detune, now);
+      
+      // Envelope suave (Calmo e Orquestral)
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.2, now + 0.1);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+      
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      return { osc, gain };
+    });
+
+    oscillators.forEach(({ osc }) => {
+      osc.start(now);
+      osc.stop(now + 1.5);
+    });
+  };
 
   const start = async () => {
     if (typeof (DeviceMotionEvent as any).requestPermission === 'function') {
       const res = await (DeviceMotionEvent as any).requestPermission();
       if (res !== 'granted') return;
     }
+    audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
     setActive(true);
   };
 
@@ -316,16 +348,15 @@ function RhythmGame({ onWin, auraColor }: any) {
 
     const rhythmInterval = setInterval(() => {
       setBeat(true);
-      setTimeout(() => setBeat(false), 300);
-    }, 1200);
+      setTimeout(() => setBeat(false), 400);
+    }, 1400);
 
     const handleMotion = (e: DeviceMotionEvent) => {
       const acc = e.accelerationIncludingGravity;
       if (!acc) return;
       const totalAcc = Math.abs(acc.x || 0) + Math.abs(acc.y || 0) + Math.abs(acc.z || 0);
       
-      // Detecção de pico de aceleração (Tonicidade)
-      if (totalAcc > 28 && Date.now() - lastShakeRef.current > 500) {
+      if (totalAcc > 26 && Date.now() - lastShakeRef.current > 600) {
         lastShakeRef.current = Date.now();
         if (beat) {
           checkRhythm(true);
@@ -345,9 +376,10 @@ function RhythmGame({ onWin, auraColor }: any) {
   const checkRhythm = (onTime: boolean) => {
     if (onTime) {
       setScore(s => {
-        if (s >= 14) {
+        playOrchestraNote(s); // Toca a nota da melodia baseada no acerto
+        if (s >= 11) {
           onWin();
-          return 15;
+          return 12;
         }
         return s + 1;
       });
@@ -355,7 +387,7 @@ function RhythmGame({ onWin, auraColor }: any) {
     } else {
       setFeedback('OPS!');
     }
-    setTimeout(() => setFeedback(''), 400);
+    setTimeout(() => setFeedback(''), 500);
   };
 
   return (
@@ -370,12 +402,12 @@ function RhythmGame({ onWin, auraColor }: any) {
       ) : (
         <>
           <div className="text-center space-y-6">
-             <div className="text-3xl font-black italic text-white/20 uppercase tracking-tighter">Sincronize o Movimento</div>
+             <div className="text-3xl font-black italic text-white/20 uppercase tracking-tighter">Siga a Melodia</div>
              <div className="flex justify-center gap-6">
                {[...Array(5)].map((_, i) => (
                  <motion.div 
                    key={i}
-                   animate={{ scale: beat ? 1.6 : 1, opacity: beat ? 1 : 0.2 }}
+                   animate={{ scale: beat ? 1.6 : 1, opacity: beat ? 1 : 0.1 }}
                    className="w-4 h-4 rounded-full bg-accent"
                  />
                ))}
@@ -395,20 +427,23 @@ function RhythmGame({ onWin, auraColor }: any) {
              </AnimatePresence>
              
              <motion.div 
-               animate={{ scale: beat ? 1.15 : 1, rotate: beat ? 5 : 0 }}
-               className="w-56 h-56 rounded-[3.5rem] border-8 border-white/10 flex flex-col items-center justify-center gap-4 bg-white/5 shadow-2xl"
+               animate={{ 
+                 scale: beat ? 1.15 : 1, 
+                 borderColor: beat ? 'rgba(236, 72, 153, 0.4)' : 'rgba(255, 255, 255, 0.1)'
+               }}
+               className="w-56 h-56 rounded-[3.5rem] border-8 flex flex-col items-center justify-center gap-4 bg-white/5 shadow-2xl transition-all"
              >
                 <Music className={`w-16 h-16 ${beat ? 'text-accent' : 'text-white/10'}`} />
-                <div className="text-3xl font-black text-white">{score}/15</div>
+                <div className="text-4xl font-black text-white">{score}/12</div>
              </motion.div>
 
              <AnimatePresence>
                 {feedback && (
                   <motion.div 
                     initial={{ scale: 0.5, opacity: 0, y: 0 }}
-                    animate={{ scale: 2.5, opacity: 1, y: -100 }}
+                    animate={{ scale: 3, opacity: 1, y: -120 }}
                     exit={{ opacity: 0 }}
-                    className={`absolute font-black text-6xl italic ${feedback === 'PÁ!' ? 'text-accent' : 'text-red-500'} pointer-events-none`}
+                    className={`absolute font-black text-7xl italic ${feedback === 'PÁ!' ? 'text-accent' : 'text-red-500'} pointer-events-none`}
                   >
                     {feedback}
                   </motion.div>
@@ -421,7 +456,7 @@ function RhythmGame({ onWin, auraColor }: any) {
   );
 }
 
-// --- JOGO 3: CAMINHO (FINA REFORÇADA) ---
+// --- JOGO 3: CAMINHO ---
 function PathGame({ onWin, auraColor }: any) {
   const [progress, setProgress] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -433,17 +468,14 @@ function PathGame({ onWin, auraColor }: any) {
     const touchY = e.touches[0].clientY - rect.top;
     const height = rect.height;
     
-    // Inverte o cálculo: de baixo para cima
     const rawPercent = 100 - (touchY / height) * 100;
     const percent = Math.min(100, Math.max(0, rawPercent));
     
-    // Exige continuidade: o novo ponto deve estar perto do progresso atual
     if (percent > progress && percent < progress + 15) {
        setIsDragging(true);
        setProgress(percent);
        if (percent >= 98) onWin();
     } else if (percent < progress - 5) {
-       // Permite voltar, mas não saltar
        setProgress(Math.max(0, percent));
     }
   };
@@ -461,18 +493,15 @@ function PathGame({ onWin, auraColor }: any) {
         onTouchEnd={() => setIsDragging(false)}
         className="relative w-40 h-[500px] bg-white/5 rounded-full border-4 border-white/10 overflow-hidden shadow-inner"
       >
-        {/* Glow de Progresso */}
         <div 
           className="absolute bottom-0 w-full transition-all duration-300 rounded-full opacity-30 blur-2xl"
           style={{ height: `${progress}%`, backgroundColor: auraColor }}
         />
         
-        {/* Trilho Central */}
         <div className="absolute inset-x-0 h-full flex justify-center">
            <div className="w-1.5 h-full bg-white/5 border-dashed border-l-2 border-white/10" />
         </div>
 
-        {/* Aura do Jogador */}
         <motion.div 
           animate={{ 
             bottom: `${progress}%`, 
@@ -483,25 +512,12 @@ function PathGame({ onWin, auraColor }: any) {
           style={{ backgroundColor: auraColor, marginBottom: '-40px' }}
         >
           <Fingerprint className="w-10 h-10 text-white/40" />
-          <div className="absolute inset-1 rounded-full border-2 border-white/20 animate-pulse" />
         </motion.div>
 
-        {/* Meta */}
         <div className="absolute top-4 left-1/2 -translate-x-1/2 text-white/20">
            <Trophy className="w-8 h-8" />
         </div>
       </div>
     </div>
-  );
-}
-
-function UrbeLudoLogo({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
-      <circle cx="50" cy="50" r="48" fill="white" fillOpacity="0.05" stroke="currentColor" strokeWidth="2" />
-      <path d="M50 20 L50 80 M20 50 L80 50" stroke="currentColor" strokeWidth="2" strokeLinecap="round" opacity="0.3" />
-      <circle cx="50" cy="50" r="10" fill="currentColor" />
-      <circle cx="50" cy="50" r="25" stroke="currentColor" strokeWidth="1" strokeDasharray="4 4" />
-    </svg>
   );
 }
