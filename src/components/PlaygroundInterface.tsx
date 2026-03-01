@@ -10,24 +10,20 @@ import {
   Eraser,
   Sparkles,
   Trophy,
-  Coins,
   Volume2,
   AlertCircle,
-  Loader2,
   Camera,
-  Play
+  Play,
+  ArrowLeft
 } from 'lucide-react';
 
 import { useUser, useDoc, useMemoFirebase } from '@/firebase';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import { cn } from '@/lib/utils';
-import { FALLBACK_AVATAR } from '@/lib/avatar-catalog';
 
 export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean }) {
-  const { user } = useUser();
   const router = useRouter();
+  const { user } = useUser();
   
-  // Referências para hardware e processamento
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fogCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -37,47 +33,32 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
   const lastBeepTimeRef = useRef<number>(0);
   const streamRef = useRef<MediaStream | null>(null);
   
-  // Estados de controle e diagnóstico
-  const [mounted, setMounted] = useState(false);
   const [status, setStatus] = useState("Aguardando ignição...");
   const [isCameraReady, setIsCameraReady] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  
-  // Estados de Jogo
   const [progress, setProgress] = useState(0);
   const [celebrating, setCelebrating] = useState(false);
   const [grid, setGrid] = useState<boolean[]>(new Array(100).fill(false));
 
   const userProgressRef = useMemoFirebase(() => user ? { id: user.uid, path: `user_progress/${user.uid}` } : null, [user]);
   const { data: profile } = useDoc(userProgressRef);
-
   const auraColor = profile?.dominantColor || '#9333ea';
 
+  // Limpeza ao sair
   useEffect(() => {
-    setMounted(true);
     return () => {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
-      }
+      if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
       if (requestRef.current) cancelAnimationFrame(requestRef.current);
     };
   }, []);
 
   const initAudio = () => {
-    try {
-      if (!audioContextRef.current) {
-        const AudioCtxClass = (window.AudioContext || (window as any).webkitAudioContext);
-        if (AudioCtxClass) {
-          audioContextRef.current = new AudioCtxClass();
-        }
-      }
-      if (audioContextRef.current?.state === 'suspended') {
-        audioContextRef.current.resume();
-      }
-    } catch (e) {
-      console.warn("Falha ao iniciar áudio:", e);
+    if (!audioContextRef.current) {
+      const AudioCtx = (window.AudioContext || (window as any).webkitAudioContext);
+      if (AudioCtx) audioContextRef.current = new AudioCtx();
     }
+    if (audioContextRef.current?.state === 'suspended') audioContextRef.current.resume();
   };
 
   const playSymphony = (x: number, width: number, intensity: number) => {
@@ -140,44 +121,34 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
     const currentFrame = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
     if (lastFrameRef.current) {
-      let motionSumX = 0;
-      let motionSumY = 0;
-      let motionCount = 0;
-
-      for (let i = 0; i < currentFrame.data.length; i += 160) { 
+      let motionSumX = 0, motionSumY = 0, motionCount = 0;
+      for (let i = 0; i < currentFrame.data.length; i += 200) { 
         const diff = Math.abs(currentFrame.data[i] - lastFrameRef.current.data[i]) +
                      Math.abs(currentFrame.data[i+1] - lastFrameRef.current.data[i+1]) +
                      Math.abs(currentFrame.data[i+2] - lastFrameRef.current.data[i+2]);
         if (diff > 100) {
-          const pixelIndex = i / 4;
-          const x = pixelIndex % canvas.width;
-          const y = Math.floor(pixelIndex / canvas.width);
-          motionSumX += x;
-          motionSumY += y;
+          const px = i / 4;
+          motionSumX += px % canvas.width;
+          motionSumY += Math.floor(px / canvas.width);
           motionCount++;
         }
       }
 
       if (motionCount > 50) {
-        const centerX = motionSumX / motionCount;
-        const centerY = motionSumY / motionCount;
+        const cX = motionSumX / motionCount, cY = motionSumY / motionCount;
         const intensity = motionCount / (canvas.width * canvas.height / 800);
-
         fogCtx.globalCompositeOperation = 'destination-out';
         fogCtx.beginPath();
-        fogCtx.arc(centerX, centerY, 50 + (intensity * 80), 0, Math.PI * 2);
+        fogCtx.arc(cX, cY, 50 + (intensity * 80), 0, Math.PI * 2);
         fogCtx.fill();
-        
-        playSymphony(centerX, canvas.width, intensity);
+        playSymphony(cX, canvas.width, intensity);
 
-        const gx = Math.floor((centerX / canvas.width) * 10);
-        const gy = Math.floor((centerY / canvas.height) * 10);
-        const gridIdx = Math.max(0, Math.min(99, gy * 10 + gx));
-        
+        const gx = Math.floor((cX / canvas.width) * 10), gy = Math.floor((cY / canvas.height) * 10);
+        const gIdx = Math.max(0, Math.min(99, gy * 10 + gx));
         setGrid(prev => {
-          if (prev[gridIdx]) return prev;
+          if (prev[gIdx]) return prev;
           const newGrid = [...prev];
-          newGrid[gridIdx] = true;
+          newGrid[gIdx] = true;
           const newProgress = (newGrid.filter(v => v).length / 100) * 100;
           setProgress(newProgress);
           if (newProgress >= 80 && !celebrating) handleWin();
@@ -192,7 +163,6 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
   const handleWin = () => {
     setCelebrating(true);
     setIsPlaying(false);
-    if (requestRef.current) cancelAnimationFrame(requestRef.current);
     if (userProgressRef && profile) {
       const earnedCoins = 50;
       const newHistory = [{
@@ -215,16 +185,13 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
     setErrorMessage(null);
     setStatus("1. Checando suporte...");
     try {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error("Câmera não suportada neste dispositivo.");
-      }
+      if (!navigator.mediaDevices) throw new Error("Câmera não suportada.");
       setStatus("2. Pedindo acesso...");
       const stream = await navigator.mediaDevices.getUserMedia({ 
         video: { facingMode: 'user', width: { ideal: 640 } },
         audio: false
       });
       streamRef.current = stream;
-      setStatus("3. Injetando vídeo...");
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         videoRef.current.onloadedmetadata = () => {
@@ -236,8 +203,7 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
         };
       }
     } catch (err: any) {
-      console.error("Erro na Câmera:", err);
-      setErrorMessage(err.name === 'NotAllowedError' ? "Acesso Negado. Libere a câmera." : `Erro: ${err.message}`);
+      setErrorMessage(err.message);
     }
   };
 
@@ -246,24 +212,23 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
     return () => { if (requestRef.current) cancelAnimationFrame(requestRef.current); };
   }, [isPlaying, isCameraReady, processFrame]);
 
-  if (!mounted) return null;
-
   return (
     <div className="flex flex-col h-full bg-slate-900 relative overflow-hidden">
       <AnimatePresence>
         {!isCameraReady && !celebrating && (
-          <motion.div exit={{ opacity: 0 }} className="absolute inset-0 z-50 flex flex-col items-center justify-center p-8 bg-slate-900/90 backdrop-blur-sm">
-             <div className="bg-white p-12 rounded-[4rem] text-center space-y-8 shadow-2xl border-b-8 border-slate-200 max-w-sm">
-                <div className="w-24 h-24 bg-primary/10 rounded-[2.5rem] flex items-center justify-center mx-auto">
-                   {errorMessage ? <AlertCircle className="w-12 h-12 text-red-500" /> : <Camera className="w-12 h-12 text-primary animate-pulse" />}
+          <motion.div exit={{ opacity: 0 }} className="absolute inset-0 z-50 flex flex-col items-center justify-center p-8 bg-slate-900/95 backdrop-blur-md">
+             <div className="bg-white p-10 rounded-[3.5rem] text-center space-y-8 shadow-2xl border-b-8 border-slate-200 max-w-sm">
+                <div className="w-20 h-20 bg-primary/10 rounded-[2rem] flex items-center justify-center mx-auto">
+                   {errorMessage ? <AlertCircle className="w-10 h-10 text-red-500" /> : <Camera className="w-10 h-10 text-primary animate-pulse" />}
                 </div>
-                <div>
-                   <h2 className="text-3xl font-black uppercase italic tracking-tighter mb-2">Espelho Mágico</h2>
+                <div className="space-y-2">
+                   <h2 className="text-2xl font-black uppercase italic tracking-tighter">Espelho Mágico</h2>
                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{errorMessage || status}</p>
                 </div>
-                <Button onClick={startCamera} className="w-full h-20 bg-primary text-white font-black rounded-full uppercase text-lg shadow-xl border-b-8 border-primary/70 active:border-b-0 active:translate-y-2 transition-all">
+                <Button onClick={startCamera} className="w-full h-16 bg-primary text-white font-black rounded-full uppercase shadow-xl border-b-4 border-primary/70 active:border-b-0 active:translate-y-1 transition-all">
                   Ligar Espelho
                 </Button>
+                <Link href="/dashboard" className="block text-[9px] font-black uppercase text-muted-foreground hover:text-primary">Voltar ao Perfil</Link>
              </div>
           </motion.div>
         )}
@@ -278,48 +243,34 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
              ref={(el) => { if(el && videoRef.current) el.srcObject = videoRef.current.srcObject; }}
            />
         </div>
-        <canvas ref={canvasRef} className="absolute inset-0 w-full h-full object-cover scale-x-[-1] opacity-0 pointer-events-none" />
-        <canvas ref={fogCanvasRef} className="absolute inset-0 w-full h-full object-cover scale-x-[-1] z-20 pointer-events-none" />
+        <canvas ref={canvasRef} className="absolute inset-0 w-full h-full scale-x-[-1] opacity-0 pointer-events-none" />
+        <canvas ref={fogCanvasRef} className="absolute inset-0 w-full h-full scale-x-[-1] z-20 pointer-events-none" />
         
         {isCameraReady && (
-          <div className="absolute top-0 inset-x-0 z-30 p-8 pointer-events-none flex flex-col gap-6">
+          <div className="absolute top-0 inset-x-0 z-30 p-8 pointer-events-none flex flex-col gap-4">
              <div className="flex justify-between items-center">
-                <div className="bg-black/60 backdrop-blur-xl px-6 py-3 rounded-[1.5rem] border border-white/20 text-white flex items-center gap-3">
-                  <Sparkles className="w-5 h-5 text-primary animate-pulse" />
-                  <span className="text-[10px] font-black uppercase tracking-widest italic">Limpa-Vidros</span>
+                <div className="bg-black/60 backdrop-blur-xl px-4 py-2 rounded-2xl border border-white/20 text-white flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-primary" />
+                  <span className="text-[9px] font-black uppercase italic">Limpa-Vidros</span>
                 </div>
-                <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20">
-                   <Volume2 className="w-5 h-5 text-white" />
-                </div>
+                <Button onClick={() => initFog()} variant="secondary" className="bg-white/10 backdrop-blur-md p-3 rounded-xl border border-white/20 pointer-events-auto">
+                   <Eraser className="w-4 h-4 text-white" />
+                </Button>
              </div>
-             <div className="space-y-2">
-               <div className="flex justify-between text-[10px] font-black uppercase text-white drop-shadow-lg px-2">
-                  <span>Revelação</span>
-                  <span>{Math.floor(progress)}%</span>
-               </div>
-               <Progress value={progress} className="h-4 bg-white/20 border border-white/10" />
-             </div>
+             <Progress value={progress} className="h-3 bg-white/20 border border-white/10" />
           </div>
         )}
-
-        <div className="absolute bottom-12 inset-x-0 z-30 flex justify-center">
-           {isPlaying && (
-             <Button onClick={() => initFog()} variant="secondary" className="h-20 w-20 rounded-full bg-white/20 backdrop-blur-xl border-2 border-white/40 text-white">
-                <Eraser className="w-8 h-8" />
-             </Button>
-           )}
-        </div>
       </div>
 
       <AnimatePresence>
         {celebrating && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-[100] bg-primary/95 flex flex-col items-center justify-center text-white p-12 text-center">
-            <Trophy className="w-56 h-56 text-yellow-400 mb-8" />
-            <h2 className="text-6xl font-black uppercase italic mb-12">VAI!</h2>
-            <div className="bg-white/20 p-8 rounded-[3rem] mb-12">
-               <span className="text-5xl font-black">+50 LC</span>
+            <Trophy className="w-40 h-40 text-yellow-400 mb-8" />
+            <h2 className="text-5xl font-black uppercase italic mb-8">BRILHANTE!</h2>
+            <div className="bg-white/20 p-6 rounded-[2.5rem] mb-10">
+               <span className="text-4xl font-black text-white">+50 LC</span>
             </div>
-            <Button onClick={() => router.push('/dashboard')} className="h-24 px-16 rounded-[3rem] bg-white text-primary font-black uppercase text-xl shadow-2xl">
+            <Button onClick={() => router.push('/dashboard')} className="h-16 px-12 rounded-full bg-white text-primary font-black uppercase shadow-2xl">
               Coletar Prêmios
             </Button>
           </motion.div>
@@ -328,3 +279,5 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
     </div>
   );
 }
+
+import Link from 'next/link';
