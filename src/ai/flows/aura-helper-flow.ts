@@ -1,7 +1,7 @@
 'use client';
 /**
  * @fileOverview AuraHelper - O guia de inteligência do UrbeLudo.
- * Implementa triagem de respostas fixas para economia de tokens e latência zero.
+ * Implementa base de conhecimento clínica e técnica para o projeto SPSP (Psicomotricidade/UNICV).
  * Versão 100% Client-Side para exportação APK.
  */
 
@@ -21,75 +21,73 @@ export interface AuraHelperOutput {
 }
 
 const RESPOSTAS_FIXAS: Record<string, string> = {
+  // --- CONCEITOS PSICOMOTORES (UNICV / PROJETO SPSP) ---
+  "psicomotricidade": "É o estudo de como nossos pensamentos, sentimentos e movimentos trabalham juntos! No UrbeLudo, ajudamos seu corpo e mente a dançarem no mesmo ritmo para você ganhar mais autonomia.",
+  "corpo e mente": "A psicomotricidade ajuda você a entender e dominar seus movimentos. Aqui no UrbeLudo, cada jogo é um exercício para sua mente comandar seu corpo com alegria!",
+  "por que treinar": "Cada desafio trabalha uma 'engrenagem' sua. O Caminho de Luz foca na sua precisão motora, enquanto o Elevador foca no controle do seu fôlego.",
+  "relacao corpo": "Treinar no UrbeLudo ajusta seu tônus muscular e melhora sua percepção espacial. É a ciência do movimento transformada em brincadeira!",
+
+  // --- ANÁLISE TERAPÊUTICA POR JOGO ---
+  "voz": "A voz é puro movimento! No Elevador, você treina a 'estabilidade fonatória', deixando sua voz firme e seu pulmão forte para falar sem cansar.",
+  "fala": "O jogo do Elevador ajuda no controle da pressão do ar nos pulmões, o que melhora a clareza da sua fala e a projeção da sua voz.",
+  "precisao": "O Caminho de Luz treina sua coordenação visomotora. É como um GPS para suas mãos, ensinando elas a serem precisas e ágeis para escrever ou desenhar!",
+  "mão": "Seguir a trilha de luz exige foco e controle de pequenos movimentos (motricidade fina), o que é vital para sua autonomia no dia a dia.",
+  "sopro": "Controlar o ar na Nuvem de Sopro ajuda na musculatura da face, o que é importante para a mastigação e para falar as palavras corretamente.",
+  "respiração": "Soprar de forma controlada ensina seu cérebro a regular a força do ar, promovendo relaxamento e domínio sobre o seu próprio fôlego.",
+
   // --- JOGOS E MECÂNICA ---
   "jogar": "Para jogar, escolha um dos desafios no painel e siga as instruções de voz ou movimento!",
-  "elevador": "No Elevador de Voz, use sua voz para subir! Mantenha um som constante e tente ficar dentro da Zona de Estabilidade (a área verde) para encher a barra até 100%.",
-  "estabilidade": "A Zona de Estabilidade é a área verde na tela. Ela indica que sua voz está firme e controlada, o que é ótimo para o seu treino de fonoaudiologia!",
-  "caminho": "No Caminho de Luz, o foco é a Precisão. Você deve seguir a trilha luminosa com o movimento para ganhar!",
-  "sopro": "Na Nuvem de Sopro, trabalhamos o Controle Respiratório. Você deve usar o sopro suave para guiar a nuvem ou girar o moinho!",
-  "moedas": "As LudoCoins (LC) são suas moedas de conquista! Você as ganha ao completar as fases e abrir os baús de recompensa.",
-  "lc": "As LudoCoins (LC) são suas moedas de conquista! Você as ganha ao completar as fases e abrir os baús de recompensa.",
-  "100%": "Ao chegar em 100%, você completa o andar, ganha LudoCoins e o AuraBot gera um relatório especial sobre o seu progresso!",
-  "relatório": "O relatório é gerado automaticamente pelo AuraBot ao final de cada sessão, ajudando você e seu terapeuta a acompanhar sua evolução.",
-  "quem é você": "Eu sou o AuraHelper, seu assistente de saúde e diversão aqui no UrbeLudo! Estou aqui para guiar sua Aura do Movimento.",
-  "aura": "A Aura é a energia do seu movimento! No UrbeLudo, transformamos seus gestos em rastros de luz e som para treinar seu corpo.",
+  "elevador": "No Elevador de Voz, mantenha o som constante na área verde (Zona de Estabilidade) para subir até o baú de recompensas!",
+  "estabilidade": "A Zona de Estabilidade é a área verde na tela. Ela indica que sua voz está firme, o que ajuda a fortalecer sua musculatura vocal!",
+  "caminho": "No Caminho de Luz, o foco é a Precisão. Siga a trilha luminosa com o dedo sem sair da linha para vencer!",
+  "moedas": "As LudoCoins (LC) são suas moedas de conquista! Você as ganha ao completar as fases e pode usá-las para mobiliar seu Estúdio.",
+  "lc": "As LudoCoins (LC) representam sua evolução! Use-as na Loja para deixar seu espaço de treino com a sua cara.",
   
   // --- SUPORTE TÉCNICO ---
-  "não sobe": "Verifique se o ícone do microfone está ativo no topo da tela. Tente falar um pouco mais alto ou ajuste a sensibilidade no seu Painel de Perfil.",
-  "sem som": "Confira se o volume do seu celular está alto. O UrbeLudo usa sons lúdicos e feedbacks sonoros para te ajudar a manter o ritmo!",
-  "calibro": "Vá ao menu Painel e procure por Sensibilidade. Lá você pode ajustar o quanto de voz ou movimento o sensor precisa captar.",
+  "não sobe": "Verifique se o ícone do microfone está ativo. Tente falar um pouco mais alto ou ajuste a sensibilidade no seu Painel de Perfil.",
+  "sem som": "Confira se o volume do celular está alto. O UrbeLudo usa feedbacks sonoros para ajudar você a manter o ritmo do exercício!",
+  "calibro": "Vá ao menu Painel e procure por Sensibilidade. Lá você ajusta o quanto de voz ou movimento o sensor precisa captar para o jogo reagir.",
   
-  // --- PROGRESSO E RECOMPENSAS ---
-  "vejo minhas moedas": "Suas LudoCoins (LC) aparecem no topo de cada fase e também no seu Painel principal de Perfil.",
-  "sem internet": "Sim! O UrbeLudo é Offline-First. Seus treinos ficam salvos no aparelho e eu sincronizo tudo com o seu mestre assim que você conectar!",
-  "abro o baú": "O baú se abre sozinho quando você completa 100% da barra de progresso com sua voz ou movimento de Aura!",
-  
-  // --- CONCEITOS (PSICOMOTOR/CLÍNICO) ---
-  "serve este app": "O UrbeLudo une tecnologia e saúde para treinar sua voz, respiração e coordenação motora de forma divertida e lúdica!",
-  "psicomotricidade": "É a ciência que estuda como nosso corpo e mente trabalham juntos. Aqui no UrbeLudo, usamos jogos digitais para fortalecer essa conexão corporal!",
-  "quem vê meus relatórios": "Apenas você e seu terapeuta/desenvolvedor têm acesso às análises técnicas que eu gero após os seus treinos."
+  // --- PROGRESSO ---
+  "sem internet": "O UrbeLudo é Offline-First! Seus treinos ficam salvos no aparelho e eu sincronizo tudo com a sua planilha assim que você conectar!",
+  "relatório": "O relatório clínico é gerado por mim ao final de cada sessão, ajudando você e seu terapeuta a acompanharem sua evolução biomecânica."
 };
 
 export async function askAuraHelper(input: AuraHelperInput): Promise<AuraHelperOutput> {
   const query = input.question.toLowerCase();
   
-  // Triagem de Respostas Prontas (Latência Zero)
+  // Triagem de Respostas Prontas (Latência Zero e Foco Clínico)
   const key = Object.keys(RESPOSTAS_FIXAS).find(k => query.includes(k));
   if (key) {
     return {
       answer: RESPOSTAS_FIXAS[key],
-      suggestedAction: "Continue seu treinamento de Aura!"
+      suggestedAction: "Continue sua jornada psicomotora!"
     };
   }
 
   if (!API_KEY) {
     return {
-      answer: "Minha conexão com a Grande Aura falhou (Chave ausente), mas o segredo para o sucesso é o movimento suave!",
-      suggestedAction: "Verifique suas configurações de API."
+      answer: "Minha conexão com a Grande Aura falhou, mas lembre-se: o movimento consciente é a chave para o sucesso!",
+      suggestedAction: "Verifique suas configurações de rede."
     };
   }
 
   try {
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-    const prompt = `Você é o AuraHelper, o guia robótico e amigável do UrbeLudo (Playground Urbano Digital 2026).
-    Sua missão é ajudar crianças, pais e terapeutas a entenderem como o jogo funciona.
+    const prompt = `Você é o AuraHelper, assistente especialista em Psicomotricidade e Fonoaudiologia do UrbeLudo.
+    Sua missão é explicar os benefícios dos jogos usando os conceitos de estabilidade fonatória, coordenação visomotora e tônus muscular, mas de forma lúdica.
 
-    CONHECIMENTO DO URBELUDO:
-    - Objetivo: Transformar ambientes em playgrounds de psicomotricidade usando IA de Borda.
-    - Jogos:
-        1. Equilíbrio: Inclinar o celular para manter a bolha no centro.
-        2. Ritmo: Mover o celular no tempo da música.
-        3. Caminho de Luz: Seguir trilhas com o dedo.
-        4. Nuvem de Sopro: Soprar no microfone para girar o moinho.
-        5. Elevador de Voz: Cantar constante para subir a torre (Fonoaudiologia).
-    - LudoCoins: Moedas ganhas ao completar desafios.
-    - Privacidade: 100% Offline. A imagem da câmera nunca sai do aparelho.
+    CONHECIMENTO TÉCNICO:
+    - Psicomotricidade: Integração corpo-mente.
+    - Elevador de Voz: Treina pressão subglótica e estabilidade vocal.
+    - Caminho de Luz: Treina motricidade fina e percepção espacial.
+    - Nuvem de Sopro: Treina praxias bucofaciais.
 
-    REGRAS DE RESPOSTA:
-    - Seja lúdico, use metáforas sobre "Aura", "Energia" e "Mestre do Movimento".
-    - Respostas curtas (máximo 3 frases).
-    - Retorne APENAS um JSON puro com: "answer" e "suggestedAction".
+    REGRAS:
+    - Seja encorajador e educativo.
+    - Máximo 3 frases.
+    - Retorne APENAS um JSON: {"answer": "...", "suggestedAction": "..."}
 
     Pergunta: ${input.question}`;
 
@@ -101,8 +99,8 @@ export async function askAuraHelper(input: AuraHelperInput): Promise<AuraHelperO
   } catch (error) {
     console.error("Erro no AuraHelper:", error);
     return {
-      answer: "Minha percepção sensorial oscilou um pouco, mas não pare de se mover!",
-      suggestedAction: "Tente perguntar de outra forma."
+      answer: "Minha percepção sensorial oscilou, mas não pare de se mover! Como posso ajudar?",
+      suggestedAction: "Tente perguntar sobre um jogo específico."
     };
   }
 }
