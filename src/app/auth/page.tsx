@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState } from 'react';
@@ -158,7 +157,10 @@ export default function AuthPage() {
               <Checkbox 
                 id="terms" 
                 checked={termsAccepted} 
-                onCheckedChange={(checked) => setTermsAccepted(!!checked)}
+                onCheckedChange={(checked) => {
+                  // Use setTimeout to avoid flushSync error in React 19/Radix
+                  setTimeout(() => setTermsAccepted(!!checked), 0);
+                }}
                 className="w-5 h-5 rounded-md border-2 border-primary"
               />
               <label htmlFor="terms" className="text-[9px] font-bold text-muted-foreground leading-tight">
