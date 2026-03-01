@@ -41,10 +41,11 @@ import {
   DialogDescription,
   DialogFooter
 } from '@/components/ui/dialog';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 type GameMode = 'select' | 'balance' | 'rhythm' | 'path' | 'jump' | 'twister' | 'radar' | 'breath' | 'voice';
 
-// Helper robusto para carregar assets de jogos (Caminho relativo para compatibilidade APK/Studio)
+// Helper robusto para carregar assets de jogos (Caminho relativo para compatibilidade APK/Studio/Proxy)
 const getGameAsset = (game: string, file: string) => `assets/images/games/${game}/${file}`;
 
 export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean }) {
@@ -543,11 +544,17 @@ function PathGame({ onWin, auraColor }: any) {
 function BreathGame({ onWin, auraColor }: any) {
   const [active, setActive] = useState(false);
   const [level, setLevel] = useState(0);
+  const [error, setError] = useState<string | null>(null);
   const rotationRef = useRef(0);
   const requestRef = useRef<number>(null);
 
   const start = async () => {
+    setError(null);
     try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('BROWSER_UNSUPPORTED');
+      }
+      
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const AC = (window as any).AudioContext || (window as any).webkitAudioContext;
       const ctx = new AC();
@@ -570,12 +577,31 @@ function BreathGame({ onWin, auraColor }: any) {
         requestRef.current = requestAnimationFrame(update);
       };
       setActive(true); update();
-    } catch (e) {}
+    } catch (e: any) {
+      console.error("Hardware de áudio bloqueado ou não encontrado:", e);
+      if (e.name === 'NotFoundError' || e.message === 'BROWSER_UNSUPPORTED') {
+        setError("Microfone não encontrado. Verifique se ele está conectado corretamente.");
+      } else if (e.name === 'NotAllowedError') {
+        setError("Acesso ao microfone negado. Por favor, permita o acesso para brincar.");
+      } else {
+        setError("Não foi possível acessar o microfone agora.");
+      }
+      setActive(false);
+    }
   };
+  
   useEffect(() => () => { if(requestRef.current) cancelAnimationFrame(requestRef.current); }, []);
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-950">
+      {error && (
+        <Alert variant="destructive" className="max-w-xs mb-8 rounded-3xl border-2">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Atenção</AlertTitle>
+          <AlertDescription className="text-[10px] font-bold uppercase">{error}</AlertDescription>
+        </Alert>
+      )}
+      
       {!active ? (
         <Button onClick={start} className="h-20 px-12 rounded-full bg-teal-500 text-white font-black uppercase text-lg border-b-8 border-teal-700">Ativar Sopro</Button>
       ) : (
@@ -590,7 +616,6 @@ function BreathGame({ onWin, auraColor }: any) {
 
 /**
  * --- JOGO: O ELEVADOR DE VOZ (IMERSIVO 2026) ---
- * Implementação baseada no Guia Técnico: Camadas Visuais e Biofeedback.
  */
 function VoiceGame({ onWin, auraColor }: { onWin: (reward: number, name: string) => void, auraColor: string }) {
   const [active, setActive] = useState(false);
@@ -602,6 +627,7 @@ function VoiceGame({ onWin, auraColor }: { onWin: (reward: number, name: string)
   const [isSinging, setIsSinging] = useState(false);
   const [chestOpen, setChestOpen] = useState(false);
   const [isExplorationMode, setIsExplorationMode] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
   const analyserRef = useRef<AnalyserNode | null>(null);
   const requestRef = useRef<number>(null);
@@ -628,7 +654,12 @@ function VoiceGame({ onWin, auraColor }: { onWin: (reward: number, name: string)
   const currentLevel = VOICE_LEVELS[phaseIdx];
 
   const start = async () => {
+    setError(null);
     try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('BROWSER_UNSUPPORTED');
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const AC = (window as any).AudioContext || (window as any).webkitAudioContext;
       const ctx = new AC();
@@ -668,8 +699,16 @@ function VoiceGame({ onWin, auraColor }: { onWin: (reward: number, name: string)
       setActive(true);
       setChestOpen(false);
       update();
-    } catch (e) {
-      console.error("Hardware de áudio bloqueado", e);
+    } catch (e: any) {
+      console.error("Hardware de áudio bloqueado ou não encontrado:", e);
+      if (e.name === 'NotFoundError' || e.message === 'BROWSER_UNSUPPORTED') {
+        setError("Microfone não encontrado. Verifique a conexão.");
+      } else if (e.name === 'NotAllowedError') {
+        setError("Acesso ao microfone negado.");
+      } else {
+        setError("Erro ao acessar áudio.");
+      }
+      setActive(false);
     }
   };
 
@@ -708,6 +747,14 @@ function VoiceGame({ onWin, auraColor }: { onWin: (reward: number, name: string)
           animate={{ opacity: 1, y: 0 }}
           className="relative z-50 text-center space-y-10 p-12 bg-black/60 backdrop-blur-2xl rounded-[4rem] border-4 border-white/10 max-w-sm"
         >
+          {error && (
+            <Alert variant="destructive" className="mb-6 rounded-3xl border-2 bg-red-950/20">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle className="text-xs">Falha Técnica</AlertTitle>
+              <AlertDescription className="text-[10px] font-bold uppercase">{error}</AlertDescription>
+            </Alert>
+          )}
+
           <div className="w-32 h-32 mx-auto bg-pink-500/20 rounded-[2.5rem] flex items-center justify-center text-pink-500 border-4 border-pink-500 animate-pulse shadow-2xl">
             <Volume2 className="w-16 h-16" />
           </div>
