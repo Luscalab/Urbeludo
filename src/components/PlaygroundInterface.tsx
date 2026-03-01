@@ -644,17 +644,6 @@ function VoiceGame({ onWin, auraColor, ludoCoins }: { onWin: (reward: number, na
 
   const currentLevel = VOICE_LEVELS[phaseIdx];
 
-  // Log de carregamento das imagens para depuração
-  useEffect(() => {
-    if (active) {
-      console.log("[UrbeLudo] Carregando ativos de Voz com caminhos relativos:");
-      Object.entries(VOICE_ASSETS).forEach(([key, path]) => {
-        const absoluteUrl = new URL(path, window.location.href).href;
-        console.log(`- ${key}: ${absoluteUrl}`);
-      });
-    }
-  }, [active]);
-
   const start = async () => {
     setError(null);
     try {
@@ -668,7 +657,7 @@ function VoiceGame({ onWin, auraColor, ludoCoins }: { onWin: (reward: number, na
       const source = ctx.createMediaStreamSource(stream);
       const analyser = ctx.createAnalyser();
       analyser.fftSize = 512;
-      analyser.smoothingTimeConstant = 0.85; 
+      analyser.smoothingTimeConstant = 0.8; // Suavização nativa da API
       source.connect(analyser);
       analyserRef.current = analyser;
 
@@ -676,11 +665,17 @@ function VoiceGame({ onWin, auraColor, ludoCoins }: { onWin: (reward: number, na
       const update = () => {
         if (!analyserRef.current) return;
         analyserRef.current.getByteFrequencyData(dataArray);
+        
+        // Cálculo do volume médio
         let average = dataArray.reduce((a, b) => a + b) / dataArray.length;
         
+        // Normalização Biomecânica: y = h_torre * ((V_atual - V_min) / (V_max - V_min))
+        // No contexto de UI, usamos um range dinâmico para suavizar a subida
+        const normalized = Math.max(0, Math.min(100, (average / 128) * 100));
+        
         setVolume(average);
-        setSmoothedVolume(prev => prev * 0.88 + average * 0.12);
-        setIsSinging(average > 12);
+        setSmoothedVolume(prev => prev * 0.85 + normalized * 0.15);
+        setIsSinging(average > 10);
 
         const isInRange = average > currentLevel.range.min && average < currentLevel.range.max;
         
@@ -691,24 +686,25 @@ function VoiceGame({ onWin, auraColor, ludoCoins }: { onWin: (reward: number, na
             return next;
           });
         } else if (!isExplorationMode) {
-          setProgress(p => Math.max(0, p - 0.3));
+          setProgress(p => Math.max(0, p - 0.25));
         }
 
         if (progress < 100) {
           requestRef.current = requestAnimationFrame(update);
         }
       };
+      
       setActive(true);
       setChestOpen(false);
       update();
     } catch (e: any) {
       console.error("Erro no hardware de áudio:", e);
       if (e.name === 'NotFoundError' || e.message === 'Requested device not found') {
-        setError("Microfone não encontrado. Verifique a conexão.");
+        setError("Microfone não encontrado. Verifique se o dispositivo está conectado.");
       } else if (e.name === 'NotAllowedError') {
-        setError("Acesso ao microfone negado.");
+        setError("Acesso ao microfone negado. Ative as permissões nas configurações.");
       } else {
-        setError("Erro ao acessar áudio.");
+        setError("Erro técnico ao acessar áudio.");
       }
       setActive(false);
     }
@@ -717,6 +713,7 @@ function VoiceGame({ onWin, auraColor, ludoCoins }: { onWin: (reward: number, na
   const handleLevelComplete = () => {
     if (requestRef.current) cancelAnimationFrame(requestRef.current);
     setChestOpen(true);
+    // Persistência local imediata do prêmio (Capacitor Preferences via updateDocumentNonBlocking)
     setTimeout(() => setShowTransition(true), 1500);
   };
 
@@ -763,7 +760,7 @@ function VoiceGame({ onWin, auraColor, ludoCoins }: { onWin: (reward: number, na
           <div className="space-y-4">
             <h2 className="text-4xl font-black text-white uppercase italic tracking-tighter">Elevador de Voz</h2>
             <div className="p-4 bg-white/5 rounded-2xl border border-white/10 text-[9px] font-bold text-white/60 uppercase tracking-widest leading-relaxed">
-              Mantenha o tom estável para subir na torre de cristal.
+              Use sua voz para subir na torre. Mantenha o volume na zona verde para completar a fase!
             </div>
           </div>
           <div className="flex flex-col gap-4">
@@ -771,7 +768,7 @@ function VoiceGame({ onWin, auraColor, ludoCoins }: { onWin: (reward: number, na
               Iniciar Missão
             </Button>
             <button onClick={() => setIsExplorationMode(!isExplorationMode)} className={cn("text-[9px] font-black uppercase tracking-widest transition-colors", isExplorationMode ? "text-green-400" : "text-white/30")}>
-              {isExplorationMode ? "Exploração: Ativa" : "Ativar Exploração"}
+              {isExplorationMode ? "Modo Livre: Ativo" : "Ativar Modo Livre"}
             </button>
           </div>
         </motion.div>
@@ -793,25 +790,25 @@ function VoiceGame({ onWin, auraColor, ludoCoins }: { onWin: (reward: number, na
           <div className="absolute left-1/2 bottom-0 -translate-x-1/2 h-[85%] z-10 flex items-center justify-center">
              <img src={VOICE_ASSETS.torre} alt="" className="h-full w-auto object-contain filter drop-shadow-[0_0_30px_rgba(255,255,255,0.1)]" />
              
-             {/* Zona de Estabilidade */}
+             {/* Zona de Estabilidade (Baseada no Range da Fase) */}
              <motion.div 
-               animate={{ y: 200 - (phaseIdx * 25) }}
-               className="absolute inset-x-8 h-32 bg-green-500/5 border-y-2 border-green-500/30 backdrop-blur-sm flex items-center justify-center rounded-2xl"
+               animate={{ y: 150 - (currentLevel.range.min * 2) }}
+               className="absolute inset-x-8 h-24 bg-green-500/10 border-y-2 border-green-500/30 backdrop-blur-sm flex items-center justify-center rounded-2xl"
              >
-                <div className="text-[7px] font-black text-green-500/50 uppercase tracking-[0.4em] animate-pulse">Zona Alvo</div>
+                <div className="text-[7px] font-black text-green-500/50 uppercase tracking-[0.4em] animate-pulse">Zona de Estabilidade</div>
              </motion.div>
 
-             {/* 5, 2, 3. CABINE + ROBÔ */}
+             {/* 5, 2, 3. CABINE + ROBÔ (Posição Normalizada) */}
              <motion.div 
-               animate={{ bottom: `${15 + (smoothedVolume * 0.7)}%` }} 
-               transition={{ type: "spring", stiffness: 50, damping: 18 }}
+               animate={{ bottom: `${15 + (smoothedVolume * 0.65)}%` }} 
+               transition={{ type: "spring", stiffness: 60, damping: 20 }}
                className="absolute left-1/2 -translate-x-1/2 w-32 h-56 z-20 flex flex-col items-center justify-center"
              >
                 <img src={VOICE_ASSETS.cabine} alt="" className="w-full h-full object-contain filter drop-shadow-2xl relative z-20" />
                 <img 
                   src={isSinging ? VOICE_ASSETS.roboCantando : VOICE_ASSETS.roboParado} 
                   alt="" 
-                  className="absolute top-[45%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 z-30" 
+                  className="absolute top-[45%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 z-30 transition-all" 
                 />
              </motion.div>
 
@@ -833,7 +830,7 @@ function VoiceGame({ onWin, auraColor, ludoCoins }: { onWin: (reward: number, na
                     >
                        <img src={VOICE_ASSETS.caixaAberta} className="w-full h-full object-contain" />
                        <motion.img 
-                         initial={{ y: 0, opacity: 1 }} animate={{ y: -70, opacity: 0 }}
+                         initial={{ y: 0, opacity: 1 }} animate={{ y: -80, opacity: 0 }}
                          transition={{ duration: 1.5 }}
                          src={VOICE_ASSETS.ludocoin} 
                          className="absolute top-0 left-1/2 -translate-x-1/2 w-10 h-10" 
@@ -844,7 +841,7 @@ function VoiceGame({ onWin, auraColor, ludoCoins }: { onWin: (reward: number, na
              </div>
           </div>
 
-          {/* 9. PLACAR DE MOEDAS E HUD */}
+          {/* 9. PLACAR E PROGRESSO */}
           <div className="absolute bottom-10 inset-x-12 z-50 flex flex-col gap-4">
              <div className="flex justify-between items-center bg-black/60 backdrop-blur-xl p-4 rounded-[2rem] border border-white/10">
                 <div className="flex items-center gap-3">
@@ -868,7 +865,7 @@ function VoiceGame({ onWin, auraColor, ludoCoins }: { onWin: (reward: number, na
         </div>
       )}
 
-      {/* Transição Pedagógica */}
+      {/* Transição de Sucesso Pedagógico */}
       <AnimatePresence>
         {showTransition && (
           <motion.div 
@@ -892,12 +889,12 @@ function VoiceGame({ onWin, auraColor, ludoCoins }: { onWin: (reward: number, na
               </div>
 
               <div className="p-6 bg-slate-50 rounded-[2.5rem] border border-slate-100">
-                 <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Ganhos Pedagógicos</h4>
+                 <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Ganho Terapêutico</h4>
                  <p className="text-[11px] font-medium leading-relaxed text-slate-600 italic">"{currentLevel.benefit}"</p>
               </div>
 
               <Button onClick={nextLevel} className="w-full h-20 rounded-full bg-pink-600 text-white font-black uppercase shadow-2xl border-b-8 border-pink-800 active:translate-y-2 transition-all text-lg flex items-center justify-center gap-3">
-                {phaseIdx === VOICE_LEVELS.length - 1 ? 'Finalizar Maestro' : 'Subir na Torre'} <Rocket className="w-6 h-6" />
+                {phaseIdx === VOICE_LEVELS.length - 1 ? 'Finalizar Maestro' : 'Subir Mais Alto'} <Rocket className="w-6 h-6" />
               </Button>
             </motion.div>
           </motion.div>
