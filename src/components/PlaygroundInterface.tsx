@@ -1,5 +1,5 @@
 
-"use client";
+'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -13,249 +13,389 @@ import {
   Play,
   ArrowLeft,
   Move,
-  CheckCircle2,
-  Activity
+  Music,
+  Fingerprint,
+  Activity,
+  Zap,
+  CheckCircle2
 } from 'lucide-react';
 
 import { useUser, useDoc, useMemoFirebase } from '@/firebase';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useI18n } from '@/components/I18nProvider';
 
+type GameMode = 'select' | 'balance' | 'rhythm' | 'path';
+
 export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean }) {
   const router = useRouter();
   const { user } = useUser();
   const { t } = useI18n();
   
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const oscillatorRef = useRef<OscillatorNode | null>(null);
-  const gainNodeRef = useRef<GainNode | null>(null);
-  
-  const [status, setStatus] = useState(t('playground.waitingStart') || "Inicie o Equilíbrio");
-  const [permissionGranted, setPermissionGranted] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [gameMode, setGameMode] = useState<GameMode>('select');
   const [isWin, setIsWin] = useState(false);
+  const [permissionGranted, setPermissionGranted] = useState(false);
   
-  // Posição da Aura (em graus de inclinação)
-  const [tilt, setTilt] = useState({ x: 0, y: 0 });
-  const [timerProgress, setTimerProgress] = useState(0);
-  const [isCentering, setIsCentering] = useState(false);
-
   const userProgressRef = useMemoFirebase(() => user ? { id: user.uid, path: `user_progress/${user.uid}` } : null, [user]);
   const { data: profile } = useDoc(userProgressRef);
   const auraColor = profile?.dominantColor || '#9333ea';
 
-  // Inicializa o Áudio
-  const initAudio = () => {
-    if (!audioContextRef.current) {
-      const AudioCtx = (window.AudioContext || (window as any).webkitAudioContext);
-      if (AudioCtx) {
-        audioContextRef.current = new AudioCtx();
-        oscillatorRef.current = audioContextRef.current.createOscillator();
-        gainNodeRef.current = audioContextRef.current.createGain();
-        
-        oscillatorRef.current.type = 'sine';
-        gainNodeRef.current.gain.setValueAtTime(0, audioContextRef.current.currentTime);
-        
-        oscillatorRef.current.connect(gainNodeRef.current);
-        gainNodeRef.current.connect(audioContextRef.current.destination);
-        oscillatorRef.current.start();
-      }
-    }
-    if (audioContextRef.current?.state === 'suspended') audioContextRef.current.resume();
-  };
-
-  const updateAudioFeedback = (distance: number) => {
-    if (!audioContextRef.current || !oscillatorRef.current || !gainNodeRef.current) return;
-    const now = audioContextRef.current.currentTime;
-    
-    // Frequência harmônica no centro (440Hz), dissonante nas bordas (200Hz)
-    const freq = Math.max(200, 440 - (distance * 4));
-    oscillatorRef.current.frequency.setTargetAtTime(freq, now, 0.1);
-    
-    // Volume aumenta conforme se afasta do centro para gerar "tensão"
-    const volume = Math.min(0.1, distance / 500);
-    gainNodeRef.current.gain.setTargetAtTime(volume, now, 0.1);
-  };
-
-  const handleWin = useCallback(() => {
+  const handleWin = useCallback((reward: number = 30, type: string = 'Desafio Concluído') => {
     if (isWin) return;
     setIsWin(true);
     
-    // Para o som
-    if (gainNodeRef.current) gainNodeRef.current.gain.setTargetAtTime(0, 0, 0.1);
-
     if (userProgressRef && profile) {
-      const earnedCoins = 30;
       const newHistory = [{
         id: `act-${Date.now()}`,
         timestamp: new Date().toISOString(),
         score: 100,
-        earnedCoins: earnedCoins,
-        type: 'Mestre do Equilíbrio'
+        earnedCoins: reward,
+        type: type
       }, ...(profile.history || [])].slice(0, 5);
       
       updateDocumentNonBlocking(userProgressRef, { 
-        ludoCoins: (profile.ludoCoins || 0) + earnedCoins,
+        ludoCoins: (profile.ludoCoins || 0) + reward,
         totalChallengesCompleted: (profile.totalChallengesCompleted || 0) + 1,
         history: newHistory
       });
     }
   }, [isWin, userProgressRef, profile]);
 
-  const requestPermission = async () => {
-    initAudio();
-    setErrorMessage(null);
-    
-    try {
-      // iOS 13+ exige permissão explícita
-      if (typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
-        const response = await (DeviceOrientationEvent as any).requestPermission();
-        if (response === 'granted') {
-          startSensors();
-        } else {
-          setErrorMessage("Permissão negada para os sensores.");
-        }
-      } else {
-        // Android e Browsers Desktop
-        startSensors();
-      }
-    } catch (err: any) {
-      setErrorMessage("Erro ao acessar sensores: " + err.message);
+  if (isWin) {
+    return (
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-[100] bg-primary/95 flex flex-col items-center justify-center text-white p-12 text-center">
+        <Trophy className="w-40 h-40 text-yellow-400 mb-8" />
+        <h2 className="text-5xl font-black uppercase italic mb-8">{t('playground.winTitle')}</h2>
+        <div className="bg-white/20 p-6 rounded-[2.5rem] mb-10">
+           <span className="text-4xl font-black text-white">+50 LC</span>
+        </div>
+        <Button onClick={() => router.push('/dashboard')} className="h-16 px-12 rounded-full bg-white text-primary font-black uppercase shadow-2xl">
+          {t('playground.collectCoins')}
+        </Button>
+      </motion.div>
+    );
+  }
+
+  if (gameMode === 'select') {
+    return (
+      <div className="flex-1 bg-slate-900 p-8 flex flex-col items-center justify-center gap-8">
+        <div className="text-center space-y-2">
+           <h2 className="text-3xl font-black uppercase italic tracking-tighter text-white">{t('playground.selectGame')}</h2>
+           <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">3 Modos de Ação Psicomotora</p>
+        </div>
+
+        <div className="grid gap-4 w-full max-w-sm">
+          <GameModeCard 
+            icon={<Move className="w-8 h-8" />}
+            title={t('playground.modes.balance.title')}
+            desc={t('playground.modes.balance.desc')}
+            color="bg-blue-500"
+            onClick={() => setGameMode('balance')}
+          />
+          <GameModeCard 
+            icon={<Music className="w-8 h-8" />}
+            title={t('playground.modes.rhythm.title')}
+            desc={t('playground.modes.rhythm.desc')}
+            color="bg-primary"
+            onClick={() => setGameMode('rhythm')}
+          />
+          <GameModeCard 
+            icon={<Fingerprint className="w-8 h-8" />}
+            title={t('playground.modes.path.title')}
+            desc={t('playground.modes.path.desc')}
+            color="bg-accent"
+            onClick={() => setGameMode('path')}
+          />
+        </div>
+        
+        <Link href="/dashboard" className="text-[9px] font-black uppercase text-white/40 hover:text-white transition-colors">{t('common.back')}</Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex-1 flex flex-col bg-slate-950 relative overflow-hidden">
+      <header className="absolute top-0 inset-x-0 p-6 flex items-center justify-between z-50">
+        <Button variant="ghost" size="icon" onClick={() => setGameMode('select')} className="text-white/40">
+          <ArrowLeft className="w-6 h-6" />
+        </Button>
+        <div className="bg-black/40 backdrop-blur-xl px-4 py-1.5 rounded-full border border-white/10 text-white flex items-center gap-2">
+           <Sparkles className="w-3 h-3 text-primary" />
+           <span className="text-[9px] font-black uppercase tracking-widest">
+             {t(`playground.modes.${gameMode}.title`)}
+           </span>
+        </div>
+        <div className="w-10" />
+      </header>
+
+      {gameMode === 'balance' && <BalanceGame onWin={() => handleWin(50, 'Mestre do Equilíbrio')} auraColor={auraColor} />}
+      {gameMode === 'rhythm' && <RhythmGame onWin={() => handleWin(50, 'Maestro de Auras')} auraColor={auraColor} />}
+      {gameMode === 'path' && <PathGame onWin={() => handleWin(50, 'Caminho de Luz')} auraColor={auraColor} />}
+    </div>
+  );
+}
+
+function GameModeCard({ icon, title, desc, color, onClick }: any) {
+  return (
+    <button 
+      onClick={onClick}
+      className="p-6 rounded-[2.5rem] bg-white/5 border border-white/10 flex items-center gap-6 text-left hover:bg-white/10 transition-all active:scale-95 group"
+    >
+      <div className={`w-14 h-14 rounded-2xl ${color} flex items-center justify-center text-white shadow-xl group-hover:rotate-12 transition-transform`}>
+        {icon}
+      </div>
+      <div className="flex-1 min-w-0">
+        <h3 className="text-sm font-black uppercase italic tracking-tighter text-white leading-tight">{title}</h3>
+        <p className="text-[9px] text-white/40 font-bold uppercase leading-relaxed">{desc}</p>
+      </div>
+    </button>
+  );
+}
+
+// --- JOGO 1: EQUILIBRISTA ---
+function BalanceGame({ onWin, auraColor }: any) {
+  const [tilt, setTilt] = useState({ x: 0, y: 0 });
+  const [progress, setProgress] = useState(0);
+  const [active, setActive] = useState(false);
+
+  const requestSensors = async () => {
+    if (typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
+      const res = await (DeviceOrientationEvent as any).requestPermission();
+      if (res === 'granted') start();
+    } else {
+      start();
     }
   };
 
-  const startSensors = () => {
-    setPermissionGranted(true);
+  const start = () => {
+    setActive(true);
     window.addEventListener('deviceorientation', (e) => {
-      // gamma: -90 a 90 (esquerda/direita)
-      // beta: -180 a 180 (frente/trás)
-      const x = e.gamma || 0;
-      const y = e.beta || 0;
-      setTilt({ x, y });
+      setTilt({ x: e.gamma || 0, y: (e.beta || 45) - 45 });
     });
   };
 
-  // Loop do Jogo: Checa se está no centro
   useEffect(() => {
-    if (!permissionGranted || isWin) return;
-
-    const distance = Math.sqrt(tilt.x * tilt.x + (tilt.y - 45) * (tilt.y - 45)); // Alvo centralizado em 45 graus (confortável)
-    updateAudioFeedback(distance);
-
-    const isCentered = distance < 8; // Margem de erro do centro
-    setIsCentering(isCentered);
+    if (!active) return;
+    const distance = Math.sqrt(tilt.x * tilt.x + tilt.y * tilt.y);
+    const isCentered = distance < 8;
 
     if (isCentered) {
-      const interval = setInterval(() => {
-        setTimerProgress(prev => {
-          if (prev >= 100) {
-            clearInterval(interval);
-            handleWin();
+      const timer = setInterval(() => {
+        setProgress(p => {
+          if (p >= 100) {
+            clearInterval(timer);
+            onWin();
             return 100;
           }
-          return prev + 2; // ~5 segundos para completar
+          return p + 2;
         });
       }, 100);
-      return () => clearInterval(interval);
+      return () => clearInterval(timer);
     } else {
-      setTimerProgress(0);
+      setProgress(0);
     }
-  }, [tilt, permissionGranted, isWin, handleWin]);
-
-  // Limpeza
-  useEffect(() => {
-    return () => {
-      window.removeEventListener('deviceorientation', () => {});
-      if (oscillatorRef.current) oscillatorRef.current.stop();
-      if (audioContextRef.current) audioContextRef.current.close();
-    };
-  }, []);
+  }, [tilt, active, onWin]);
 
   return (
-    <div className="flex flex-col h-full bg-slate-900 relative overflow-hidden">
-      <AnimatePresence>
-        {!permissionGranted && (
-          <motion.div exit={{ opacity: 0 }} className="absolute inset-0 z-50 flex flex-col items-center justify-center p-8 bg-slate-900/95 backdrop-blur-md">
-             <div className="bg-white p-10 rounded-[3.5rem] text-center space-y-8 shadow-2xl border-b-8 border-slate-200 max-w-sm">
-                <div className="w-20 h-20 bg-primary/10 rounded-[2rem] flex items-center justify-center mx-auto">
-                   {errorMessage ? <AlertCircle className="w-10 h-10 text-red-500" /> : <Activity className="w-10 h-10 text-primary animate-pulse" />}
-                </div>
-                <div className="space-y-2">
-                   <h2 className="text-2xl font-black uppercase italic tracking-tighter">Mestre da Aura</h2>
-                   <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-relaxed">
-                     {errorMessage || "Use seu corpo para equilibrar a esfera no centro do alvo."}
-                   </p>
-                </div>
-                <Button onClick={requestPermission} className="w-full h-16 bg-primary text-white font-black rounded-full uppercase shadow-xl border-b-4 border-primary/70 active:border-b-0 active:translate-y-1 transition-all">
-                  Ativar Sensores
-                </Button>
-                <Link href="/dashboard" className="block text-[9px] font-black uppercase text-muted-foreground hover:text-primary">Voltar ao Perfil</Link>
-             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <main className="relative flex-1 bg-mesh-game flex items-center justify-center p-12">
-        {/* HUD de Progresso */}
-        <div className="absolute top-12 inset-x-0 px-8 z-30 flex flex-col gap-4 items-center">
-           <div className="bg-black/40 backdrop-blur-xl px-6 py-2 rounded-full border border-white/10 text-white flex items-center gap-3">
-              <Move className="w-4 h-4 text-primary" />
-              <span className="text-[10px] font-black uppercase tracking-widest">Equilibre a Aura</span>
-           </div>
-           <div className="w-full max-w-xs space-y-2">
-              <div className="flex justify-between text-[8px] font-black text-white/60 uppercase tracking-widest">
-                 <span>Estabilidade</span>
-                 <span>{Math.floor(timerProgress)}%</span>
-              </div>
-              <Progress value={timerProgress} className="h-3 bg-white/10 border border-white/10" />
-           </div>
-        </div>
-
-        {/* ALVO CENTRAL */}
-        <div className="relative w-64 h-64 flex items-center justify-center">
-           <div className={`absolute inset-0 rounded-full border-4 border-dashed border-white/20 animate-spin-slow`} />
-           <div className={`absolute w-32 h-32 rounded-full border-4 border-white/40 transition-all duration-500 ${isCentering ? 'scale-110 border-primary shadow-[0_0_40px_rgba(147,51,234,0.4)]' : 'scale-100'}`} />
-           
-           {/* A AURA (ESFERA MOVÍVEL) */}
-           <motion.div 
-             animate={{ 
-               x: tilt.x * 5, 
-               y: (tilt.y - 45) * 5,
-               scale: isCentering ? 1.2 : 1 
-             }}
-             transition={{ type: "spring", stiffness: 100, damping: 20 }}
-             className="w-16 h-16 rounded-full shadow-[0_0_50px_rgba(0,0,0,0.5)] flex items-center justify-center overflow-hidden border-4 border-white z-20"
-             style={{ backgroundColor: auraColor }}
-           >
-             <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-white/40 to-transparent" />
-             <Sparkles className="w-6 h-6 text-white/80 animate-pulse" />
-           </motion.div>
-        </div>
-
-        {/* FEEDBACK DE INCLINAÇÃO DEBUG */}
-        {debugMode && (
-          <div className="absolute bottom-24 bg-black/80 text-white p-4 rounded-2xl font-mono text-[10px] space-y-1">
-            <div>X (Gamma): {tilt.x.toFixed(2)}</div>
-            <div>Y (Beta): {tilt.y.toFixed(2)}</div>
-            <div>Centrado: {isCentering ? "SIM" : "NÃO"}</div>
+    <div className="flex-1 flex flex-col items-center justify-center p-12 bg-mesh-game relative">
+      {!active ? (
+        <Button onClick={requestSensors} className="h-20 px-12 rounded-full bg-primary font-black uppercase shadow-2xl">Ativar Sensores</Button>
+      ) : (
+        <>
+          <div className="absolute top-24 w-full max-w-xs px-12 space-y-2">
+            <Progress value={progress} className="h-3 bg-white/10" />
+            <p className="text-center text-[8px] font-black text-white/40 uppercase tracking-[0.3em]">Estabilize no Centro</p>
           </div>
-        )}
-      </main>
+          <div className="relative w-72 h-72 flex items-center justify-center">
+            <div className="absolute inset-0 border-4 border-dashed border-white/20 rounded-full animate-spin-slow" />
+            <div className={`absolute w-32 h-32 border-4 border-white/40 rounded-full transition-all ${progress > 0 ? 'scale-110 border-primary' : ''}`} />
+            <motion.div 
+              animate={{ x: tilt.x * 5, y: tilt.y * 5, scale: progress > 0 ? 1.2 : 1 }}
+              className="w-16 h-16 rounded-full border-4 border-white shadow-2xl z-20"
+              style={{ backgroundColor: auraColor }}
+            />
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
-      <AnimatePresence>
-        {isWin && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-[100] bg-primary/95 flex flex-col items-center justify-center text-white p-12 text-center">
-            <Trophy className="w-40 h-40 text-yellow-400 mb-8" />
-            <h2 className="text-5xl font-black uppercase italic mb-8">EQUILÍBRIO PERFEITO!</h2>
-            <div className="bg-white/20 p-6 rounded-[2.5rem] mb-10">
-               <span className="text-4xl font-black text-white">+30 LC</span>
-            </div>
-            <Button onClick={() => router.push('/dashboard')} className="h-16 px-12 rounded-full bg-white text-primary font-black uppercase shadow-2xl">
-              Coletar Prêmios
-            </Button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+// --- JOGO 2: MAESTRO (RITMO) ---
+function RhythmGame({ onWin, auraColor }: any) {
+  const [active, setActive] = useState(false);
+  const [beat, setBeat] = useState(false);
+  const [score, setScore] = useState(0);
+  const [feedback, setFeedback] = useState('');
+  const lastShakeRef = useRef(0);
+
+  const start = async () => {
+    if (typeof (DeviceMotionEvent as any).requestPermission === 'function') {
+      const res = await (DeviceMotionEvent as any).requestPermission();
+      if (res !== 'granted') return;
+    }
+    setActive(true);
+    
+    // Loop de Ritmo (Aprox 120 BPM)
+    const rhythmInterval = setInterval(() => {
+      setBeat(true);
+      setTimeout(() => setBeat(false), 200);
+    }, 1000);
+
+    // Detecção de Aceleração
+    const handleMotion = (e: any) => {
+      const acc = e.accelerationIncludingGravity;
+      const totalAcc = Math.abs(acc.x) + Math.abs(acc.y) + Math.abs(acc.z);
+      
+      if (totalAcc > 25 && Date.now() - lastShakeRef.current > 400) {
+        lastShakeRef.current = Date.now();
+        checkRhythm();
+      }
+    };
+
+    window.addEventListener('devicemotion', handleMotion);
+    return () => {
+      clearInterval(rhythmInterval);
+      window.removeEventListener('devicemotion', handleMotion);
+    };
+  };
+
+  const checkRhythm = () => {
+    // Se balançou perto do beat (simplificado para o MVP)
+    setScore(s => {
+      if (s >= 15) {
+        onWin();
+        return 15;
+      }
+      return s + 1;
+    });
+    setFeedback('PÁ!');
+    setTimeout(() => setFeedback(''), 500);
+  };
+
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center p-12 bg-slate-900 gap-12">
+      {!active ? (
+        <Button onClick={start} className="h-20 px-12 rounded-full bg-primary font-black uppercase shadow-2xl">Reger Orquestra</Button>
+      ) : (
+        <>
+          <div className="text-center space-y-4">
+             <div className="text-4xl font-black italic text-white/20 uppercase tracking-tighter">Siga a Batida</div>
+             <div className="flex justify-center gap-4">
+               {[...Array(5)].map((_, i) => (
+                 <motion.div 
+                   key={i}
+                   animate={{ scale: beat ? 1.5 : 1, opacity: beat ? 1 : 0.3 }}
+                   className="w-3 h-3 rounded-full bg-primary"
+                 />
+               ))}
+             </div>
+          </div>
+
+          <div className="relative w-64 h-64 flex items-center justify-center">
+             <AnimatePresence>
+               {beat && (
+                 <motion.div 
+                   initial={{ scale: 0.8, opacity: 0 }}
+                   animate={{ scale: 1.2, opacity: 0.2 }}
+                   exit={{ opacity: 0 }}
+                   className="absolute inset-0 bg-primary rounded-full"
+                 />
+               )}
+             </AnimatePresence>
+             
+             <motion.div 
+               animate={{ scale: beat ? 1.1 : 1 }}
+               className="w-48 h-48 rounded-[3rem] border-8 border-white/10 flex flex-col items-center justify-center gap-2"
+               style={{ backgroundColor: `${auraColor}20` }}
+             >
+                <Music className={`w-12 h-12 ${beat ? 'text-primary' : 'text-white/20'}`} />
+                <div className="text-xl font-black text-white">{score}/15</div>
+             </motion.div>
+
+             <AnimatePresence>
+                {feedback && (
+                  <motion.div 
+                    initial={{ scale: 0.5, opacity: 0 }}
+                    animate={{ scale: 2, opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="absolute font-black text-6xl italic text-primary pointer-events-none"
+                  >
+                    {feedback}
+                  </motion.div>
+                )}
+             </AnimatePresence>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// --- JOGO 3: CAMINHO (FINA) ---
+function PathGame({ onWin, auraColor }: any) {
+  const [progress, setProgress] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const handleTouch = (e: React.TouchEvent) => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const touchY = e.touches[0].clientY - rect.top;
+    const height = rect.height;
+    
+    // Inverte a lógica para subir o caminho
+    const percent = Math.min(100, Math.max(0, 100 - (touchY / height) * 100));
+    
+    if (percent > progress && percent < progress + 15) {
+       setIsDragging(true);
+       setProgress(percent);
+       if (percent >= 98) onWin();
+    } else if (percent < progress - 5) {
+       // Penalidade leve se escorregar muito
+       setProgress(Math.max(0, percent));
+    }
+  };
+
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center p-12 bg-black gap-12">
+      <div className="text-center space-y-1">
+         <h2 className="text-xl font-black uppercase italic text-white tracking-tighter">Caminho de Luz</h2>
+         <p className="text-[8px] font-black text-white/40 uppercase tracking-widest">Arraste a Aura até o topo</p>
+      </div>
+
+      <div 
+        ref={containerRef}
+        onTouchMove={handleTouch}
+        onTouchEnd={() => setIsDragging(false)}
+        className="relative w-32 h-[450px] bg-white/5 rounded-full border-4 border-white/10 overflow-hidden"
+      >
+        {/* O Caminho Iluminado */}
+        <div 
+          className="absolute bottom-0 w-full transition-all duration-300 rounded-full opacity-40 blur-xl"
+          style={{ height: `${progress}%`, backgroundColor: auraColor }}
+        />
+        
+        {/* A Guia Central */}
+        <div className="absolute inset-x-0 h-full flex justify-center">
+           <div className="w-1 h-full bg-white/10 border-dashed border-l" />
+        </div>
+
+        {/* A Aura (Cursor) */}
+        <motion.div 
+          animate={{ bottom: `${progress}%`, scale: isDragging ? 1.2 : 1 }}
+          className="absolute left-1/2 -translate-x-1/2 w-16 h-16 rounded-full border-4 border-white shadow-2xl flex items-center justify-center z-50 touch-none"
+          style={{ backgroundColor: auraColor, marginBottom: '-32px' }}
+        >
+          <Fingerprint className="w-8 h-8 text-white/40" />
+          {isDragging && <Sparkles className="absolute -top-4 w-6 h-6 text-white animate-pulse" />}
+        </motion.div>
+
+        {/* Target */}
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
+           <Zap className={`w-8 h-8 ${progress > 90 ? 'text-primary animate-bounce' : 'text-white/20'}`} />
+           <div className="w-12 h-2 rounded-full bg-white/20" />
+        </div>
+      </div>
     </div>
   );
 }

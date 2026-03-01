@@ -4,7 +4,7 @@ export type Language = 'pt' | 'en' | 'es';
 export const translations = {
   pt: {
     common: {
-      play: 'Equilíbrio',
+      play: 'Brincar',
       gallery: 'Galeria',
       profile: 'Perfil',
       shop: 'Loja',
@@ -19,21 +19,21 @@ export const translations = {
     },
     home: {
       heroTitle: 'Seu corpo é o equilíbrio',
-      heroSubtitle: 'Use o sensor motor para dominar sua Aura Digital. O Playground de precisão de 2026 no seu bolso.',
-      tagline: 'O Equilibrista de Auras - Precisão e Foco',
+      heroSubtitle: 'Use os sensores do seu celular para dominar sua Aura Digital. O Playground de precisão de 2026 no seu bolso.',
+      tagline: 'O Mestre das Auras - Ritmo e Equilíbrio',
       startJourney: 'Entrar no Desafio',
       exploreTech: 'Ver Ciência',
       activePlayers: 'Artistas Ativos',
       coreEngine: 'Motor Vestibular',
       whyUrbeLudo: 'O que é o Mestre da Aura?',
       privacyTitle: 'Privacidade Total',
-      privacyDesc: 'Sensores 100% locais. Nenhuma imagem é capturada.',
-      psychomotorTitle: 'Corpo e Equilíbrio',
-      psychomotorDesc: 'Estimula o sistema vestibular e propriocepção.',
+      privacyDesc: 'Sensores 100% locais. Nenhuma imagem ou som é enviado para a rede.',
+      psychomotorTitle: 'Corpo e Mente',
+      psychomotorDesc: 'Estimula o sistema vestibular, propriocepção e coordenação fina.',
       aiTitle: 'Sinfonia de Orientação',
-      aiDesc: 'O som reage à inclinação do seu corpo.',
+      aiDesc: 'O som reage a cada milímetro do seu movimento.',
       mobileTitle: 'Offline e Seguro',
-      mobileDesc: 'Funciona em qualquer lugar, sem câmera ou nuvem.',
+      mobileDesc: 'Funciona em qualquer lugar, sem câmera ou internet.',
       ctaTitle: 'A gravidade é seu playground.',
       ctaDesc: 'Domine seus movimentos e conquiste a estabilidade.',
       connectIdentity: 'Criar Perfil',
@@ -41,7 +41,7 @@ export const translations = {
     auth: {
       title: 'UrbeLudo',
       subtitle: 'Mestre da Aura Digital',
-      tagline: 'Equilíbrio e Concentração',
+      tagline: 'Movimento e Concentração',
       emailLabel: 'E-mail do Responsável',
       passwordLabel: 'Senha Segura',
       termsAccept: 'Aceito transformar meus movimentos em equilíbrio digital seguro.',
@@ -51,28 +51,43 @@ export const translations = {
       guestSignIn: 'Brincar Agora',
       toggleLogin: 'Já tem conta? Entrar',
       toggleSignUp: 'Novo aqui? Cadastre-se',
-      edgeAi: 'Sensor Local: Movimento processado no hardware',
+      edgeAi: 'Sensores Locais: Processamento em tempo real no hardware',
       nameLabel: 'Nome do Herói',
       termsTitle: 'Compromisso de Ludicidade',
     },
     playground: {
-      waitingStart: 'Inicie o Equilíbrio',
+      selectGame: 'Escolha seu Desafio',
+      waitingStart: 'Inicie o Desafio',
       centering: 'Centralizando...',
       stabilizing: 'Estabilizando Aura',
-      winTitle: 'Equilíbrio Perfeito!',
+      winTitle: 'Desafio Concluído!',
       collectCoins: 'Coletar Moedas',
+      modes: {
+        balance: {
+          title: 'Equilibrista de Auras',
+          desc: 'Mantenha a esfera no centro usando a gravidade.'
+        },
+        rhythm: {
+          title: 'Maestro de Auras',
+          desc: 'Balance o celular no ritmo da batuta mágica.'
+        },
+        path: {
+          title: 'Caminho de Luz',
+          desc: 'Guie a Aura pelo labirinto sem tirar o dedo.'
+        }
+      }
     },
     tutorial: {
       step1: 'Bem-vindo, {name}! Segure o celular com as duas mãos. Você é o Mestre da Aura!',
-      step2: 'Incline o celular para mover sua esfera. Tente mantê-la exatamente no centro!',
+      step2: 'Use o equilíbrio ou o ritmo para evoluir sua Aura Digital!',
       step3: 'O som vai te guiar. Quando estiver afinado, você está no caminho certo.',
-      step4: 'Fique estável por 5 segundos para ganhar LudoCoins e evoluir!',
-      gotIt: 'Vamos Equilibrar!',
+      step4: 'Conclua os desafios para ganhar LudoCoins e subir de nível!',
+      gotIt: 'Vamos Brincar!',
     }
   },
   en: {
     common: {
-      play: 'Balance',
+      play: 'Play',
       gallery: 'Gallery',
       profile: 'Profile',
       shop: 'Shop',
@@ -87,24 +102,44 @@ export const translations = {
     },
     home: {
       heroTitle: 'Your body is the balance',
-      heroSubtitle: 'Use the motion sensor to master your Digital Aura. The 2026 precision playground in your pocket.',
-      tagline: 'Aura Balancer - Precision and Focus',
+      heroSubtitle: 'Use your phone\'s sensors to master your Digital Aura. The 2026 precision playground in your pocket.',
+      tagline: 'Aura Master - Rhythm and Balance',
       startJourney: 'Enter Challenge',
       exploreTech: 'See Science',
       activePlayers: 'Active Players',
       coreEngine: 'Vestibular Engine',
       whyUrbeLudo: 'What is Aura Master?',
       privacyTitle: 'Total Privacy',
-      privacyDesc: '100% local sensors. No images are captured.',
-      psychomotorTitle: 'Body and Balance',
-      psychomotorDesc: 'Stimulates vestibular system and proprioception.',
+      privacyDesc: '100% local sensors. No images or sounds are sent online.',
+      psychomotorTitle: 'Body and Mind',
+      psychomotorDesc: 'Stimulates vestibular system, proprioception, and fine motor skills.',
       aiTitle: 'Orientation Symphony',
-      aiDesc: 'Sound reacts to your body tilt.',
+      aiDesc: 'Sound reacts to every millimeter of your movement.',
       mobileTitle: 'Offline and Safe',
-      mobileDesc: 'Works anywhere, no camera or cloud needed.',
+      mobileDesc: 'Works anywhere, no camera or internet needed.',
       ctaTitle: 'Gravity is your playground.',
       ctaDesc: 'Master your movements and conquer stability.',
       connectIdentity: 'Create Profile',
+    },
+    playground: {
+      selectGame: 'Choose your Challenge',
+      waitingStart: 'Start Challenge',
+      winTitle: 'Challenge Complete!',
+      collectCoins: 'Collect Coins',
+      modes: {
+        balance: {
+          title: 'Aura Balancer',
+          desc: 'Keep the sphere centered using gravity.'
+        },
+        rhythm: {
+          title: 'Aura Maestro',
+          desc: 'Shake the phone to the rhythm of the magic baton.'
+        },
+        path: {
+          title: 'Path of Light',
+          desc: 'Guide the Aura through the maze without lifting your finger.'
+        }
+      }
     }
   }
 };
