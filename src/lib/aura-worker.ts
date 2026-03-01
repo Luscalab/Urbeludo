@@ -1,4 +1,3 @@
-
 /**
  * @fileOverview AuraWorker - Web Worker otimizado para o UrbeLudo.
  * Gerencia o Transformers.js em uma thread isolada para manter 60 FPS na UI.
@@ -6,18 +5,16 @@
 
 import { pipeline, env } from '@xenova/transformers';
 
-// Configuração defensiva do ambiente para APK/Navegador
+// Configuração robusta para ambiente APK/Mobile
 try {
   if (env) {
-    // Modo Híbrido: Tenta local primeiro, se falhar vai pro remoto.
     env.allowLocalModels = true;
     env.allowRemoteModels = true; 
     env.useBrowserCache = true;
-    // Caminho para os modelos na pasta public
     env.localModelPath = '/models/';
   }
 } catch (e) {
-  self.postMessage({ type: 'log', level: 'error', message: 'Falha ao configurar Transformers env', data: e });
+  self.postMessage({ type: 'log', level: 'error', message: 'Falha ao configurar ambiente Transformers.js', data: e });
 }
 
 let extractor: any = null;
@@ -29,19 +26,18 @@ self.onmessage = async (event) => {
   try {
     if (type === 'init') {
       if (!extractor) {
-        self.postMessage({ type: 'log', level: 'info', message: 'Iniciando pipeline Transformers.js: all-MiniLM-L6-v2' });
+        self.postMessage({ type: 'log', level: 'info', message: 'Iniciando pipeline Transformers: all-MiniLM-L6-v2' });
         
         extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', {
           progress_callback: (data: any) => {
             if (data.status === 'progress') {
               self.postMessage({ type: 'progress', progress: Math.round(data.progress) });
-              self.postMessage({ type: 'log', level: 'debug', message: `Sincronizando Pesos: ${Math.round(data.progress)}%` });
             }
           }
         });
 
         if (examples && Array.isArray(examples)) {
-          self.postMessage({ type: 'log', level: 'info', message: 'Vetorizando base de intenções local...' });
+          self.postMessage({ type: 'log', level: 'info', message: 'Vetorizando base de intenções (Pre-Embedding)...' });
           intentCache = [];
           for (const intent of examples) {
             const vectors: number[][] = [];
@@ -51,7 +47,6 @@ self.onmessage = async (event) => {
             }
             intentCache.push({ id: intent.id, vectors });
           }
-          self.postMessage({ type: 'log', level: 'info', message: 'Base de conhecimento cacheada com sucesso.' });
         }
         
         self.postMessage({ type: 'ready' });
@@ -64,13 +59,11 @@ self.onmessage = async (event) => {
     if (type === 'classify' && extractor) {
       if (!text) return;
 
-      self.postMessage({ type: 'log', level: 'debug', message: `Classificando: "${text}"` });
       const output = await extractor(text, { pooling: 'mean', normalize: true });
       const userVector = Array.from(output.data as Float32Array);
 
       let bestMatch = { id: 'fallback', score: 0 };
 
-      // Cálculo de similaridade de cosseno otimizado
       for (const intent of intentCache) {
         for (const exVector of intent.vectors) {
           let dotProduct = 0;
@@ -84,7 +77,7 @@ self.onmessage = async (event) => {
         }
       }
 
-      // Threshold ajustado para 0.4 conforme solicitado pelo Engenheiro
+      // Threshold de similaridade 0.4 conforme auditoria técnica
       const finalIntentId = bestMatch.score >= 0.4 ? bestMatch.id : 'fallback';
 
       self.postMessage({ 
@@ -96,7 +89,7 @@ self.onmessage = async (event) => {
       self.postMessage({ 
         type: 'log', 
         level: 'info', 
-        message: `Resultado: ${finalIntentId} (Score: ${bestMatch.score.toFixed(4)})` 
+        message: `Classificação: ${finalIntentId} (Score: ${bestMatch.score.toFixed(4)})` 
       });
     }
   } catch (error: any) {

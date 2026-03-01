@@ -21,7 +21,6 @@ import {
 import { useUser, useDoc, useMemoFirebase } from '@/firebase';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useI18n } from '@/components/I18nProvider';
-import { AccessibilityToolbar } from '@/components/AccessibilityToolbar';
 import { useAudioProcessor } from '@/hooks/use-audio-processor';
 import { AuraLogger } from '@/lib/logs/aura-logger';
 import { cn } from '@/lib/utils';
@@ -37,14 +36,11 @@ import { saveToSheets } from '@/lib/sheets';
 type GameMode = 'select' | 'balance' | 'rhythm' | 'path' | 'breath' | 'voice';
 
 const VOICE_ASSETS = {
-  fundo: "/games/elevador/1.png",
   roboParado: "/games/elevador/2.png",
   roboCantando: "/games/elevador/3.png",
-  caixaFechada: "/games/elevador/7.png",
-  caixaAberta: "/games/elevador/10.png"
 };
 
-const GameModeCard = React.memo(({ icon, title, desc, goal, color, onClick }: any) => {
+const GameModeCard = React.memo(({ icon, title, desc, color, onClick }: any) => {
   return (
     <motion.div whileHover={{ scale: 1.02, x: 5 }} className="relative group w-full">
       <button onClick={onClick} className="p-5 rounded-[2.5rem] bg-white/5 border border-white/10 flex items-center gap-5 text-left transition-all hover:bg-white/10 w-full relative overflow-hidden active:scale-95">
@@ -186,21 +182,18 @@ function VoiceGame({ onWin, userName, highContrast, onSuggestBreath }: any) {
 
   useEffect(() => {
     const timer = setInterval(() => {
-      // Zona de Estabilidade: Volume entre 30 e 70
       const stable = volume > 30 && volume < 70;
       setIsStable(stable);
 
       if (stable) {
         setProgress(p => Math.min(100, p + 1.5));
       } else if (volume > 5) {
-        // Punindo instabilidade (volume muito alto ou baixo demais, mas ainda com som)
         setProgress(p => Math.max(0, p - 0.5));
       }
 
-      // Detecção de falha na sustentação
       if (volume < 5 && progress > 5 && progress < 95) {
          setFails(f => f + 1);
-         setProgress(0); // Reinicia o elevador
+         setProgress(0);
       }
     }, 100);
     return () => clearInterval(timer);
@@ -220,7 +213,7 @@ function VoiceGame({ onWin, userName, highContrast, onSuggestBreath }: any) {
         volume: Math.round(volume), 
         sustentacao: 10, 
         tentativas: 1, 
-        feedback: "Aura Estável!", 
+        feedback: "Maestria Vocal!", 
         relatorio: "Voz controlada com sucesso.", 
         fase: "Elevador 1" 
       });
@@ -232,7 +225,6 @@ function VoiceGame({ onWin, userName, highContrast, onSuggestBreath }: any) {
     <div className="flex-1 flex flex-col items-center justify-center p-8 space-y-12">
       <div className="relative w-full max-w-xs h-80 bg-slate-900 rounded-[3rem] border-4 border-white/10 overflow-hidden flex flex-col justify-end">
         
-        {/* ZONA DE ESTABILIDADE */}
         <div className={cn(
           "absolute left-0 right-0 h-32 transition-all duration-300 flex items-center justify-center",
           "bottom-[30%]",
@@ -244,7 +236,6 @@ function VoiceGame({ onWin, userName, highContrast, onSuggestBreath }: any) {
           </span>
         </div>
 
-        {/* ELEVADOR */}
         <motion.div 
           animate={{ y: -progress * 2.5 }}
           className={cn(
@@ -258,7 +249,7 @@ function VoiceGame({ onWin, userName, highContrast, onSuggestBreath }: any) {
 
       <div className="space-y-2 text-center">
         <div className="text-5xl font-black italic text-white">{Math.round(progress)}%</div>
-        <div className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40">Sustentação Vocal</div>
+        <div className="text-[10px] font-black uppercase tracking-widest text-white/40">Sustentação Vocal</div>
       </div>
 
       <Dialog open={showFailDialog} onOpenChange={setShowFailDialog}>

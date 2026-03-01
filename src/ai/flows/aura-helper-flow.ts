@@ -1,7 +1,7 @@
 'use client';
 /**
  * @fileOverview AuraHelper - Motor de Triagem Híbrida para APK.
- * Prioriza respostas locais antes de acionar o Gemini Cloud.
+ * Prioriza respostas locais antes de acionar o Gemini Cloud via NEXT_PUBLIC.
  */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -27,26 +27,23 @@ const RESPOSTAS_FIXAS: Record<string, { response: string, action: string }> = {
     action: "Foque no som firme!"
   },
   zona_estabilidade: {
-    response: "A Zona de Estabilidade é a área verde (ou neon no alto contraste). Ela indica que sua voz está no controle, treinando sua musculatura vocal!",
-    action: "Busque o Verde/Neon!"
+    response: "A Zona de Estabilidade é a área verde vibrante. Ela indica que sua voz está controlada, treinando sua musculatura vocal!",
+    action: "Busque o Verde!"
   },
   clinico_psico: {
     response: "No UrbeLudo, unimos mente e corpo. Ao controlar sua voz ou equilíbrio, seu cérebro aprende a coordenar melhor seus movimentos urbanos.",
     action: "Movimento Consciente!"
   },
   moedas: {
-    response: "As LudoCoins (LC) são prêmios pelo seu treino. Use-as na Loja para comprar novos itens e personalizar seu Estúdio.",
+    response: "As LudoCoins (LC) são prêmios pelo seu treino. Use-as na Loja para comprar novos itens e decorar seu Estúdio.",
     action: "Visite a Loja!"
   },
   tecnico_ajuda: {
-    response: "Confira se o microfone está ativo nas permissões do Android. Reduza o barulho ao redor para que a Aura ouça apenas sua voz.",
+    response: "Verifique se o microfone está ativo no seu dispositivo. Reduza o barulho ao redor para uma melhor experiência.",
     action: "Calibrar Hardware"
   }
 };
 
-/**
- * Função de triagem que roda 100% no cliente (APK).
- */
 export async function askAuraHelper(input: AuraHelperInput): Promise<AuraHelperOutput> {
   const query = input.question.toLowerCase();
   AuraLogger.info('AuraFlow', `Triagem para: "${query}"`);
@@ -65,14 +62,7 @@ export async function askAuraHelper(input: AuraHelperInput): Promise<AuraHelperO
     AuraLogger.error('AuraFlow', 'Falha na triagem local', err);
   }
 
-  // Fallback para Cloud Gemini (Apenas se houver Internet e Chave)
-  if (!API_KEY) {
-    return {
-      answer: "Minha conexão com a Grande Aura está offline. Tente perguntar sobre os jogos ou as moedas!",
-      suggestedAction: "Tente 'Como jogar?'"
-    };
-  }
-
+  // Fallback para Cloud Gemini (Apenas se houver Internet)
   try {
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     const prompt = `Você é o AuraHelper, assistente de Psicomotricidade.
@@ -83,12 +73,11 @@ export async function askAuraHelper(input: AuraHelperInput): Promise<AuraHelperO
 
     const result = await model.generateContent(prompt);
     const text = result.response.text().replace(/```json|```/g, "").trim();
-    AuraLogger.info('AuraFlow', 'Resposta gerada via Gemini Cloud.');
     return JSON.parse(text) as AuraHelperOutput;
   } catch (error: any) {
     AuraLogger.error('AuraFlow', 'Erro no Fallback Cloud', error.message);
     return {
-      answer: "Minha percepção sensorial oscilou. Vamos focar nos seus desafios atuais?",
+      answer: "Minha conexão com a Grande Aura oscilou. Vamos focar nos seus desafios atuais?",
       suggestedAction: "Ver Painel"
     };
   }

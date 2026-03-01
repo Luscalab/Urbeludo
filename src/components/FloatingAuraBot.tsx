@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
@@ -38,7 +37,7 @@ export function FloatingAuraBot() {
   const [isLogViewerOpen, setIsLogViewerOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'bot', text: 'Olá, Mestre do Movimento! Eu sou o AuraHelper. Em que posso ajudar sua jornada hoje?' }
+    { role: 'bot', text: 'Olá, Explorador! Eu sou o AuraHelper. Como posso ajudar no seu treino hoje?' }
   ]);
   const [isLoading, setIsLoading] = useState(false);
   const [loadProgress, setLoadProgress] = useState(0);
@@ -46,16 +45,12 @@ export function FloatingAuraBot() {
   
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Privilégio administrativo baseado no e-mail do usuário logado
+  // Privilégio administrativo exclusivo
   const isSapient = profile?.email === 'sapientcontato@gmail.com';
 
   useEffect(() => {
-    AuraLogger.info('AuraBot', 'Iniciando sincronização técnica da Aura...');
     initAuraBrain((p) => {
       setLoadProgress(p);
-      if (p === 100) {
-        AuraLogger.info('AuraBot', 'Sincronização concluída. Cérebro local operante.');
-      }
     });
   }, []);
 
@@ -71,20 +66,19 @@ export function FloatingAuraBot() {
   const processMessage = useCallback(async (text: string) => {
     if (!text.trim() || isLoading || loadProgress < 100) return;
 
-    AuraLogger.info('AuraBot', `Mensagem recebida: "${text}"`);
     setMessages(prev => [...prev, { role: 'user', text }]);
     setIsLoading(true);
 
     try {
       const response = await askAuraHelper({
         question: text,
-        context: `Tela Atual: ${pathname}`
+        context: `Tela: ${pathname}`
       });
       
       setMessages(prev => [...prev, { role: 'bot', text: response.answer }]);
     } catch (error) {
-      AuraLogger.error('AuraBot', 'Erro no processamento da mensagem', error);
-      setMessages(prev => [...prev, { role: 'bot', text: "Minha percepção sensorial oscilou. Verifique o console de telemetria." }]);
+      AuraLogger.error('AuraBot', 'Erro no processamento', error);
+      setMessages(prev => [...prev, { role: 'bot', text: "Tive uma pequena falha de percepção. Pode repetir?" }]);
     } finally {
       setIsLoading(false);
     }
@@ -99,17 +93,14 @@ export function FloatingAuraBot() {
   };
 
   const handleIconClick = () => {
-    // Clique secreto: 5 vezes abre o console de logs técnico (Apenas para sapientcontato@gmail.com)
     if (isSapient) {
       const newCount = clickCount + 1;
       setClickCount(newCount);
       if (newCount >= 5) {
         setIsLogViewerOpen(true);
         setClickCount(0);
-        AuraLogger.info('AuraBot', 'Console de Telemetria ativado via clique sequencial.');
       }
     }
-    
     setIsOpen(!isOpen);
   };
 
@@ -132,10 +123,9 @@ export function FloatingAuraBot() {
           >
             {isOpen ? <ChevronDown className="w-4 h-4" /> : <BrainCircuit className="w-5 h-5 animate-pulse" />}
             <span className="text-[10px] font-black uppercase tracking-widest">
-              {isOpen ? 'Fechar Guia' : 'AuraHelper'}
+              {isOpen ? 'Fechar' : 'AuraHelper'}
             </span>
             {!isOpen && isReady && <div className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse border-2 border-white" />}
-            {!isReady && !isOpen && <Loader2 className="w-3 h-3 animate-spin opacity-40" />}
           </motion.button>
 
           <AnimatePresence>
@@ -152,16 +142,10 @@ export function FloatingAuraBot() {
                   </div>
                   <div className="flex-1">
                     <h3 className="text-sm font-black uppercase italic tracking-tighter">Guia de Sensibilidade</h3>
-                    <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">Processamento Híbrido Ativo</p>
+                    <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">IA de Borda Ativa</p>
                   </div>
-                  
-                  {/* Botão de Logs exclusivo para sapientcontato@gmail.com */}
                   {isSapient && (
-                    <button 
-                      onClick={() => setIsLogViewerOpen(true)} 
-                      className="p-2.5 hover:bg-slate-100 rounded-xl text-slate-400 transition-colors"
-                      title="Ver Telemetria"
-                    >
+                    <button onClick={() => setIsLogViewerOpen(true)} className="p-2.5 hover:bg-slate-100 rounded-xl text-slate-400">
                       <Terminal className="w-4 h-4" />
                     </button>
                   )}
@@ -170,41 +154,18 @@ export function FloatingAuraBot() {
                 <ScrollArea className="flex-1 p-6" ref={scrollRef}>
                   <div className="space-y-4 pb-4">
                     {!isReady ? (
-                      <div className="flex flex-col items-center justify-center p-8 bg-slate-50 rounded-[2.5rem] border-2 border-slate-100 space-y-5">
-                        <div className="text-primary text-[10px] font-black uppercase tracking-[0.2em] animate-pulse text-center">
-                          Aura está expandindo o cérebro em segundo plano...
+                      <div className="flex flex-col items-center justify-center p-8 bg-slate-50 rounded-[2.5rem] border-2 border-slate-100 space-y-4">
+                        <div className="text-primary text-[10px] font-black uppercase tracking-widest animate-pulse">Sincronizando Cérebro Técnico...</div>
+                        <div className="w-full bg-white h-3 rounded-full overflow-hidden border">
+                          <motion.div className="bg-primary h-full" animate={{ width: `${loadProgress}%` }} />
                         </div>
-                        <div className="w-full bg-white h-3 rounded-full overflow-hidden shadow-inner border">
-                          <motion.div 
-                            className="bg-gradient-to-r from-primary to-accent h-full shadow-[0_0_10px_rgba(var(--primary),0.5)]"
-                            initial={{ width: 0 }}
-                            animate={{ width: `${loadProgress}%` }}
-                            transition={{ duration: 0.5 }}
-                          />
-                        </div>
-                        <div className="flex justify-between w-full">
-                          <span className="text-[8px] font-black text-primary uppercase">{loadProgress}% sincronizado</span>
-                          <p className="text-muted-foreground text-[8px] font-black uppercase italic">
-                            Modo Offline em breve
-                          </p>
-                        </div>
+                        <span className="text-[8px] font-black text-primary uppercase">{loadProgress}% sincronizado</span>
                       </div>
                     ) : (
                       <>
                         {messages.map((msg, idx) => (
-                          <div
-                            key={idx}
-                            className={cn(
-                              "flex flex-col max-w-[85%] mb-4",
-                              msg.role === 'bot' ? "items-start" : "items-end ml-auto"
-                            )}
-                          >
-                            <div className={cn(
-                              "p-4 rounded-[1.8rem] text-[11px] font-medium leading-relaxed shadow-sm",
-                              msg.role === 'bot' 
-                                ? "bg-slate-100 text-slate-800 rounded-tl-none border-l-4 border-primary" 
-                                : "bg-primary text-white rounded-tr-none shadow-primary/20"
-                            )}>
+                          <div key={idx} className={cn("flex flex-col max-w-[85%] mb-4", msg.role === 'bot' ? "items-start" : "items-end ml-auto")}>
+                            <div className={cn("p-4 rounded-[1.8rem] text-[11px] font-medium leading-relaxed shadow-sm", msg.role === 'bot' ? "bg-slate-100 text-slate-800 rounded-tl-none border-l-4 border-primary" : "bg-primary text-white rounded-tr-none")}>
                               {msg.text}
                             </div>
                           </div>
@@ -214,7 +175,7 @@ export function FloatingAuraBot() {
                     {isLoading && (
                       <div className="flex items-center gap-2 p-4 bg-slate-50 rounded-2xl w-fit">
                         <Loader2 className="w-3 h-3 animate-spin text-primary" />
-                        <span className="text-[8px] font-black uppercase text-muted-foreground">Interpretando intenção...</span>
+                        <span className="text-[8px] font-black uppercase text-muted-foreground">Interpretando...</span>
                       </div>
                     )}
                   </div>
@@ -227,15 +188,9 @@ export function FloatingAuraBot() {
                         key={sug.id}
                         onClick={() => processMessage(sug.label)}
                         disabled={isLoading || !isReady}
-                        className={cn(
-                          "whitespace-nowrap px-4 py-2 rounded-full border text-[9px] font-black uppercase shadow-sm transition-all flex items-center gap-2",
-                          !isReady 
-                            ? "bg-zinc-100 text-zinc-400 border-zinc-200 cursor-not-allowed opacity-50"
-                            : "bg-white border-primary/10 text-primary hover:bg-primary/5 active:scale-95"
-                        )}
+                        className="whitespace-nowrap px-4 py-2 rounded-full border bg-white border-primary/10 text-primary hover:bg-primary/5 text-[9px] font-black uppercase shadow-sm active:scale-95 transition-all"
                       >
-                        <span>{sug.icon}</span>
-                        <span>{sug.label}</span>
+                        {sug.label}
                       </button>
                     ))}
                   </div>
@@ -248,14 +203,14 @@ export function FloatingAuraBot() {
                       onChange={(e) => setInputValue(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                       disabled={isLoading || !isReady}
-                      placeholder={isReady ? "Dúvidas técnicas ou clínicas..." : "Aguarde a sincronização técnica..."}
-                      className="h-14 rounded-2xl pr-14 pl-6 border-transparent bg-slate-50 shadow-inner font-bold text-xs focus:ring-primary"
+                      placeholder={isReady ? "Dúvidas técnicas ou lúdicas..." : "Sincronizando..."}
+                      className="h-14 rounded-2xl pr-14 pl-6 border-transparent bg-slate-50 font-bold text-xs"
                     />
                     <Button
                       size="icon"
                       onClick={handleSend}
                       disabled={isLoading || !inputValue.trim() || !isReady}
-                      className="absolute right-2 top-2 h-10 w-10 rounded-xl bg-primary text-white shadow-lg active:scale-90 transition-transform"
+                      className="absolute right-2 top-2 h-10 w-10 rounded-xl bg-primary text-white shadow-lg"
                     >
                       <Send className="w-4 h-4" />
                     </Button>
