@@ -32,36 +32,25 @@ export function FloatingAuraBot() {
     { role: 'bot', text: 'Olá, Mestre do Movimento! Eu sou o AuraHelper. Em que posso ajudar sua jornada hoje?' }
   ]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isInitializing, setIsInitializing] = useState(false);
   const [loadProgress, setLoadProgress] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const startBrain = async () => {
-    if (isInitializing || loadProgress === 100) return;
-    setIsInitializing(true);
-    try {
-      await initAuraBrain((p) => setLoadProgress(p));
-    } catch (err) {
-      console.error("❌ AuraHelper UI: Erro ao ativar motor semântico:", err);
-    } finally {
-      setTimeout(() => setIsInitializing(false), 800);
-    }
-  };
-
+  // Inicializa o Worker assim que o componente monta para aquecimento em background
   useEffect(() => {
-    if (isOpen && loadProgress < 100) {
-      startBrain();
-    }
-  }, [isOpen]);
+    initAuraBrain((p) => setLoadProgress(p));
+  }, []);
 
   useEffect(() => {
     if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      const scrollContainer = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (scrollContainer) {
+        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+      }
     }
   }, [messages, isLoading]);
 
   const processMessage = async (text: string) => {
-    if (!text.trim() || isLoading || isInitializing || loadProgress < 100) return;
+    if (!text.trim() || isLoading || loadProgress < 100) return;
 
     setMessages(prev => [...prev, { role: 'user', text }]);
     setIsLoading(true);
@@ -88,7 +77,7 @@ export function FloatingAuraBot() {
     }
   };
 
-  const isReady = loadProgress === 100 && !isInitializing;
+  const isReady = loadProgress === 100;
 
   return (
     <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[1000] pointer-events-none w-full max-w-lg px-6">
@@ -108,8 +97,8 @@ export function FloatingAuraBot() {
           <span className="text-[10px] font-black uppercase tracking-widest">
             {isOpen ? 'Fechar Guia' : 'AuraHelper'}
           </span>
-          {!isInitializing && !isOpen && loadProgress === 100 && <div className="w-2 h-2 rounded-full bg-green-500 animate-ping" />}
-          {isInitializing && <Loader2 className="w-3 h-3 animate-spin opacity-40" />}
+          {!isOpen && isReady && <div className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse border-2 border-white" />}
+          {!isReady && !isOpen && <Loader2 className="w-3 h-3 animate-spin opacity-40" />}
         </motion.button>
 
         <AnimatePresence>
@@ -126,7 +115,7 @@ export function FloatingAuraBot() {
                 </div>
                 <div className="flex-1">
                   <h3 className="text-sm font-black uppercase italic tracking-tighter">Guia de Sensibilidade</h3>
-                  <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">IA Semântica de Borda</p>
+                  <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">IA Semântica em Web Worker</p>
                 </div>
                 <div className="flex items-center gap-2 px-3 py-1 bg-green-100 rounded-full">
                    <div className={cn("w-1.5 h-1.5 rounded-full", !isReady ? "bg-yellow-500" : "bg-green-500")} />
@@ -136,10 +125,10 @@ export function FloatingAuraBot() {
 
               <ScrollArea className="flex-1 p-6" ref={scrollRef}>
                 <div className="space-y-4 pb-4">
-                  {isInitializing || loadProgress < 100 ? (
+                  {!isReady ? (
                     <div className="flex flex-col items-center justify-center p-8 bg-primary/5 rounded-[2rem] border-2 border-primary/10 space-y-4">
                       <div className="text-primary text-[10px] font-black uppercase tracking-widest animate-pulse">
-                        Aura está expandindo o cérebro...
+                        Aura está expandindo o cérebro (Worker)...
                       </div>
                       <div className="w-full bg-white h-2 rounded-full overflow-hidden shadow-inner">
                         <motion.div 
@@ -151,7 +140,7 @@ export function FloatingAuraBot() {
                       <div className="flex justify-between w-full">
                         <span className="text-[8px] font-black text-primary/40 uppercase">{loadProgress}% sincronizado</span>
                         <p className="text-primary/40 text-[8px] font-black uppercase italic">
-                          Apenas no primeiro uso
+                          Processamento Offline Ativo
                         </p>
                       </div>
                     </div>
@@ -182,7 +171,7 @@ export function FloatingAuraBot() {
                   {isLoading && (
                     <div className="flex items-center gap-2 p-4 bg-slate-50 rounded-2xl w-fit">
                       <Loader2 className="w-3 h-3 animate-spin text-primary" />
-                      <span className="text-[8px] font-black uppercase text-muted-foreground">Interpretando intenção...</span>
+                      <span className="text-[8px] font-black uppercase text-muted-foreground">Interpretando intenção no Worker...</span>
                     </div>
                   )}
                 </div>
@@ -216,7 +205,7 @@ export function FloatingAuraBot() {
                     onChange={(e) => setInputValue(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                     disabled={isLoading || !isReady}
-                    placeholder={isReady ? "Dúvidas técnicas ou sobre o corpo..." : "Aguarde a sincronização..."}
+                    placeholder={isReady ? "Dúvidas técnicas ou sobre o corpo..." : "Aguarde a sincronização local..."}
                     className="h-14 rounded-2xl pr-14 pl-6 border-transparent bg-white shadow-inner font-bold text-xs focus:ring-primary"
                   />
                   <Button
@@ -230,10 +219,10 @@ export function FloatingAuraBot() {
                 </div>
               </div>
 
-              {!isReady && !isInitializing && (
+              {!isReady && (
                 <div className="p-4 bg-yellow-50 flex items-center gap-3 border-t">
                   <AlertCircle className="w-4 h-4 text-yellow-600" />
-                  <span className="text-[8px] font-bold text-yellow-700 uppercase">Aura precisa carregar o cérebro antes de conversar.</span>
+                  <span className="text-[8px] font-bold text-yellow-700 uppercase">Aura precisa ler os arquivos locais antes de conversar.</span>
                 </div>
               )}
             </motion.div>

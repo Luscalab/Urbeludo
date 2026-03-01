@@ -1,7 +1,7 @@
 'use client';
 /**
- * @fileOverview AuraHelper - Orquestrador de Inteligência Híbrida.
- * Revisado para usar a API Key fornecida e logs de erro detalhados.
+ * @fileOverview AuraHelper - Orquestrador de Inteligência Híbrida otimizado.
+ * Utiliza o Web Worker para classificação semântica instantânea.
  */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -59,21 +59,24 @@ const RESPOSTAS_FIXAS: Record<string, { response: string, action: string }> = {
 export async function askAuraHelper(input: AuraHelperInput): Promise<AuraHelperOutput> {
   const query = input.question;
   
-  // 1. TRIAGEM SEMÂNTICA (IA de Borda - Offline First)
-  const intentId = await classifyIntent(query);
+  // 1. TRIAGEM SEMÂNTICA (IA de Borda via Web Worker - 100% Offline)
+  try {
+    const intentId = await classifyIntent(query);
 
-  if (intentId !== 'fallback' && RESPOSTAS_FIXAS[intentId]) {
-    return {
-      answer: RESPOSTAS_FIXAS[intentId].response,
-      suggestedAction: RESPOSTAS_FIXAS[intentId].action
-    };
+    if (intentId !== 'fallback' && RESPOSTAS_FIXAS[intentId]) {
+      return {
+        answer: RESPOSTAS_FIXAS[intentId].response,
+        suggestedAction: RESPOSTAS_FIXAS[intentId].action
+      };
+    }
+  } catch (err) {
+    console.error("❌ AuraHelper: Erro no Worker Semântico:", err);
   }
 
-  // 2. FALLBACK PARA GEMINI FLASH (Para perguntas complexas)
+  // 2. FALLBACK PARA GEMINI FLASH (Para perguntas complexas fora da base local)
   if (!API_KEY || API_KEY.length < 10) {
-    console.error("❌ AuraHelper: Chave de API do Gemini não detectada.");
     return {
-      answer: "Minha percepção sensorial oscilou. Verifique se sua chave de API está ativa para perguntas complexas!",
+      answer: "Minha percepção sensorial oscilou. Verifique sua conexão para perguntas complexas!",
       suggestedAction: "Conectar à Nuvem"
     };
   }
