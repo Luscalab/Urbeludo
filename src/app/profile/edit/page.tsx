@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { 
   ArrowLeft, 
   Camera, 
@@ -12,9 +12,8 @@ import {
   Sparkles, 
   Palette, 
   UserCircle,
-  Zap,
-  Cpu,
-  ShieldCheck
+  ShieldCheck,
+  RefreshCw
 } from 'lucide-react';
 import { AvatarSelection } from '@/components/AvatarSelection';
 import { useUser, useDoc, useMemoFirebase } from '@/firebase';
@@ -22,11 +21,14 @@ import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { avatarizeUser } from '@/ai/flows/avatarize-user-flow';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { UrbeLudoLogo } from '@/components/UrbeLudoLogo';
 
+/**
+ * Página de Edição de Identidade Ludo.
+ * Permite trocar o avatar (qualquer arquivo em public/assets/avatars) e o nome.
+ */
 export default function EditProfilePage() {
   const router = useRouter();
   const { toast } = useToast();
@@ -39,7 +41,7 @@ export default function EditProfilePage() {
   const [isAvatarizing, setIsAvatarizing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Sincroniza o estado local apenas na primeira carga do perfil
+  // Sincroniza o estado local apenas quando o perfil carregar
   useEffect(() => {
     if (profile) {
       if (selectedAvatarId === null) setSelectedAvatarId(profile.avatar?.avatarId || '');
@@ -51,16 +53,16 @@ export default function EditProfilePage() {
     if (!userProgressRef) return;
 
     updateDocumentNonBlocking(userProgressRef, {
-      displayName: displayName || profile?.displayName,
+      displayName: displayName || profile?.displayName || "Explorador",
       avatar: {
         ...profile?.avatar,
-        avatarId: selectedAvatarId || profile?.avatar?.avatarId
+        avatarId: selectedAvatarId || profile?.avatar?.avatarId || ""
       }
     });
 
     toast({
-      title: "Identidade Atualizada!",
-      description: "Suas mudanças foram salvas localmente."
+      title: "Identidade Sincronizada!",
+      description: "Suas mudanças foram salvas no dispositivo."
     });
     router.push('/dashboard');
   };
@@ -91,14 +93,14 @@ export default function EditProfilePage() {
         });
 
         toast({
-          title: "Aura Sincronizada!",
+          title: "Aura Detectada!",
           description: result.avatarStyleDescription
         });
       } catch (error) {
         toast({
           variant: "destructive",
-          title: "Erro de Sensor",
-          description: "Não foi possível analisar a aura no momento."
+          title: "Erro de Análise",
+          description: "Não foi possível processar sua aura agora."
         });
       } finally {
         setIsAvatarizing(false);
@@ -135,6 +137,7 @@ export default function EditProfilePage() {
       </header>
 
       <main className="flex-1 space-y-12 py-8 overflow-x-hidden">
+        {/* Seletor Dinâmico de Avatar */}
         <section className="container max-w-lg mx-auto">
           <AvatarSelection 
             initialAvatarId={selectedAvatarId || undefined} 
@@ -142,6 +145,7 @@ export default function EditProfilePage() {
           />
         </section>
 
+        {/* Campos de Nome e IA */}
         <section className="container max-w-lg mx-auto px-6 space-y-8">
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-[10px] font-black uppercase text-muted-foreground tracking-widest px-2">
@@ -150,7 +154,7 @@ export default function EditProfilePage() {
             <Input 
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
-              placeholder="Ex: Mestre do Vácuo"
+              placeholder="Digite seu nome lúdico"
               className="h-16 rounded-[1.5rem] border-4 border-primary/5 bg-muted/20 px-6 font-bold focus:border-primary transition-all"
             />
           </div>
@@ -183,7 +187,7 @@ export default function EditProfilePage() {
                 {isAvatarizing ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin" /> 
-                    Mapeando...
+                    Lendo Aura...
                   </>
                 ) : (
                   <>
@@ -196,7 +200,7 @@ export default function EditProfilePage() {
              <div className="flex items-center gap-3 px-4 py-2 bg-primary/5 rounded-2xl">
                 <ShieldCheck className="w-4 h-4 text-primary" />
                 <span className="text-[8px] font-black uppercase text-primary/60 tracking-widest leading-tight">
-                  Processamento 100% Local: Nenhuma imagem sai do APK.
+                  Soberania de Dados: Processamento 100% Local.
                 </span>
              </div>
           </Card>
@@ -205,11 +209,11 @@ export default function EditProfilePage() {
             <div className="flex items-center justify-between p-6 bg-white rounded-[2rem] shadow-sm border border-primary/5">
               <div className="flex items-center gap-4">
                 <div 
-                  className="w-10 h-10 rounded-xl shadow-lg" 
+                  className="w-10 h-10 rounded-xl shadow-lg animate-pulse" 
                   style={{ backgroundColor: profile.dominantColor }}
                 />
                 <div>
-                  <div className="text-[9px] font-black uppercase text-muted-foreground">Cor da Aura</div>
+                  <div className="text-[9px] font-black uppercase text-muted-foreground">Sinal de Aura Ativo</div>
                   <div className="text-xs font-black text-foreground uppercase">{profile.dominantColor}</div>
                 </div>
               </div>
@@ -230,3 +234,4 @@ export default function EditProfilePage() {
     </div>
   );
 }
+
