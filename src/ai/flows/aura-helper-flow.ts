@@ -2,6 +2,7 @@
 /**
  * @fileOverview AuraHelper - O guia de inteligência do UrbeLudo.
  * Implementa triagem de respostas fixas para economia de tokens e latência zero.
+ * Versão 100% Client-Side para exportação APK.
  */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -20,6 +21,7 @@ export interface AuraHelperOutput {
 }
 
 const RESPOSTAS_FIXAS: Record<string, string> = {
+  // --- JOGOS E MECÂNICA ---
   "jogar": "Para jogar, escolha um dos desafios no painel e siga as instruções de voz ou movimento!",
   "elevador": "No Elevador de Voz, use sua voz para subir! Mantenha um som constante e tente ficar dentro da Zona de Estabilidade (a área verde) para encher a barra até 100%.",
   "estabilidade": "A Zona de Estabilidade é a área verde na tela. Ela indica que sua voz está firme e controlada, o que é ótimo para o seu treino de fonoaudiologia!",
@@ -30,7 +32,22 @@ const RESPOSTAS_FIXAS: Record<string, string> = {
   "100%": "Ao chegar em 100%, você completa o andar, ganha LudoCoins e o AuraBot gera um relatório especial sobre o seu progresso!",
   "relatório": "O relatório é gerado automaticamente pelo AuraBot ao final de cada sessão, ajudando você e seu terapeuta a acompanhar sua evolução.",
   "quem é você": "Eu sou o AuraHelper, seu assistente de saúde e diversão aqui no UrbeLudo! Estou aqui para guiar sua Aura do Movimento.",
-  "aura": "A Aura é a energia do seu movimento! No UrbeLudo, transformamos seus gestos em rastros de luz e som para treinar seu corpo."
+  "aura": "A Aura é a energia do seu movimento! No UrbeLudo, transformamos seus gestos em rastros de luz e som para treinar seu corpo.",
+  
+  // --- SUPORTE TÉCNICO ---
+  "não sobe": "Verifique se o ícone do microfone está ativo no topo da tela. Tente falar um pouco mais alto ou ajuste a sensibilidade no seu Painel de Perfil.",
+  "sem som": "Confira se o volume do seu celular está alto. O UrbeLudo usa sons lúdicos e feedbacks sonoros para te ajudar a manter o ritmo!",
+  "calibro": "Vá ao menu Painel e procure por Sensibilidade. Lá você pode ajustar o quanto de voz ou movimento o sensor precisa captar.",
+  
+  // --- PROGRESSO E RECOMPENSAS ---
+  "vejo minhas moedas": "Suas LudoCoins (LC) aparecem no topo de cada fase e também no seu Painel principal de Perfil.",
+  "sem internet": "Sim! O UrbeLudo é Offline-First. Seus treinos ficam salvos no aparelho e eu sincronizo tudo com o seu mestre assim que você conectar!",
+  "abro o baú": "O baú se abre sozinho quando você completa 100% da barra de progresso com sua voz ou movimento de Aura!",
+  
+  // --- CONCEITOS (PSICOMOTOR/CLÍNICO) ---
+  "serve este app": "O UrbeLudo une tecnologia e saúde para treinar sua voz, respiração e coordenação motora de forma divertida e lúdica!",
+  "psicomotricidade": "É a ciência que estuda como nosso corpo e mente trabalham juntos. Aqui no UrbeLudo, usamos jogos digitais para fortalecer essa conexão corporal!",
+  "quem vê meus relatórios": "Apenas você e seu terapeuta/desenvolvedor têm acesso às análises técnicas que eu gero após os seus treinos."
 };
 
 export async function askAuraHelper(input: AuraHelperInput): Promise<AuraHelperOutput> {
@@ -41,14 +58,14 @@ export async function askAuraHelper(input: AuraHelperInput): Promise<AuraHelperO
   if (key) {
     return {
       answer: RESPOSTAS_FIXAS[key],
-      suggestedAction: "Continue explorando os laboratórios!"
+      suggestedAction: "Continue seu treinamento de Aura!"
     };
   }
 
   if (!API_KEY) {
     return {
-      answer: "Minha conexão com a Grande Aura falhou (Chave ausente), mas lembre-se: o segredo está no movimento suave!",
-      suggestedAction: "Verifique as configurações da sua Aura."
+      answer: "Minha conexão com a Grande Aura falhou (Chave ausente), mas o segredo para o sucesso é o movimento suave!",
+      suggestedAction: "Verifique suas configurações de API."
     };
   }
 
@@ -84,8 +101,8 @@ export async function askAuraHelper(input: AuraHelperInput): Promise<AuraHelperO
   } catch (error) {
     console.error("Erro no AuraHelper:", error);
     return {
-      answer: "Minha percepção sensorial está oscilando, mas continue se movendo!",
-      suggestedAction: "Tente perguntar novamente."
+      answer: "Minha percepção sensorial oscilou um pouco, mas não pare de se mover!",
+      suggestedAction: "Tente perguntar de outra forma."
     };
   }
 }
