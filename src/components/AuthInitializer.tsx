@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -8,11 +9,14 @@ import { FALLBACK_AVATAR } from '@/lib/avatar-catalog';
 /**
  * Componente que garante a inicialização correta do estado do usuário.
  * Versão Standalone - Foco em "O Traço Vivo".
+ * Implementa verificação de montagem para evitar erros de hidratação.
  */
 export function AuthInitializer({ children }: { children: React.ReactNode }) {
+  const [mounted, setMounted] = useState(false);
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     const initLocalAuth = async () => {
       let uid = await LocalPersistence.getUserId();
       
@@ -44,7 +48,8 @@ export function AuthInitializer({ children }: { children: React.ReactNode }) {
     initLocalAuth();
   }, []);
 
-  if (!isReady) {
+  // Renderiza o loader de forma consistente no servidor e na primeira montagem do cliente
+  if (!mounted || !isReady) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-6">

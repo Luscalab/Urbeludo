@@ -2,7 +2,6 @@
 import { config } from 'dotenv';
 config();
 
-import '@/ai/flows/propose-dynamic-challenges.ts';
-import '@/ai/flows/identify-urban-elements-flow.ts';
-import '@/ai/flows/avatarize-user-flow.ts';
-// Removida a geração de itens para focar em mecânicas puras de simulador social
+// No modo Standalone "O Traço Vivo", os fluxos de IA são opcionais.
+// Mantemos apenas a base para futuras expansões se necessário.
+export {};
