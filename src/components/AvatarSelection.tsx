@@ -10,7 +10,6 @@ import {
   ChevronLeft, 
   ChevronRight,
   FolderOpen,
-  Cpu,
   Sparkles
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -40,17 +39,14 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
       
       if (files && files.length > 0) {
         setAvatars(files);
-        // Tenta selecionar o herói atual se ele ainda existir na pasta
+        // Sincroniza o índice com o avatar inicial se fornecido
         if (initialAvatarId) {
           const idx = files.indexOf(initialAvatarId);
           if (idx !== -1) setCurrentIndex(idx);
         }
-      } else {
-        setAvatars([]);
       }
     } catch (error) {
       console.warn("Aviso: Falha ao listar heróis locais.", error);
-      setAvatars([]);
     } finally {
       setIsLoadingList(false);
     }
@@ -78,132 +74,85 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
 
   if (isLoadingList) {
     return (
-      <div className="w-full h-[500px] flex flex-col items-center justify-center bg-muted/10 rounded-[4rem] border-8 border-primary/5">
-        <Loader2 className="w-12 h-12 animate-spin text-primary/40" />
-        <p className="mt-4 text-[10px] font-black uppercase text-primary/40 tracking-widest">Varrendo Galeria...</p>
+      <div className="w-full h-[400px] flex flex-col items-center justify-center bg-muted/10 rounded-[3rem]">
+        <Loader2 className="w-10 h-10 animate-spin text-primary/40" />
       </div>
     );
   }
 
-  // Se a pasta 'public/assets/avatars' estiver vazia
   if (avatars.length === 0) {
     return (
-      <div className="w-full h-[500px] flex flex-col items-center justify-center bg-background rounded-[4rem] border-4 border-dashed border-primary/20 p-12 text-center space-y-6">
-        <FolderOpen className="w-20 h-20 text-primary/20" />
-        <div className="space-y-2">
-          <h3 className="text-2xl font-black uppercase italic tracking-tighter text-foreground/40">Câmara de Heróis Vazia</h3>
-          <p className="text-[10px] font-bold text-muted-foreground uppercase leading-relaxed max-w-xs mx-auto">
-            Adicione suas imagens (PNG, JPG, SVG) na pasta do projeto:<br/>
-            <span className="text-primary mt-2 block font-mono bg-primary/5 p-2 rounded-lg">public/assets/avatars</span>
-          </p>
-        </div>
-        <button 
-          onClick={fetchAvatars}
-          className="px-10 py-4 rounded-full bg-primary text-white text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl"
-        >
-          Recarregar Galeria
-        </button>
+      <div className="w-full h-[400px] flex flex-col items-center justify-center bg-background rounded-[3rem] border-4 border-dashed border-primary/10 p-10 text-center">
+        <FolderOpen className="w-16 h-16 text-primary/20 mb-4" />
+        <h3 className="text-xl font-black uppercase text-foreground/40 mb-2">Sem Heróis na Pasta</h3>
+        <p className="text-[10px] font-bold text-muted-foreground uppercase max-w-xs mx-auto">
+          Adicione arquivos PNG em: <br/> 
+          <span className="text-primary font-mono select-all">public/assets/avatars</span>
+        </p>
       </div>
     );
   }
 
   const currentAvatar = avatars[currentIndex];
-  // No Next.js, caminhos de /public são mapeados para a raiz
   const avatarPath = `/assets/avatars/${currentAvatar}`;
 
   return (
-    <div className="w-full space-y-10 relative select-none max-w-2xl mx-auto">
-      <div className="flex flex-col items-center text-center space-y-3">
-        <div className="flex items-center gap-2 bg-primary/10 px-4 py-1 rounded-full border border-primary/20">
+    <div className="w-full space-y-8 select-none">
+      <div className="flex flex-col items-center text-center space-y-2">
+        <div className="flex items-center gap-2 bg-primary/10 px-3 py-1 rounded-full">
           <Sparkles className="w-3 h-3 text-primary" />
-          <span className="text-[9px] font-black uppercase text-primary tracking-widest">Detecção Dinâmica Ativa</span>
+          <span className="text-[8px] font-black uppercase text-primary">Detecção Dinâmica</span>
         </div>
-        <h3 className="text-4xl font-black uppercase italic tracking-tighter text-foreground">
-          Sua <span className="text-primary">Identidade</span>
-        </h3>
-        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.4em] opacity-40">
+        <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">
           Herói {currentIndex + 1} de {avatars.length}
         </p>
       </div>
       
-      <div className="relative flex justify-center items-center h-[500px] sm:h-[600px]">
-        {/* Aura Animada de Fundo */}
+      <div className="relative flex justify-center items-center h-[400px]">
         <motion.div 
-          animate={{ 
-            scale: [1, 1.1, 1],
-            opacity: [0.1, 0.25, 0.1],
-            rotate: [0, 90, 180, 270, 360]
-          }}
-          transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
-          className="absolute w-[85%] aspect-square bg-gradient-to-tr from-primary via-accent to-secondary rounded-full blur-[140px] -z-10"
+          animate={{ rotate: 360 }}
+          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+          className="absolute w-64 h-64 bg-primary/10 rounded-full blur-3xl -z-10"
         />
 
-        {/* Botões de Navegação Flutuantes */}
-        <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between items-center z-50 px-2 pointer-events-none">
-          <button 
-            onClick={handlePrev} 
-            className="pointer-events-auto bg-white/95 backdrop-blur-xl p-6 rounded-full shadow-2xl border-2 border-primary/10 active:scale-90 transition-all group"
-          >
-            <ChevronLeft className="w-10 h-10 text-primary stroke-[4] group-hover:-translate-x-1 transition-transform" />
+        <div className="absolute inset-x-0 flex justify-between items-center z-50">
+          <button onClick={handlePrev} className="bg-white p-4 rounded-full shadow-xl active:scale-90 transition-all">
+            <ChevronLeft className="w-6 h-6 text-primary" />
           </button>
-          <button 
-            onClick={handleNext} 
-            className="pointer-events-auto bg-white/95 backdrop-blur-xl p-6 rounded-full shadow-2xl border-2 border-primary/10 active:scale-90 transition-all group"
-          >
-            <ChevronRight className="w-10 h-10 text-primary stroke-[4] group-hover:translate-x-1 transition-transform" />
+          <button onClick={handleNext} className="bg-white p-4 rounded-full shadow-xl active:scale-90 transition-all">
+            <ChevronRight className="w-6 h-6 text-primary" />
           </button>
         </div>
 
-        {/* Visualização Central do Avatar */}
-        <div className="relative w-full max-w-sm aspect-[4/5] z-10 px-4">
+        <div className="relative w-64 h-80 z-10">
           <AnimatePresence mode="wait">
             <motion.div
               key={currentAvatar}
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: -20 }}
-              transition={{ type: "spring", stiffness: 120, damping: 25 }}
-              className="relative w-full h-full rounded-[4.5rem] border-[12px] border-white bg-white/50 backdrop-blur-md shadow-[0_50px_100px_rgba(0,0,0,0.1)] flex items-center justify-center p-10 overflow-hidden group"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="w-full h-full rounded-[3rem] bg-white shadow-2xl flex items-center justify-center p-8 overflow-hidden"
             >
-              {!loadedImages[currentAvatar] && !loadError[currentAvatar] && (
-                <div className="flex flex-col items-center gap-4">
-                  <Loader2 className="w-16 h-16 animate-spin text-primary/20" />
-                  <span className="text-[8px] font-black uppercase text-primary/20 tracking-widest">Carregando Asset...</span>
-                </div>
-              )}
-
               {loadError[currentAvatar] ? (
-                <div className="flex flex-col items-center gap-4 opacity-30">
-                  <AlertCircle className="w-16 h-16 text-red-500" />
-                  <span className="text-[9px] font-black uppercase text-red-500">Erro no Arquivo: {currentAvatar}</span>
-                </div>
+                <AlertCircle className="w-12 h-12 text-red-500 opacity-20" />
               ) : (
                 <img 
                   src={avatarPath} 
                   onLoad={() => setLoadedImages(prev => ({ ...prev, [currentAvatar]: true }))}
                   onError={() => setLoadError(prev => ({ ...prev, [currentAvatar]: true }))}
                   className={cn(
-                    "w-full h-full object-contain drop-shadow-[0_35px_60px_rgba(0,0,0,0.3)] transition-all duration-1000",
-                    loadedImages[currentAvatar] ? "opacity-100 scale-100" : "opacity-0 scale-95"
+                    "w-full h-full object-contain drop-shadow-xl transition-all duration-500",
+                    loadedImages[currentAvatar] ? "opacity-100" : "opacity-0"
                   )} 
                   alt={`Herói ${currentAvatar}`}
                 />
               )}
-
-              {/* HUD Inferior de Nome do Arquivo */}
-              <div className="absolute bottom-10 inset-x-10">
-                 <div className="bg-primary/90 backdrop-blur-xl text-white rounded-2xl py-5 text-center shadow-2xl flex flex-col items-center gap-1 border border-white/20">
-                    <Check className="w-4 h-4 stroke-[4] mb-1" />
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em]">{currentAvatar.split('.')[0]}</span>
-                    <span className="text-[7px] font-bold uppercase opacity-60 tracking-widest">{currentAvatar.split('.').pop()} Sincronizado</span>
+              
+              <div className="absolute bottom-4 inset-x-4">
+                 <div className="bg-primary/90 text-white rounded-xl py-2 text-center text-[10px] font-black uppercase">
+                    {currentAvatar.split('.')[0]}
                  </div>
               </div>
-
-              {/* Detalhes de HUD nos Cantos */}
-              <div className="absolute top-10 left-10 border-l-4 border-t-4 border-primary/20 w-10 h-10 rounded-tl-3xl" />
-              <div className="absolute top-10 right-10 border-r-4 border-t-4 border-primary/20 w-10 h-10 rounded-tr-3xl" />
-              <div className="absolute bottom-10 left-10 border-l-4 border-b-4 border-primary/20 w-10 h-10 rounded-bl-3xl" />
-              <div className="absolute bottom-10 right-10 border-r-4 border-b-4 border-primary/20 w-10 h-10 rounded-br-3xl" />
             </motion.div>
           </AnimatePresence>
         </div>

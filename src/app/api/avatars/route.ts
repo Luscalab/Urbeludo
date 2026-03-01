@@ -14,8 +14,7 @@ export async function GET() {
   try {
     // Verifica se o diretório existe
     if (!fs.existsSync(avatarsDir)) {
-      console.warn('Diretório de avatares não encontrado em:', avatarsDir);
-      // Tenta criar o diretório caso não exista (útil para primeira execução)
+      console.warn('Diretório de avatares não encontrado, criando em:', avatarsDir);
       try {
         fs.mkdirSync(avatarsDir, { recursive: true });
       } catch (e) {
@@ -26,12 +25,12 @@ export async function GET() {
 
     const files = fs.readdirSync(avatarsDir);
     
-    // Filtra qualquer arquivo de imagem válido, ignorando arquivos ocultos de sistema (ex: .DS_Store)
+    // Filtra arquivos de imagem válidos, ignorando arquivos ocultos de sistema
     const images = files.filter(file => 
       !file.startsWith('.') && /\.(png|jpe?g|svg|webp)$/i.test(file)
     );
     
-    // Ordenação natural (1.png antes de 10.png)
+    // Ordenação natural
     images.sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
     
     return NextResponse.json(images);

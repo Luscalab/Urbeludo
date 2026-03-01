@@ -1,6 +1,7 @@
+
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -32,12 +33,20 @@ export default function EditProfilePage() {
   const { toast } = useToast();
   const { user } = useUser();
   const userProgressRef = useMemoFirebase(() => user ? { id: user.uid, path: `user_progress/${user.uid}` } : null, [user]);
-  const { data: profile } = useDoc(userProgressRef);
+  const { data: profile, isLoading } = useDoc(userProgressRef);
 
-  const [selectedAvatarId, setSelectedAvatarId] = useState(profile?.avatar?.avatarId || '1.png');
-  const [displayName, setDisplayName] = useState(profile?.displayName || '');
+  const [selectedAvatarId, setSelectedAvatarId] = useState('');
+  const [displayName, setDisplayName] = useState('');
   const [isAvatarizing, setIsAvatarizing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Sincroniza o estado local quando os dados do perfil são carregados
+  useEffect(() => {
+    if (profile) {
+      if (!selectedAvatarId) setSelectedAvatarId(profile.avatar?.avatarId || '');
+      if (!displayName) setDisplayName(profile.displayName || '');
+    }
+  }, [profile, selectedAvatarId, displayName]);
 
   const handleSave = async () => {
     if (!userProgressRef) return;
@@ -68,7 +77,6 @@ export default function EditProfilePage() {
         const base64String = reader.result as string;
         const result = await avatarizeUser({ photoDataUri: base64String });
         
-        // Atualiza o progresso com os traços identificados pela IA
         updateDocumentNonBlocking(userProgressRef, {
           dominantColor: result.dominantColor,
           avatar: {
@@ -100,6 +108,14 @@ export default function EditProfilePage() {
     reader.readAsDataURL(file);
   };
 
+  if (isLoading && !profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-10 h-10 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background flex flex-col pb-10">
       <header className="px-6 h-20 flex items-center justify-between bg-white/80 backdrop-blur-xl sticky top-0 z-[100] border-b">
@@ -120,7 +136,6 @@ export default function EditProfilePage() {
       </header>
 
       <main className="flex-1 space-y-12 py-8 overflow-x-hidden">
-        {/* Seletor de Imagem Base */}
         <section className="container max-w-lg mx-auto">
           <AvatarSelection 
             initialAvatarId={selectedAvatarId} 
@@ -128,7 +143,6 @@ export default function EditProfilePage() {
           />
         </section>
 
-        {/* Formulário de Detalhes */}
         <section className="container max-w-lg mx-auto px-6 space-y-8">
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-[10px] font-black uppercase text-muted-foreground tracking-widest px-2">
@@ -142,7 +156,6 @@ export default function EditProfilePage() {
             />
           </div>
 
-          {/* Área de IA - Sincronização de Aura */}
           <Card className="p-8 rounded-[3rem] border-none shadow-xl bg-gradient-to-br from-primary/5 to-accent/5 space-y-6 relative overflow-hidden">
              <div className="absolute top-0 right-0 p-4 opacity-10">
                 <Sparkles className="w-12 h-12" />
@@ -189,7 +202,6 @@ export default function EditProfilePage() {
              </div>
           </Card>
 
-          {/* Visualização da Cor da Aura */}
           {profile?.dominantColor && (
             <div className="flex items-center justify-between p-6 bg-white rounded-[2rem] shadow-sm border border-primary/5">
               <div className="flex items-center gap-4">
