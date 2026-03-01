@@ -4,13 +4,16 @@ import path from 'path';
 
 /**
  * API para listar dinamicamente todos os arquivos de imagem na pasta de avatares.
- * Caminho absoluto: public/assets/avatars
+ * Caminho: public/assets/avatars
+ * Forçamos a rota a ser dinâmica para detectar novos arquivos em tempo real.
  */
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   const avatarsDir = path.join(process.cwd(), 'public', 'assets', 'avatars');
   
   try {
-    // Garante que o diretório existe
+    // Garante que o diretório existe fisicamente
     if (!fs.existsSync(avatarsDir)) {
       console.warn(`Diretório não encontrado: ${avatarsDir}. Criando...`);
       fs.mkdirSync(avatarsDir, { recursive: true });
@@ -19,7 +22,7 @@ export async function GET() {
 
     const files = fs.readdirSync(avatarsDir);
     
-    // Filtra arquivos de imagem válidos (qualquer extensão de imagem comum)
+    // Aceita qualquer extensão de imagem comum e ignora arquivos ocultos
     const images = files.filter(file => 
       !file.startsWith('.') && /\.(png|jpe?g|svg|webp|avif|bmp|gif)$/i.test(file)
     );

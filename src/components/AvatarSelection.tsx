@@ -39,11 +39,13 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
       if (files && files.length > 0) {
         setAvatars(files);
         
-        // Tenta sincronizar com o avatar inicial
+        // Sincroniza o índice com o avatar inicial se ele existir na lista
         if (initialAvatarId) {
           const idx = files.indexOf(initialAvatarId);
           if (idx !== -1) {
             setCurrentIndex(idx);
+          } else {
+            setCurrentIndex(0);
           }
         }
       } else {
@@ -71,7 +73,7 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
     setCurrentIndex((prev) => (prev - 1 + avatars.length) % avatars.length);
   };
 
-  // Notifica o pai sobre a seleção
+  // Notifica o componente pai sobre a seleção atual
   useEffect(() => {
     if (avatars.length > 0) {
       onSelect(avatars[currentIndex]);
@@ -93,7 +95,7 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
         <FolderOpen className="w-16 h-16 text-primary/20 mb-4" />
         <h3 className="text-xl font-black uppercase text-foreground/40 mb-2">Sem Heróis Ativos</h3>
         <p className="text-[10px] font-bold text-muted-foreground uppercase max-w-xs mx-auto mb-6">
-          Adicione suas fotos (qualquer nome/extensão) em: <br/> 
+          Adicione suas fotos (qualquer nome ou extensão) em: <br/> 
           <span className="text-primary font-mono select-all">public/assets/avatars</span>
         </p>
         <button onClick={fetchAvatars} className="flex items-center gap-2 text-[10px] font-black uppercase text-primary border-b border-primary">
@@ -104,6 +106,7 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
   }
 
   const currentAvatar = avatars[currentIndex];
+  // No Next.js, arquivos em public/ são servidos na raiz /
   const avatarPath = `/assets/avatars/${currentAvatar}`;
 
   return (

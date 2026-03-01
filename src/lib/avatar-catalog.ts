@@ -26,7 +26,8 @@ export const getAvatarById = (filename: string | null | undefined): AvatarAsset 
     };
   }
 
-  // O Next.js serve arquivos da pasta 'public' na raiz do servidor web
+  // O Next.js serve arquivos da pasta 'public' na raiz do servidor web.
+  // IMPORTANTE: O caminho deve ser relativo à raiz do servidor web.
   return {
     id: filename,
     name: filename.split('.')[0].replace(/[-_]/g, ' '),
