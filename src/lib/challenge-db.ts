@@ -2,97 +2,70 @@
 import { ProposeDynamicChallengesOutput } from '@/ai/flows/propose-dynamic-challenges';
 
 /**
- * Banco de Dados Estático de Desafios Psicomotores.
- * Substitui a necessidade de IA em tempo real para o modo Standalone.
+ * Banco de Dados de Desafios Sensoriais "O Traço Vivo".
+ * Foco em Psicomotricidade e Ludicidade Corporal.
  */
 export const OFFLINE_CHALLENGE_DB: Record<string, ProposeDynamicChallengesOutput[]> = {
-  'Motor': [
-    {
-      challengeTitle: "Caminho do Equilibrista",
-      challengeDescription: "Siga uma linha imaginária no chão com passos precisos.",
-      challengeType: "balance",
-      difficulty: "easy",
-      ludoCoinsReward: 25,
-      isLudicDrawing: false,
-      steps: ["Encontre uma linha reta no chão", "Caminhe pé ante pé por 10 passos", "Mantenha os braços abertos para equilíbrio"]
-    },
-    {
-      challengeTitle: "Salto do Canguru",
-      challengeDescription: "Pule obstáculos baixos usando os dois pés juntos.",
-      challengeType: "jump",
-      difficulty: "medium",
-      ludoCoinsReward: 35,
-      isLudicDrawing: false,
-      steps: ["Marque 3 pontos no chão com fita ou objetos", "Pule sobre eles com os pés unidos", "Aterrise suavemente flexionando os joelhos"]
-    },
-    {
-      challengeTitle: "Circuito Lateral",
-      challengeDescription: "Desloque-se lateralmente entre dois pontos rapidamente.",
-      challengeType: "lateral_movement",
-      difficulty: "medium",
-      ludoCoinsReward: 30,
-      isLudicDrawing: false,
-      steps: ["Marque dois pontos a 3 metros de distância", "Toque um e corra de lado até o outro", "Repita o movimento 5 vezes sem cruzar os pés"]
-    }
-  ],
   'Arte': [
     {
-      challengeTitle: "Grafite de Neon",
-      challengeDescription: "Desenhe uma estrela gigante usando seus braços no visor.",
-      challengeType: "creative",
+      challengeTitle: "Pincel de Luz",
+      challengeDescription: "Pinte toda a tela com movimentos circulares e amplos.",
+      challengeType: "sensory_art",
+      difficulty: "easy",
+      ludoCoinsReward: 30,
+      isLudicDrawing: true,
+      steps: ["Estique os braços para os lados", "Faça grandes círculos no ar", "Preencha os cantos da tela com sua Aura"]
+    },
+    {
+      challengeTitle: "Desenho Rítmico",
+      challengeDescription: "Crie linhas retas seguindo a batida sonora.",
+      challengeType: "sensory_art",
       difficulty: "medium",
       ludoCoinsReward: 40,
       isLudicDrawing: true,
-      steps: ["Posicione-se em um local com espaço", "Mova os braços em 5 direções para formar a estrela", "Observe o rastro rosa se formar no visor"]
+      steps: ["Mova-se rápido para sons agudos", "Mova-se devagar para sons graves", "Tente desenhar um triângulo gigante"]
+    }
+  ],
+  'Motor': [
+    {
+      challengeTitle: "Limpador de Vidro",
+      challengeDescription: "Apague as formas geométricas que surgirem na tela.",
+      challengeType: "visuomotor",
+      difficulty: "medium",
+      ludoCoinsReward: 35,
+      isLudicDrawing: false,
+      steps: ["Encontre a forma roxa na tela", "Passe sua mão virtual sobre ela", "Repita até a tela estar limpa"]
     },
     {
-      challengeTitle: "Círculo Perfeito",
-      challengeDescription: "Gire seu corpo para criar um portal circular digital.",
-      challengeType: "creative",
-      difficulty: "easy",
-      ludoCoinsReward: 20,
-      isLudicDrawing: true,
-      steps: ["Estenda o braço dominante", "Gire 360 graus lentamente", "Feche o círculo no ponto inicial"]
+      challengeTitle: "Equilíbrio Fluido",
+      challengeDescription: "Mantenha o rastro de tinta estável no centro por 10 segundos.",
+      challengeType: "balance",
+      difficulty: "hard",
+      ludoCoinsReward: 50,
+      isLudicDrawing: false,
+      steps: ["Fique no centro da câmera", "Mantenha uma postura imóvel", "Não deixe a Aura 'vazar' para os lados"]
     }
   ],
   'Zen': [
     {
-      challengeTitle: "Estátua Urbana",
-      challengeDescription: "Fique imóvel em uma postura desafiadora.",
+      challengeTitle: "Nuvem de Respiração",
+      challengeDescription: "Mova-se lentamente para criar uma névoa suave.",
       challengeType: "breathing",
       difficulty: "easy",
       ludoCoinsReward: 20,
-      isLudicDrawing: false,
-      steps: ["Escolha uma pose de 'super-herói'", "Mantenha-se estático por 15 segundos", "Respire profundamente pelo nariz"]
-    },
-    {
-      challengeTitle: "Respiração Quadrada",
-      challengeDescription: "Sincronize sua respiração com movimentos leves de braço.",
-      challengeType: "breathing",
-      difficulty: "easy",
-      ludoCoinsReward: 15,
-      isLudicDrawing: false,
-      steps: ["Inspire subindo os braços", "Segure o ar no topo", "Expire descendo os braços lentamente"]
+      isLudicDrawing: true,
+      steps: ["Inspire levantando os braços devagar", "Expire descendo os braços", "Observe a névoa se formar suavemente"]
     }
   ],
   'Mente': [
     {
-      challengeTitle: "Sequência de Cores",
-      challengeDescription: "Toque em objetos de cores específicas ao seu redor.",
-      challengeType: "memory_game",
+      challengeTitle: "Simão Sensorial",
+      challengeDescription: "Repita a sequência de posições que a Aura mostrar.",
+      challengeType: "memory",
       difficulty: "medium",
-      ludoCoinsReward: 30,
+      ludoCoinsReward: 40,
       isLudicDrawing: false,
-      steps: ["Encontre algo Verde, depois algo Branco", "Toque neles nessa ordem exata", "Volte para a posição inicial com um pulo"]
-    },
-    {
-      challengeTitle: "Mestre dos Pontos",
-      challengeDescription: "Lembre-se da posição de 3 objetos e toque neles de olhos fechados.",
-      challengeType: "memory_game",
-      difficulty: "hard",
-      ludoCoinsReward: 50,
-      isLudicDrawing: false,
-      steps: ["Aponte para 3 móveis/objetos", "Feche os olhos", "Tente tocar em cada um deles sem abrir os olhos"]
+      steps: ["Observe onde a luz pisca", "Leve sua mão até esse ponto", "Repita a sequência de 3 pontos"]
     }
   ]
 };
