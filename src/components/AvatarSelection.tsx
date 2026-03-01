@@ -93,7 +93,7 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
         <FolderOpen className="w-16 h-16 text-primary/20 mb-4" />
         <h3 className="text-xl font-black uppercase text-foreground/40 mb-2">Sem Heróis Ativos</h3>
         <p className="text-[10px] font-bold text-muted-foreground uppercase max-w-xs mx-auto mb-6">
-          Adicione suas fotos (qualquer nome) em: <br/> 
+          Adicione suas fotos (qualquer nome/extensão) em: <br/> 
           <span className="text-primary font-mono select-all">public/assets/avatars</span>
         </p>
         <button onClick={fetchAvatars} className="flex items-center gap-2 text-[10px] font-black uppercase text-primary border-b border-primary">
@@ -119,7 +119,6 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
       </div>
       
       <div className="relative flex justify-center items-center h-[420px]">
-        {/* Aura Pulsante de Fundo */}
         <motion.div 
           animate={{ scale: [1, 1.1, 1], rotate: 360 }}
           transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
@@ -147,9 +146,9 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
               className="w-full h-full rounded-[4rem] bg-white shadow-[0_30px_60px_rgba(0,0,0,0.1)] flex items-center justify-center p-10 overflow-hidden border-4 border-white"
             >
               {loadError[currentAvatar] ? (
-                <div className="flex flex-col items-center gap-2 opacity-20">
+                <div className="flex flex-col items-center gap-2 opacity-20 text-center">
                   <AlertCircle className="w-12 h-12 text-red-500" />
-                  <span className="text-[8px] font-black uppercase">Arquivo não lúdico</span>
+                  <span className="text-[8px] font-black uppercase">Erro de Arquivo</span>
                 </div>
               ) : (
                 <img 
@@ -170,4 +169,3 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
     </div>
   );
 }
-

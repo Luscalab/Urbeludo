@@ -7,11 +7,12 @@ import path from 'path';
  * Caminho absoluto: public/assets/avatars
  */
 export async function GET() {
-  const avatarsDir = path.join(process.cwd(), 'public/assets/avatars');
+  const avatarsDir = path.join(process.cwd(), 'public', 'assets', 'avatars');
   
   try {
     // Garante que o diretório existe
     if (!fs.existsSync(avatarsDir)) {
+      console.warn(`Diretório não encontrado: ${avatarsDir}. Criando...`);
       fs.mkdirSync(avatarsDir, { recursive: true });
       return NextResponse.json([]);
     }

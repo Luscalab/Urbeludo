@@ -13,11 +13,11 @@ export interface AvatarAsset {
 export const FALLBACK_AVATAR_SRC = "https://picsum.photos/seed/urbeludo/400/400";
 
 /**
- * Constrói o objeto de asset para qualquer arquivo dentro de /assets/avatars/
- * @param filename O nome real do arquivo (ex: 'heroi.png', 'avatar_01.jpg')
+ * Constrói o objeto de asset para qualquer arquivo dentro de public/assets/avatars/
+ * No navegador, o caminho começa em /assets/avatars/
+ * @param filename O nome real do arquivo (ex: 'heroi.png', 'minha_foto.jpg')
  */
 export const getAvatarById = (filename: string | null | undefined): AvatarAsset => {
-  // Se o herói não estiver definido, retorna o herói de fallback
   if (!filename || filename === '') {
     return {
       id: 'placeholder',
@@ -26,11 +26,10 @@ export const getAvatarById = (filename: string | null | undefined): AvatarAsset 
     };
   }
 
-  // O Next.js serve arquivos da pasta 'public' na raiz
+  // O Next.js serve arquivos da pasta 'public' na raiz do servidor web
   return {
     id: filename,
     name: filename.split('.')[0].replace(/[-_]/g, ' '),
     src: `/assets/avatars/${filename}`
   };
 };
-
