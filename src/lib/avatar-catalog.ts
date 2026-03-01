@@ -17,7 +17,8 @@ export const FALLBACK_AVATAR_SRC = "https://picsum.photos/seed/ludo/400/400";
  * Aceita qualquer nome de arquivo que esteja na pasta /assets/avatars/
  */
 export const getAvatarById = (filename: string | null | undefined): AvatarAsset => {
-  if (!filename) {
+  // Se não houver arquivo definido ou for placeholder, tenta retornar algo seguro
+  if (!filename || filename === 'placeholder.png') {
     return {
       id: 'placeholder',
       name: 'Explorador',
@@ -25,6 +26,7 @@ export const getAvatarById = (filename: string | null | undefined): AvatarAsset 
     };
   }
 
+  // O nome do arquivo pode ser qualquer um agora, ex: "meu_heroi_99.png"
   return {
     id: filename,
     name: filename.split('.')[0].replace(/[-_]/g, ' '),

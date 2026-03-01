@@ -26,7 +26,7 @@ export function AuthInitializer({ children }: { children: React.ReactNode }) {
         }
 
         // Tenta descobrir o primeiro avatar disponível via API interna
-        let defaultAvatar = '1.png'; // Fallback clássico
+        let defaultAvatar = null; 
         try {
           const res = await fetch('/api/avatars');
           const list = await res.json();
@@ -34,7 +34,7 @@ export function AuthInitializer({ children }: { children: React.ReactNode }) {
             defaultAvatar = list[0];
           }
         } catch (e) {
-          console.warn("Não foi possível listar avatares no init, usando padrão.");
+          console.warn("Não foi possível listar avatares no init, usando placeholder.");
         }
 
         const initialData = {
@@ -46,7 +46,7 @@ export function AuthInitializer({ children }: { children: React.ReactNode }) {
           currentStreak: 0,
           hasSeenTutorial: false,
           dominantColor: '#9333ea',
-          avatar: { avatarId: defaultAvatar },
+          avatar: { avatarId: defaultAvatar || 'placeholder.png' },
           history: []
         };
         await LocalPersistence.saveProgress(initialData);
