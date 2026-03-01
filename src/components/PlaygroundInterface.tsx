@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -212,7 +211,9 @@ function BalanceGame({ onWin, auraColor }: any) {
   const [active, setActive] = useState(false);
 
   useEffect(() => {
-    if (progress >= 100) onWin();
+    if (progress >= 100) {
+      onWin();
+    }
   }, [progress, onWin]);
 
   const start = async () => {
@@ -291,6 +292,8 @@ function RhythmGame({ onWin, auraColor }: any) {
   
   const audioContextRef = useRef<AudioContext | null>(null);
   const canHitRef = useRef(true);
+  const currentAccelRef = useRef(0);
+  const wasMovingBeforePulseRef = useRef(false);
 
   const PHASES = [
     { name: 'Adagio', bpm: 60, reward: 30, goal: 5 },
@@ -348,25 +351,38 @@ function RhythmGame({ onWin, auraColor }: any) {
   useEffect(() => {
     if (!active) return;
     
-    // Motor de Pulso Rítmico
     const interval = setInterval(() => {
+      // REGRA ANTI-SPAM: Verifica se o usuário já estava balançando o celular antes da luz acender
+      // Se a aceleração atual for alta (> 15) no momento exato do início do pulso, 
+      // invalidamos esta rodada para evitar trapaça por chacoalhar contínuo.
+      if (currentAccelRef.current > 15) {
+        wasMovingBeforePulseRef.current = true;
+      } else {
+        wasMovingBeforePulseRef.current = false;
+      }
+
       setPulse(true);
-      canHitRef.current = true; // Libera acerto para esta batida
-      setTimeout(() => setPulse(false), 200); // Janela de 200ms
+      canHitRef.current = true;
+      setTimeout(() => setPulse(false), 150); // Janela mais curta (150ms) para exigir precisão
     }, (60 / currentPhase.bpm) * 1000);
 
     const handleMotion = (e: DeviceMotionEvent) => {
-      // Detecção de pico de aceleração (movimento brusco)
       const accel = Math.sqrt(
         (e.accelerationIncludingGravity?.x || 0) ** 2 +
         (e.accelerationIncludingGravity?.y || 0) ** 2 +
         (e.accelerationIncludingGravity?.z || 0) ** 2
       );
+      
+      currentAccelRef.current = accel;
 
-      // SÓ aceita o movimento se for durante o pulso (janela rítmica) E se não acertou ainda nesta batida
-      if (accel > 18 && pulse && canHitRef.current) {
+      // Só aceita o acerto se:
+      // 1. Aceleração for alta o suficiente (> 20)
+      // 2. Estiver dentro da janela de luz (pulse)
+      // 3. Ainda não houver acerto nesta batida (canHitRef)
+      // 4. O usuário NÃO estivesse balançando antes da luz (wasMovingBeforePulseRef)
+      if (accel > 20 && pulse && canHitRef.current && !wasMovingBeforePulseRef.current) {
         setHits(h => h + 1);
-        canHitRef.current = false; // Trava para um acerto por batida
+        canHitRef.current = false; 
         playSound();
         vibrate(50);
       }
@@ -412,7 +428,9 @@ function RhythmGame({ onWin, auraColor }: any) {
               <div className="h-4 bg-white/10 rounded-full overflow-hidden border border-white/5 p-1">
                  <motion.div animate={{ width: `${(hits/currentPhase.goal)*100}%` }} className="h-full bg-primary rounded-full" />
               </div>
-              <p className="text-[8px] font-black uppercase text-white/30 tracking-widest">Mova o celular no ritmo da luz!</p>
+              <p className="text-[8px] font-black uppercase text-white/30 tracking-widest">
+                Fique parado e mova APENAS na luz!
+              </p>
            </div>
         </div>
       )}
