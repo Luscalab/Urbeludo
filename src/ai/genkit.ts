@@ -8,7 +8,7 @@ import {googleAI} from '@genkit-ai/google-genai';
 export const ai = genkit({
   plugins: [
     googleAI({
-      apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY || process.env.GEMINI_API_KEY || "AIzaSyCCwhUNlhnpxjDuZ8quod7MTnde1dZJj04"
+      apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY || "AIzaSyCCwhUNlhnpxjDuZ8quod7MTnde1dZJj04"
     })
   ],
   model: 'googleai/gemini-2.5-flash',

@@ -8,7 +8,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { classifyIntent } from "@/lib/aura-brain";
 import { AuraLogger } from "@/lib/logs/aura-logger";
 
-const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
+const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "AIzaSyCCwhUNlhnpxjDuZ8quod7MTnde1dZJj04";
 const genAI = new GoogleGenerativeAI(API_KEY);
 
 export interface AuraHelperInput {
