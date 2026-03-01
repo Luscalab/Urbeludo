@@ -1,10 +1,8 @@
 'use client';
 
-import { pipeline } from '@xenova/transformers';
-
 /**
  * @fileOverview AuraBrain - Motor de Inteligência de Borda para Classificação de Intenções.
- * Utiliza Transformers.js para rodar modelos de PLN localmente no dispositivo.
+ * Versão resiliente com carregamento dinâmico para evitar erros de avaliação de módulo no Next.js/Turbopack.
  */
 
 export interface IntentAnchor {
@@ -27,29 +25,41 @@ let extractor: any = null;
 let anchorEmbeddings: Record<string, number[][]> = {};
 
 /**
- * Inicializa o modelo de extração de características.
- * O download ocorre apenas na primeira vez (aprox. 25MB).
+ * Inicializa o modelo de extração de características de forma segura.
  */
 export const initAuraBrain = async () => {
+  if (typeof window === 'undefined') return;
+  
   if (!extractor) {
-    console.log("AuraBrain: Invocando modelo de borda...");
-    extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
-    
-    // Pré-calcula os vetores das nossas âncoras para busca instantânea
-    for (const item of INTENCOES) {
-      const embeddings = [];
-      for (const example of item.examples) {
-        const output = await extractor(example, { pooling: 'mean', normalize: true });
-        embeddings.push(Array.from(output.data as Float32Array));
+    try {
+      console.log("AuraBrain: Invocando modelo de borda...");
+      // Carregamento dinâmico para evitar erros de Object.keys no Turbopack
+      const { pipeline, env } = await import('@xenova/transformers');
+      
+      // Configurações para ambiente de navegador/APK
+      env.allowLocalModels = false;
+      env.useBrowserCache = true;
+
+      extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
+      
+      // Pré-calcula os vetores das nossas âncoras
+      for (const item of INTENCOES) {
+        const embeddings = [];
+        for (const example of item.examples) {
+          const output = await extractor(example, { pooling: 'mean', normalize: true });
+          embeddings.push(Array.from(output.data as Float32Array));
+        }
+        anchorEmbeddings[item.id] = embeddings;
       }
-      anchorEmbeddings[item.id] = embeddings;
+      console.log("AuraBrain: Sincronização de borda completa.");
+    } catch (err) {
+      console.error("Erro crítico ao inicializar Transformers.js:", err);
     }
-    console.log("AuraBrain: Sincronização de borda completa.");
   }
 };
 
 /**
- * Calcula a similaridade de cosseno entre dois vetores.
+ * Calcula a similaridade de cosseno.
  */
 function cosineSimilarity(vecA: number[], vecB: number[]) {
   let dotProduct = 0;
@@ -60,16 +70,19 @@ function cosineSimilarity(vecA: number[], vecB: number[]) {
     magA += vecA[i] * vecA[i];
     magB += vecB[i] * vecB[i];
   }
-  return dotProduct / (Math.sqrt(magA) * Math.sqrt(magB));
+  const magnitude = Math.sqrt(magA) * Math.sqrt(magB);
+  return magnitude === 0 ? 0 : dotProduct / magnitude;
 }
 
 /**
- * Classifica a intenção do usuário comparando o significado da frase com as âncoras.
+ * Classifica a intenção usando embeddings semânticos.
  */
 export const classifyIntent = async (userText: string): Promise<string> => {
   try {
     await initAuraBrain();
     
+    if (!extractor) return 'fallback';
+
     const output = await extractor(userText, { pooling: 'mean', normalize: true });
     const userVector = Array.from(output.data as Float32Array);
 
@@ -84,10 +97,9 @@ export const classifyIntent = async (userText: string): Promise<string> => {
       }
     }
 
-    // Limiar de confiança de 0.7 para respostas determinísticas
     return bestMatch.score > 0.7 ? bestMatch.id : 'fallback';
   } catch (error) {
-    console.error("AuraBrain Error:", error);
+    console.error("AuraBrain Classification Error:", error);
     return 'fallback';
   }
 };
