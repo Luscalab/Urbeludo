@@ -23,7 +23,7 @@ export interface StudioItem {
   category: ItemCategory;
   price: number;
   description: string;
-  assetPath: string; // Caminho em /public/assets/studio/ ou DataURI (Base64)
+  assetPath: string;
   dimensions: {
     width: number;
     height: number;
@@ -50,9 +50,9 @@ export interface PlacedItem {
  * Estado completo do Estúdio para persistência no banco de dados local.
  */
 export interface StudioState {
-  unlockedItemIds: string[];
-  placedItems: PlacedItem[];
-  customItems?: StudioItem[]; // Armazena itens criados por IA
+  unlockedItemIds: string[]; // Itens que o usuário comprou mas não posicionou (mochila)
+  placedItems: PlacedItem[]; // Itens atualmente no cenário
+  customItems?: StudioItem[]; // Itens criados por IA
   backgroundId: string;
   worldConfig: {
     width: number;
@@ -79,7 +79,7 @@ export interface UserProgress {
   hasSeenTutorial: boolean;
   avatar: {
     energy: number;
-    avatarId: string; // ID do avatar escolhido no catálogo
+    avatarId: string;
     unlockedItems: string[];
     equippedItems: string[];
     studioLevel: number;

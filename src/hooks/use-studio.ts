@@ -10,7 +10,7 @@ const GRID_SIZE = 40;
 const WORLD_SIZE = 1500;
 
 /**
- * Hook de Gerenciamento do Estúdio (Sims Engine).
+ * Hook de Gerenciamento do Estúdio (Engine Estilo Cafeland/Sims).
  * Lida com posicionamento isométrico, inventário e persistência local.
  */
 export function useStudio() {
@@ -63,7 +63,6 @@ export function useStudio() {
           ? { 
               ...item, 
               position: { x: snappedX, y: snappedY }, 
-              // Depth sorting: maior Y fica na frente (maior zIndex)
               zIndex: Math.floor(snappedY) 
             } 
           : item
@@ -128,7 +127,7 @@ export function useStudio() {
       const xPos = snapToGrid(WORLD_SIZE / 2);
       
       const newItem: PlacedItem = {
-        instanceId: `sims-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
+        instanceId: `inst-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
         itemId,
         position: { x: xPos, y: yPos },
         zIndex: Math.floor(yPos),
@@ -175,7 +174,7 @@ export function useStudio() {
     
     const profile = await LocalPersistence.getProgress();
     const currentCoins = profile?.ludoCoins || 0;
-    const refund = catalogItem ? Math.floor(catalogItem.price * 0.7) : 0; // Reembolso maior
+    const refund = catalogItem ? Math.floor(catalogItem.price * 0.5) : 0;
 
     setStudioState(prev => {
       const updatedPlacedItems = prev.placedItems.filter(item => item.instanceId !== instanceId);

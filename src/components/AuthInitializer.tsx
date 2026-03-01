@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -7,7 +8,7 @@ import { FALLBACK_AVATAR } from '@/lib/avatar-catalog';
 
 /**
  * Componente que garante a inicialização correta do estado do usuário.
- * Corrigido para remover importações obsoletas e usar o sistema dinâmico.
+ * Corrigido para remover importações de arquivos inexistentes e garantir robustez.
  */
 export function AuthInitializer({ children }: { children: React.ReactNode }) {
   const [isReady, setIsReady] = useState(false);
@@ -20,11 +21,12 @@ export function AuthInitializer({ children }: { children: React.ReactNode }) {
         uid = `URBE_${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
         await LocalPersistence.saveUserId(uid);
         
+        // Dados iniciais inspirados no padrão de progressão Cafeland/Sims
         const initialData = {
           id: uid,
           displayName: `Explorador_${uid.slice(-4)}`,
           bio: "Explorador Independente UrbeLudo 🌍",
-          ludoCoins: 500,
+          ludoCoins: 750, // Capital inicial para decoração
           psychomotorLevel: 1,
           totalChallengesCompleted: 0,
           currentStreak: 0,
@@ -37,16 +39,16 @@ export function AuthInitializer({ children }: { children: React.ReactNode }) {
           avatar: {
             energy: 100,
             avatarId: FALLBACK_AVATAR.id,
-            unlockedItems: ['cama-01'],
+            unlockedItems: ['cama-01', 'tapete-01'], // Mochila inicial
             equippedItems: [],
             studioLevel: 1
           },
           studioState: {
-            unlockedItemIds: ['tapete-01'],
+            unlockedItemIds: ['vaso-01'],
             placedItems: [],
             backgroundId: 'default',
             worldConfig: { width: 1200, height: 1200, theme: 'minimalist-purple' },
-            avatar: { lastPosition: { x: 600, y: 800 } }
+            avatar: { lastPosition: { x: 750, y: 1000 } }
           },
           dailyCycle: {
             homeMissionCompleted: false,
@@ -66,9 +68,14 @@ export function AuthInitializer({ children }: { children: React.ReactNode }) {
   if (!isReady) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest italic">Iniciando Sensor de Borda...</p>
+        <div className="flex flex-col items-center gap-6">
+          <div className="p-8 bg-primary/10 rounded-[3rem] animate-pulse">
+            <Loader2 className="w-10 h-10 animate-spin text-primary" />
+          </div>
+          <div className="text-center space-y-1">
+            <p className="text-[10px] font-black uppercase text-primary tracking-[0.4em] italic">Carregando Estúdio</p>
+            <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest opacity-60">Sincronizando Identidade Digital...</p>
+          </div>
         </div>
       </div>
     );
