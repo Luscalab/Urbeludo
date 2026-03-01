@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -22,6 +21,7 @@ import { useI18n } from '@/components/I18nProvider';
 import { LanguageSelector } from '@/components/LanguageSelector';
 import { AccessibilityToolbar } from '@/components/AccessibilityToolbar';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { cn } from '@/lib/utils';
 
 export default function Home() {
   const { t } = useI18n();
