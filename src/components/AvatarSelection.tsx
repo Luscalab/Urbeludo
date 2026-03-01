@@ -24,7 +24,7 @@ interface AvatarSelectionProps {
 /**
  * Seletor de Avatar Gigante e Imersivo.
  * Otimizado para visualização de "Heróis Ludo" com estética Cyber-Orgânica.
- * Busca assets diretamente de /assets/studio/avatares/
+ * Busca assets diretamente de /assets/avatars/
  */
 export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionProps) {
   const [avatars, setAvatars] = useState<string[]>([]);
@@ -89,7 +89,7 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
   }
 
   const currentAvatar = avatars[currentIndex] || '1.png';
-  const avatarPath = `/assets/studio/avatares/${currentAvatar}`;
+  const avatarPath = `/assets/avatars/${currentAvatar}`;
 
   return (
     <div className="w-full space-y-12 relative select-none max-w-2xl mx-auto">

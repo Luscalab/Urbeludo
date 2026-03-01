@@ -61,7 +61,7 @@ export default function StudioPage() {
     }
   };
 
-  const avatarSrc = `/assets/studio/avatares/${profile?.avatar?.avatarId || '1.png'}`;
+  const avatarSrc = `/assets/avatars/${profile?.avatar?.avatarId || '1.png'}`;
   const auraColor = profile?.dominantColor || '#9333ea';
   const avatarPos = studioState.avatar.lastPosition;
   const isSapient = profile?.displayName?.toLowerCase() === 'sapient';

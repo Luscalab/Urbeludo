@@ -1,7 +1,7 @@
 
 /**
  * Utilitário para o catálogo de avatares do UrbeLudo.
- * Centraliza o caminho dos assets localizados em public/assets/studio/avatares.
+ * Centraliza o caminho dos assets localizados em public/assets/avatars.
  */
 
 export interface AvatarAsset {
@@ -14,18 +14,18 @@ export interface AvatarAsset {
 export const FALLBACK_AVATAR = {
   id: '1.png',
   name: 'Explorador Alfa',
-  src: '/assets/studio/avatares/1.png'
+  src: '/assets/avatars/1.png'
 };
 
 /**
  * Mapeia um ID de arquivo para um objeto de asset completo.
- * @param filename Nome do arquivo na pasta public/assets/studio/avatares
+ * @param filename Nome do arquivo na pasta public/assets/avatars
  */
 export const getAvatarById = (filename: string) => {
   if (!filename) return FALLBACK_AVATAR;
   return {
     id: filename,
     name: `Herói ${filename.split('.')[0]}`,
-    src: `/assets/studio/avatares/${filename}`
+    src: `/assets/avatars/${filename}`
   };
 };
