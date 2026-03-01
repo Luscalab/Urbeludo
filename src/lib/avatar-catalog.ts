@@ -1,6 +1,7 @@
+
 /**
- * Utilitário para o catálogo de avatares dinâmico do UrbeLudo.
- * Aceita qualquer arquivo presente em public/assets/avatars.
+ * Utilitário de Catálogo de Avatares Dinâmico.
+ * Converte qualquer nome de arquivo em um caminho de imagem válido no navegador.
  */
 
 export interface AvatarAsset {
@@ -9,13 +10,10 @@ export interface AvatarAsset {
   src: string;
 }
 
-// Fallback visual absoluto caso nenhum arquivo seja encontrado
 export const FALLBACK_AVATAR_SRC = "https://picsum.photos/seed/urbeludo/400/400";
 
 /**
- * Constrói o objeto de asset para qualquer arquivo dentro de public/assets/avatars/
- * No navegador, o caminho começa em /assets/avatars/
- * @param filename O nome real do arquivo (ex: 'heroi.png', 'minha_foto.jpg')
+ * Resolve o caminho da imagem baseando-se no nome do arquivo dentro de public/assets/avatars/
  */
 export const getAvatarById = (filename: string | null | undefined): AvatarAsset => {
   if (!filename || filename === '') {
@@ -26,8 +24,16 @@ export const getAvatarById = (filename: string | null | undefined): AvatarAsset 
     };
   }
 
-  // O Next.js serve arquivos da pasta 'public' na raiz do servidor web.
-  // IMPORTANTE: O caminho deve ser relativo à raiz do servidor web.
+  // Se o id já for uma URL (caso de IA ou externas), mantém
+  if (filename.startsWith('http') || filename.startsWith('data:')) {
+    return {
+      id: filename,
+      name: 'Avatar Especial',
+      src: filename
+    };
+  }
+
+  // O Next.js serve a pasta public na raiz do servidor web
   return {
     id: filename,
     name: filename.split('.')[0].replace(/[-_]/g, ' '),
