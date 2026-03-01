@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -8,15 +9,15 @@ import { History, LayoutDashboard, Loader2, Bug } from 'lucide-react';
 import { useState } from 'react';
 import { useUser, useDoc, useMemoFirebase } from '@/firebase';
 
-// Carregamento dinâmico do PlaygroundInterface com SSR desativado.
+// Carregamento dinâmico do PlaygroundInterface com SSR desativado para evitar erros de Web Audio/Media no server
 const PlaygroundInterface = dynamic(
   () => import('@/components/PlaygroundInterface').then(mod => mod.PlaygroundInterface),
   { 
     ssr: false,
     loading: () => (
-      <div className="flex-1 flex flex-col items-center justify-center bg-background">
+      <div className="flex-1 flex flex-col items-center justify-center bg-slate-950">
         <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
-        <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Iniciando Motor de Visão...</p>
+        <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Ativando Laboratório de Aura...</p>
       </div>
     )
   }
@@ -31,11 +32,11 @@ export default function PlaygroundPage() {
   const isSapient = profile?.displayName?.toLowerCase() === 'sapient';
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <header className="px-6 h-20 flex items-center border-b bg-background/80 backdrop-blur-md z-50">
-        <Link href="/" className="flex items-center gap-2">
+    <div className="min-h-screen bg-slate-950 flex flex-col">
+      <header className="px-6 h-20 flex items-center border-b border-white/5 bg-black/40 backdrop-blur-md z-50">
+        <Link href="/dashboard" className="flex items-center gap-2">
           <UrbeLudoLogo className="w-8 h-8 text-primary" />
-          <span className="text-lg font-headline font-bold tracking-tight hidden sm:inline-block">UrbeLudo</span>
+          <span className="text-lg font-black uppercase italic tracking-tighter text-white hidden sm:inline-block">Playground</span>
         </Link>
         <div className="ml-auto flex gap-2 items-center">
           {isSapient && (
@@ -43,26 +44,20 @@ export default function PlaygroundPage() {
               variant="ghost" 
               size="icon" 
               onClick={() => setDebugActive(!debugActive)}
-              className={debugActive ? "text-accent" : "text-muted-foreground"}
+              className={debugActive ? "text-accent" : "text-white/40"}
             >
               <Bug className="w-5 h-5" />
             </Button>
           )}
-           <Button asChild variant="ghost" size="sm" className="hidden sm:flex">
-            <Link href="/history">
-              <History className="w-4 h-4 mr-2" /> History
-            </Link>
-          </Button>
-          <Button asChild variant="secondary" size="sm" className="bg-primary/10 text-primary hover:bg-primary/20">
+          <Button asChild variant="secondary" size="sm" className="bg-primary/10 text-primary hover:bg-primary/20 rounded-full font-black uppercase text-[10px]">
             <Link href="/dashboard">
-              <LayoutDashboard className="w-4 h-4 mr-2" /> Dashboard
+              <LayoutDashboard className="w-4 h-4 mr-2" /> Painel
             </Link>
           </Button>
         </div>
       </header>
 
-      <main className="flex-1 relative flex flex-col">
-        {/* Passamos o debugActive para a interface via contexto ou prop se necessário */}
+      <main className="flex-1 relative flex flex-col overflow-hidden">
         <PlaygroundInterface debugMode={debugActive} />
       </main>
     </div>
