@@ -20,7 +20,8 @@ import {
   Coins,
   Volume2,
   AlertCircle,
-  Loader2
+  Loader2,
+  Camera
 } from 'lucide-react';
 
 import { useUser, useDoc, useMemoFirebase } from '@/firebase';
@@ -88,7 +89,7 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
     };
   }, [profile, searchParams]);
 
-  // 2. Inicialização Segura de Áudio (Padrão Web Audio)
+  // 2. Inicialização de Áudio (Sempre por gesto do usuário)
   const initAudio = () => {
     try {
       if (!audioContextRef.current) {
@@ -111,19 +112,16 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
     const ctx = audioContextRef.current;
     const now = ctx.currentTime;
 
-    // Throttle para evitar a "metralhadora" de som
     if (now - lastBeepTimeRef.current < 0.15) return;
     lastBeepTimeRef.current = now;
 
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     
-    // Mapeia X para frequência (Grave na esquerda, Agudo na direita)
     const freq = 150 + (x / width) * 600;
     osc.type = 'sine';
     osc.frequency.setValueAtTime(freq, now);
     
-    // Envelope de Volume (Fade Out)
     gain.gain.setValueAtTime(0, now);
     gain.gain.linearRampToValueAtTime(0.1, now + 0.05);
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
@@ -135,31 +133,23 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
     osc.stop(now + 0.5);
   };
 
-  // 3. Inicialização da Neblina Digital (Modo de Revelação)
   const initFog = useCallback(() => {
     const fogCanvas = fogCanvasRef.current;
     if (!fogCanvas) return;
     const ctx = fogCanvas.getContext('2d');
     if (!ctx) return;
     
-    // Limpa e preenche com a cor da Aura
     ctx.globalCompositeOperation = 'source-over';
     ctx.fillStyle = avatarColor;
     ctx.globalAlpha = 1.0;
     ctx.fillRect(0, 0, fogCanvas.width, fogCanvas.height);
     
-    // Overlay sutil para textura
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
-    for(let i=0; i<10; i++) {
-       ctx.fillRect(Math.random()*fogCanvas.width, Math.random()*fogCanvas.height, 100, 100);
-    }
-
     setGrid(new Array(100).fill(false));
     setProgress(0);
     setCelebrating(false);
   }, [avatarColor]);
 
-  // 4. Motor de Visão Computacional de Borda (Frame Differencing)
+  // Motor de Processamento
   const processFrame = useCallback(() => {
     if (!videoRef.current || !canvasRef.current || !fogCanvasRef.current || !isPlaying) return;
 
@@ -175,7 +165,6 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
       return;
     }
 
-    // Ajusta tamanho se necessário
     if (canvas.width !== video.videoWidth) {
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
@@ -184,7 +173,6 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
       initFog();
     }
 
-    // Captura o frame atual
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     const currentFrame = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
@@ -193,7 +181,6 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
       let motionSumY = 0;
       let motionCount = 0;
 
-      // Amostragem para performance (skip de 40px)
       for (let i = 0; i < currentFrame.data.length; i += 160) { 
         const diff = Math.abs(currentFrame.data[i] - lastFrameRef.current.data[i]) +
                      Math.abs(currentFrame.data[i+1] - lastFrameRef.current.data[i+1]) +
@@ -209,13 +196,11 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
         }
       }
 
-      // Se houver movimento significativo
       if (motionCount > 50) {
         const centerX = motionSumX / motionCount;
         const centerY = motionSumY / motionCount;
         const intensity = motionCount / (canvas.width * canvas.height / 800);
 
-        // A MÁGICA: Apaga a neblina onde há movimento
         fogCtx.globalCompositeOperation = 'destination-out';
         fogCtx.beginPath();
         const brushSize = 40 + (intensity * 100);
@@ -224,7 +209,6 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
         
         playSymphony(centerX, canvas.width, intensity);
 
-        // Atualiza o Grid de Vitória (10x10)
         const gx = Math.floor((centerX / canvas.width) * 10);
         const gy = Math.floor((centerY / canvas.height) * 10);
         const gridIdx = Math.max(0, Math.min(99, gy * 10 + gx));
@@ -248,15 +232,17 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
   }, [isPlaying, initFog, celebrating]);
 
   const startCamera = async () => {
+    // 1. Desbloqueia Áudio
     initAudio();
     setErrorMessage(null);
     setIsCameraReady(false);
 
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error("Câmera não suportada neste dispositivo.");
+        throw new Error("Seu dispositivo não suporta a visualização da câmera.");
       }
 
+      // 2. Solicita Hardware
       const stream = await navigator.mediaDevices.getUserMedia({ 
         video: { 
           facingMode: 'user', 
@@ -280,11 +266,11 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
         };
       }
     } catch (err: any) {
-      console.error("Erro na Câmera:", err);
+      console.error("Falha na Câmera:", err);
       if (err.name === 'NotAllowedError') {
-        setErrorMessage("Permissão Negada. Libere o acesso à câmera.");
+        setErrorMessage("Acesso Negado. Por favor, libere a câmera nas configurações.");
       } else {
-        setErrorMessage(`Falha no Sensor: ${err.message}`);
+        setErrorMessage(`Sensor indisponível: ${err.message}`);
       }
     }
   };
@@ -322,7 +308,7 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
   }, [isPlaying, isCameraReady, processFrame]);
 
   const handleSaveProfile = async () => {
-    initAudio(); // Ativa áudio no clique
+    initAudio();
     if (!termsAccepted || !explorerName.trim()) {
       toast({ variant: 'destructive', title: "Atenção", description: "Complete seu perfil para entrar." });
       return;
@@ -347,7 +333,7 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
       <AnimatePresence>
         {!showGuide && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="relative w-full h-full bg-black overflow-hidden z-10">
-            {/* Tag Video Oculta e Blindada para APK */}
+            {/* Tag Video Blindada para Capacitor */}
             <video 
               ref={videoRef} 
               autoPlay 
@@ -358,12 +344,12 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
             
             {/* Feedback de Erro */}
             {errorMessage && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-[100] p-8 text-center">
-                <div className="bg-red-600 p-8 rounded-[3rem] text-white shadow-2xl max-w-sm border-4 border-white">
-                  <AlertCircle className="w-12 h-12 mx-auto mb-4" />
-                  <h2 className="text-xl font-black uppercase mb-2">Sensor Falhou</h2>
-                  <p className="text-xs font-bold mb-6">{errorMessage}</p>
-                  <Button onClick={startCamera} className="w-full bg-white text-red-600 font-black rounded-full">Tentar Novamente</Button>
+              <div className="absolute inset-0 flex items-center justify-center bg-black/90 z-[100] p-8 text-center">
+                <div className="bg-white p-8 rounded-[3rem] text-black shadow-2xl max-w-sm border-b-8 border-zinc-200">
+                  <AlertCircle className="w-12 h-12 mx-auto mb-4 text-red-500" />
+                  <h2 className="text-xl font-black uppercase mb-2">Ops! Sensor Bloqueado</h2>
+                  <p className="text-[10px] font-bold mb-6 uppercase text-muted-foreground">{errorMessage}</p>
+                  <Button onClick={startCamera} className="w-full h-14 bg-primary text-white font-black rounded-full uppercase">Tentar Novamente</Button>
                 </div>
               </div>
             )}
@@ -376,10 +362,10 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
               </div>
             )}
 
-            {/* Camada 1: Câmera (Onde o movimento é detectado) */}
+            {/* Camadas de Canvas */}
             <canvas ref={canvasRef} className="absolute inset-0 w-full h-full object-cover scale-x-[-1] opacity-0" />
             
-            {/* Camada 2: O Vídeo Real revelado */}
+            {/* O Vídeo Real revelado */}
             <div className="absolute inset-0 w-full h-full">
                <video 
                  autoPlay 
@@ -390,7 +376,6 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
                />
             </div>
 
-            {/* Camada 3: A Neblina da Aura que será apagada */}
             <canvas 
               ref={fogCanvasRef} 
               className={cn(
@@ -399,7 +384,7 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
               )} 
             />
             
-            {/* HUD de Jogo Superior */}
+            {/* HUD de Jogo */}
             <div className="absolute top-0 inset-x-0 z-30 p-8 pointer-events-none flex flex-col gap-6">
                <div className="flex justify-between items-center">
                   <div className="bg-black/60 backdrop-blur-xl px-6 py-3 rounded-[1.5rem] border border-white/20 text-white flex items-center gap-3 shadow-2xl">
@@ -426,16 +411,10 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
                </div>
             </div>
 
-            {/* HUD de Controles Inferiores */}
             <div className="absolute bottom-12 inset-x-0 z-30 pointer-events-auto flex justify-center gap-6">
-               {!isPlaying && !celebrating && isCameraReady && (
-                 <Button onClick={() => setIsPlaying(true)} className="h-24 w-24 rounded-full bg-primary shadow-2xl border-4 border-white active:scale-95 group">
-                    <PlayIcon className="w-10 h-10 fill-current group-hover:scale-110 transition-transform" />
-                 </Button>
-               )}
                {isPlaying && (
-                 <Button onClick={() => initFog()} variant="secondary" className="h-16 w-16 rounded-full bg-white/20 backdrop-blur-xl border-2 border-white/40 shadow-2xl text-white">
-                    <Eraser className="w-6 h-6" />
+                 <Button onClick={() => initFog()} variant="secondary" className="h-20 w-20 rounded-full bg-white/20 backdrop-blur-xl border-2 border-white/40 shadow-2xl text-white">
+                    <Eraser className="w-8 h-8" />
                  </Button>
                )}
             </div>
@@ -488,21 +467,25 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
           <div className="max-w-lg mx-auto py-20 text-center space-y-12">
              <div className="bg-primary/5 p-12 rounded-[4rem] border-4 border-dashed border-primary/20 space-y-8 shadow-2xl">
                 <div className="w-24 h-24 bg-primary/20 rounded-[2.5rem] flex items-center justify-center mx-auto shadow-inner">
-                   <Zap className="w-12 h-12 text-primary animate-pulse" />
+                   <Camera className="w-12 h-12 text-primary animate-pulse" />
                 </div>
-                <h4 className="text-3xl font-black uppercase italic tracking-tighter">O Espelho está pronto</h4>
-                <p className="text-xs font-bold text-muted-foreground uppercase leading-relaxed max-w-[280px] mx-auto opacity-70">
-                  Mova seu corpo para apagar a neblina e revelar a imagem. Cuidado: o som reage a você!
+                <h4 className="text-3xl font-black uppercase italic tracking-tighter leading-none">Desbloquear Espelho</h4>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase leading-relaxed max-w-[280px] mx-auto opacity-70 tracking-widest">
+                  Para iniciar a brincadeira, precisamos da sua permissão para usar o sensor de movimento (câmera).
                 </p>
                 <div className="pt-6">
-                   <Button onClick={startCamera} className="rounded-full px-16 h-16 font-black uppercase bg-primary shadow-xl">Ativar Sensor</Button>
+                   <Button 
+                     onClick={startCamera} 
+                     className="rounded-[2.5rem] px-16 h-20 font-black uppercase bg-primary shadow-xl border-b-8 border-primary/70 active:border-b-0 active:translate-y-2 transition-all text-lg"
+                   >
+                     LIGAR ESPELHO MÁGICO
+                   </Button>
                 </div>
              </div>
           </div>
         )}
       </div>
 
-      {/* Celebração de Vitória */}
       <AnimatePresence>
         {celebrating && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[250] bg-primary/95 backdrop-blur-[60px] flex flex-col items-center justify-center text-white p-12 text-center">
