@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -607,14 +608,15 @@ function VoiceGame({ onWin, auraColor, ludoCoins, userName }: { onWin: (reward: 
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [aiReport, setAiReport] = useState<AuraBotReport | null>(null);
   const [attempts, setAttempts] = useState(1);
+  const [accumulatedVolume, setAccumulatedVolume] = useState(0);
+  const [sampleCount, setSampleCount] = useState(0);
   
   const { volume, isSinging, error } = useAudioProcessor(active);
-  const sustensionSecondsRef = useRef(0);
 
   const VOICE_LEVELS = [
-    { name: 'Andar 1: Brisa Suave', duration: 5, range: { min: 10, max: 45 }, reward: 30, benefit: "Sustentação básica e controle respiratório." },
-    { name: 'Andar 2: Eco da Torre', duration: 8, range: { min: 20, max: 60 }, reward: 50, benefit: "Fortalecimento da musculatura vocal." },
-    { name: 'Andar 3: Maestro Ludo', duration: 12, range: { min: 35, max: 80 }, reward: 80, benefit: "Controle preciso de intensidade e fôlego." }
+    { name: 'Andar 1: Brisa Suave', duration: 5, range: { min: 15, max: 45 }, reward: 30, benefit: "Sustentação básica e controle respiratório." },
+    { name: 'Andar 2: Eco da Torre', duration: 8, range: { min: 25, max: 60 }, reward: 50, benefit: "Fortalecimento da musculatura vocal." },
+    { name: 'Andar 3: Maestro Ludo', duration: 12, range: { min: 40, max: 80 }, reward: 80, benefit: "Controle preciso de intensidade e fôlego." }
   ];
 
   const currentLevel = VOICE_LEVELS[phaseIdx];
@@ -622,21 +624,20 @@ function VoiceGame({ onWin, auraColor, ludoCoins, userName }: { onWin: (reward: 
   const start = () => {
     setChestOpen(false);
     setSustensionProgress(0);
-    sustensionSecondsRef.current = 0;
+    setAccumulatedVolume(0);
+    setSampleCount(0);
     setActive(true);
   };
 
-  const handleLevelComplete = useCallback(async () => {
+  const handleLevelComplete = useCallback(async (avgVol: number) => {
     setActive(false);
     setChestOpen(true);
     setIsGeneratingReport(true);
     
     try {
-      const avgVol = Math.round(currentLevel.range.min + (currentLevel.range.max - currentLevel.range.min) / 2);
-      
       // 1. Gera relatório IA (Gemini Client-Side)
       const report = await generateAuraBotReport({
-        avgVolume: avgVol,
+        avgVolume: Math.round(avgVol),
         sustainTime: currentLevel.duration,
         attempts: attempts,
         levelName: currentLevel.name
@@ -648,7 +649,7 @@ function VoiceGame({ onWin, auraColor, ludoCoins, userName }: { onWin: (reward: 
       await saveToSheets({
         paciente: userName,
         fase: currentLevel.name,
-        volume: avgVol,
+        volume: Math.round(avgVol),
         sustentacao: currentLevel.duration,
         tentativas: attempts,
         feedback: report.childFeedback,
@@ -665,29 +666,36 @@ function VoiceGame({ onWin, auraColor, ludoCoins, userName }: { onWin: (reward: 
   useEffect(() => {
     if (!active || showTransition) return;
 
-    const isInRange = volume > currentLevel.range.min / 3 && volume < currentLevel.range.max;
+    // Lógica da Zona de Estabilidade Biomecânica
+    const isInRange = volume >= currentLevel.range.min && volume <= currentLevel.range.max;
     
     const interval = setInterval(() => {
       if (isInRange) {
+        setAccumulatedVolume(v => v + volume);
+        setSampleCount(c => c + 1);
+        
         setSustensionProgress(p => {
           const next = p + (100 / (currentLevel.duration * 10)); 
           if (next >= 100) { 
-            handleLevelComplete();
+            const finalAvg = sampleCount > 0 ? (accumulatedVolume + volume) / (sampleCount + 1) : volume;
+            handleLevelComplete(finalAvg);
             return 100; 
           }
           return next;
         });
       } else if (!isExplorationMode) {
-        setSustensionProgress(p => Math.max(0, p - 0.6)); 
-        // Se a queda for total, conta como uma tentativa frustrada se já tinha começado
-        if (sustensionProgress > 10 && volume < 5) {
+        // Penalidade por sair da zona (Sistema de Biofeedback)
+        setSustensionProgress(p => Math.max(0, p - 0.8)); 
+        
+        // Se o silêncio for detectado após algum progresso, conta como tentativa
+        if (sustensionProgress > 15 && volume < 5) {
             setAttempts(a => a + 1);
         }
       }
     }, 100);
 
     return () => { if (interval) clearInterval(interval); };
-  }, [active, volume, currentLevel, isExplorationMode, handleLevelComplete, showTransition, sustensionProgress]);
+  }, [active, volume, currentLevel, isExplorationMode, handleLevelComplete, showTransition, sustensionProgress, accumulatedVolume, sampleCount]);
 
   const nextLevel = () => {
     setAiReport(null);
@@ -718,7 +726,7 @@ function VoiceGame({ onWin, auraColor, ludoCoins, userName }: { onWin: (reward: 
           {error && (
             <Alert variant="destructive" className="mb-6 rounded-3xl border-2 bg-red-950/20">
               <AlertTriangle className="h-4 w-4" />
-              <AlertTitle className="text-xs">Atenção</AlertTitle>
+              <AlertTitle className="text-xs uppercase font-black">Hardware Ocupado</AlertTitle>
               <AlertDescription className="text-[10px] font-bold uppercase">{error}</AlertDescription>
             </Alert>
           )}
@@ -729,7 +737,7 @@ function VoiceGame({ onWin, auraColor, ludoCoins, userName }: { onWin: (reward: 
           <div className="space-y-4">
             <h2 className="text-4xl font-black text-white uppercase italic tracking-tighter">Elevador de Voz</h2>
             <div className="p-4 bg-white/5 rounded-2xl border border-white/10 text-[9px] font-bold text-white/60 uppercase tracking-widest leading-relaxed">
-              Suba na torre usando sua voz! Mantenha a intensidade na zona verde para abrir o baú.
+              Suba na torre usando sua voz! Mantenha a intensidade entre {currentLevel.range.min}% e {currentLevel.range.max}% para abrir o baú.
             </div>
           </div>
           <div className="flex flex-col gap-4">
@@ -744,12 +752,16 @@ function VoiceGame({ onWin, auraColor, ludoCoins, userName }: { onWin: (reward: 
       ) : (
         <div className="relative w-full max-w-lg h-full flex items-center justify-center">
           
+          {/* Medidor de Volume Bio-Visual */}
           <div className="absolute left-8 top-1/2 -translate-y-1/2 w-20 z-30">
             <div className="relative">
               <img src={VOICE_ASSETS.medidor} alt="Volume" className="w-full h-auto" />
               <div 
-                className="absolute bottom-[12%] left-1/2 -translate-x-1/2 w-3 bg-cyan-400 shadow-[0_0_15px_cyan] transition-all duration-100 rounded-full"
-                style={{ height: `${volume * 1.1}%` }}
+                className={cn(
+                  "absolute bottom-[12%] left-1/2 -translate-x-1/2 w-3 shadow-[0_0_15px] transition-all duration-100 rounded-full",
+                  volume >= currentLevel.range.min && volume <= currentLevel.range.max ? "bg-cyan-400 shadow-cyan-400" : "bg-red-400 shadow-red-400"
+                )}
+                style={{ height: `${volume}%` }}
               />
             </div>
           </div>
@@ -757,6 +769,7 @@ function VoiceGame({ onWin, auraColor, ludoCoins, userName }: { onWin: (reward: 
           <div className="absolute left-1/2 bottom-0 -translate-x-1/2 h-[85%] z-10 flex items-center justify-center">
              <img src={VOICE_ASSETS.torre} alt="" className="h-full w-auto object-contain filter drop-shadow-[0_0_30px_rgba(255,255,255,0.1)]" />
              
+             {/* Zona de Estabilidade Visual */}
              <motion.div 
                animate={{ y: 150 - (currentLevel.range.min * 1.5) }}
                className="absolute inset-x-8 h-24 bg-green-500/10 border-y-2 border-green-500/30 backdrop-blur-sm flex items-center justify-center rounded-2xl"
@@ -832,6 +845,7 @@ function VoiceGame({ onWin, auraColor, ludoCoins, userName }: { onWin: (reward: 
         </div>
       )}
 
+      {/* Relatório de Vitória e IA */}
       <AnimatePresence>
         {showTransition && (
           <motion.div 

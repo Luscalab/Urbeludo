@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -5,7 +6,6 @@ import { useState, useEffect, useRef } from 'react';
 /**
  * Hook de Processamento de Áudio para o UrbeLudo.
  * Utiliza a Web Audio API nativa para análise de volume em tempo real (RMS).
- * Projetado para funcionar 100% offline em exportações estáticas (APK).
  */
 export const useAudioProcessor = (isActive: boolean) => {
   const [volume, setVolume] = useState(0);
@@ -19,10 +19,9 @@ export const useAudioProcessor = (isActive: boolean) => {
 
   useEffect(() => {
     if (!isActive) {
-      // Limpeza quando o jogo não está ativo
       if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
       streamRef.current?.getTracks().forEach(track => track.stop());
-      audioContextRef.current?.close();
+      audioContextRef.current?.close().catch(() => {});
       return;
     }
 
@@ -37,8 +36,8 @@ export const useAudioProcessor = (isActive: boolean) => {
         const source = context.createMediaStreamSource(stream);
         const analyser = context.createAnalyser();
 
-        analyser.fftSize = 256; // Equilíbrio ideal entre precisão e performance
-        analyser.smoothingTimeConstant = 0.8; 
+        analyser.fftSize = 512; 
+        analyser.smoothingTimeConstant = 0.4; 
         source.connect(analyser);
         
         audioContextRef.current = context;
@@ -50,21 +49,21 @@ export const useAudioProcessor = (isActive: boolean) => {
         const updateVolume = () => {
           if (!analyserRef.current) return;
           
-          analyserRef.current.getByteFrequencyData(dataArray);
+          analyserRef.current.getByteTimeDomainData(dataArray);
           
-          // Cálculo de RMS (Root Mean Square) para suavidade biomecânica
-          let sum = 0;
+          // Cálculo de RMS (Root Mean Square) para detecção precisa de amplitude vocal
+          let sumSquares = 0.0;
           for (let i = 0; i < bufferLength; i++) {
-            sum += dataArray[i] * dataArray[i];
+            const normalized = (dataArray[i] - 128) / 128;
+            sumSquares += normalized * normalized;
           }
-          const rms = Math.sqrt(sum / bufferLength);
+          const rms = Math.sqrt(sumSquares / bufferLength);
           
-          // Normalização para escala 0-100 baseada na sensibilidade do microfone
-          const normalizedVol = Math.min(100, (rms / 128) * 100 * 1.5);
+          // Mapeamento logarítmico para escala 0-100 mais natural ao ouvido humano
+          const normalizedVol = Math.min(100, rms * 500);
           
-          // Filtro Low-Pass via software para evitar trepidação da cabine
-          setVolume(prev => (prev * 0.75) + (normalizedVol * 0.25)); 
-          setIsSinging(rms > 2.5); // Limiar para detectar voz ativa (Ignora ruído de fundo)
+          setVolume(prev => (prev * 0.4) + (normalizedVol * 0.6)); 
+          setIsSinging(rms > 0.02); 
 
           animationFrameRef.current = requestAnimationFrame(updateVolume);
         };
@@ -72,13 +71,7 @@ export const useAudioProcessor = (isActive: boolean) => {
         updateVolume();
       } catch (err: any) {
         console.error("Erro no hardware de áudio:", err);
-        if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
-          setError("Microfone não encontrado.");
-        } else if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-          setError("Acesso ao microfone negado.");
-        } else {
-          setError("Falha ao acessar o áudio.");
-        }
+        setError("Microfone não encontrado ou acesso negado.");
       }
     };
 
@@ -87,7 +80,7 @@ export const useAudioProcessor = (isActive: boolean) => {
     return () => {
       if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
       streamRef.current?.getTracks().forEach(track => track.stop());
-      audioContextRef.current?.close();
+      audioContextRef.current?.close().catch(() => {});
     };
   }, [isActive]);
 

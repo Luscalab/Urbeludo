@@ -1,3 +1,4 @@
+
 /**
  * @fileOverview Serviço de Inteligência Artificial AuraBot - 100% Client-Side.
  * Gera relatórios biomecânicos e feedbacks lúdicos para fonoaudiologia.
@@ -23,10 +24,10 @@ export async function generateAuraBotReport(data: {
   levelName: string;
 }): Promise<AuraBotReport> {
   if (!API_KEY) {
-    console.warn("AuraBot: Chave de API ausente. Usando fallback biomecânico.");
+    console.warn("AuraBot: Chave de API ausente (NEXT_PUBLIC_GEMINI_API_KEY). Usando fallback biomecânico.");
     return {
       childFeedback: "Incrível! Sua voz brilhou como uma estrela! O baú se abriu!",
-      therapistFeedback: `Performance estável no nível ${data.levelName}. Volume médio de ${data.avgVolume}% sustentado por ${data.sustainTime}s.`
+      therapistFeedback: `Performance estável no nível ${data.levelName}. Volume médio de ${data.avgVolume}% sustentado por ${data.sustainTime}s em ${data.attempts} tentativas.`
     };
   }
 
@@ -39,18 +40,19 @@ export async function generateAuraBotReport(data: {
       
       - Nível: ${data.levelName}
       - Intensidade Média: ${data.avgVolume}%
-      - Tempo de Sustentação: ${data.sustainTime} segundos
+      - Tempo de Sustentação Alvo: ${data.sustainTime} segundos
       - Tentativas Realizadas: ${data.attempts}
 
       Gere dois feedbacks curtos:
       1. Para a Criança (childFeedback): Use tom lúdico, encorajador, sobre 'Aura Vocal' e 'Energia'. Máximo 2 frases.
-      2. Para o Terapeuta (therapistFeedback): Seja técnico, descreva o controle de intensidade e estabilidade. Máximo 2 frases.
+      2. Para o Terapeuta (therapistFeedback): Seja técnico, descreva o controle de intensidade, estabilidade e resiliência (tentativas). Máximo 2 frases.
 
       Retorne APENAS um JSON puro (sem markdown) com as chaves: "childFeedback" e "therapistFeedback".
     `;
 
     const result = await model.generateContent(prompt);
-    const text = result.response.text().replace(/```json|```/g, "").trim();
+    const response = await result.response;
+    const text = response.text().replace(/```json|```/g, "").trim();
     return JSON.parse(text) as AuraBotReport;
   } catch (error) {
     console.error("Erro na geração de relatório IA:", error);
