@@ -1,3 +1,4 @@
+
 'use client';
 /**
  * @fileOverview AuraHelper - Orquestrador de Inteligência Híbrida instrumentado.
@@ -78,9 +79,9 @@ export async function askAuraHelper(input: AuraHelperInput): Promise<AuraHelperO
   AuraLogger.warn('AuraFlow', 'Iniciando fallback para Gemini Cloud...');
   
   if (!API_KEY || API_KEY.length < 10) {
-    AuraLogger.error('AuraFlow', 'Chave de API inválida para o Gemini.');
+    AuraLogger.error('AuraFlow', 'Chave de API inválida ou ausente para o Gemini.');
     return {
-      answer: "Minha percepção sensorial oscilou. Verifique sua conexão para perguntas complexas!",
+      answer: "Minha percepção sensorial oscilou (Chave Ausente). Verifique sua conexão para perguntas complexas!",
       suggestedAction: "Conectar à Nuvem"
     };
   }
@@ -100,7 +101,7 @@ export async function askAuraHelper(input: AuraHelperInput): Promise<AuraHelperO
     AuraLogger.info('AuraFlow', 'Resposta Gemini gerada com sucesso.');
     return JSON.parse(text) as AuraHelperOutput;
   } catch (error: any) {
-    AuraLogger.error('AuraFlow', 'Erro técnico no Gemini', error);
+    AuraLogger.error('AuraFlow', 'Erro técnico no Gemini', error.message || error);
     return {
       answer: "Minha conexão com a Grande Aura está instável, mas continue brilhando! Tente perguntar algo sobre os jogos.",
       suggestedAction: "Tente 'Voz'."

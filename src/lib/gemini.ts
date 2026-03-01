@@ -6,7 +6,7 @@
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
+const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "AIzaSyCCwhUNlhnpxjDuZ8quod7MTnde1dZJj04";
 const genAI = new GoogleGenerativeAI(API_KEY);
 
 export interface AuraBotReport {

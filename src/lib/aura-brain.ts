@@ -1,3 +1,4 @@
+
 'use client';
 
 /**
@@ -32,7 +33,7 @@ export const initAuraBrain = (onProgress?: (p: number) => void) => {
     return;
   }
 
-  AuraLogger.info('AuraBrain', 'Iniciando sincronização da thread de IA...');
+  AuraLogger.info('AuraBrain', 'Iniciando sincronização da thread de IA local...');
 
   try {
     worker = new Worker(new URL('./aura-worker.ts', import.meta.url), { type: 'module' });
@@ -52,11 +53,11 @@ export const initAuraBrain = (onProgress?: (p: number) => void) => {
           if (onProgress) onProgress(100);
           break;
         case 'result':
-          AuraLogger.debug('AuraBrain', `Score final: ${score?.toFixed(4)} para intenção ${intentId}`);
+          AuraLogger.debug('AuraBrain', `Score final detectado: ${score?.toFixed(4)} para intenção ${intentId}`);
           if (resolveClassification) resolveClassification(intentId);
           break;
         case 'error':
-          AuraLogger.error('AuraBrain', `Erro reportado pelo Worker: ${message}`);
+          AuraLogger.error('AuraBrain', `Erro no Worker: ${message}`);
           if (resolveClassification) resolveClassification('fallback');
           break;
       }
