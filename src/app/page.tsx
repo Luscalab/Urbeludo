@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
@@ -281,7 +282,7 @@ function FeatureCard({ icon, title, description, color, shadow }: { icon: React.
         "w-24 h-24 rounded-[2.5rem] flex items-center justify-center text-white shadow-2xl group-hover:rotate-12 transition-transform duration-500",
         color
       )}>
-        {React.cloneElement(icon, { className: "w-10 h-10" })}
+        {React.isValidElement(icon) ? React.cloneElement(icon as React.ReactElement<any>, { className: "w-10 h-10" }) : icon}
       </div>
       <div className="space-y-4">
         <h3 className="text-3xl font-black uppercase italic tracking-tighter leading-none text-foreground">{title}</h3>
