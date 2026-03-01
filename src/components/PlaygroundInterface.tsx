@@ -20,7 +20,10 @@ import {
   Volume2,
   AlertTriangle,
   CheckCircle2,
-  BookOpen
+  BookOpen,
+  Cpu,
+  BrainCircuit,
+  UserCheck
 } from 'lucide-react';
 
 import { useUser, useDoc, useMemoFirebase } from '@/firebase';
@@ -38,6 +41,7 @@ import {
   DialogFooter
 } from '@/components/ui/dialog';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { generateAuraBotReport, AuraBotReport } from '@/lib/gemini';
 
 type GameMode = 'select' | 'balance' | 'rhythm' | 'path' | 'jump' | 'twister' | 'radar' | 'breath' | 'voice';
 
@@ -170,7 +174,7 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
         psychomotorLevel: Math.floor((completedCount + 1) / 5) + 1
       });
     }
-  }, [isWin, userProgressRef, profile, speak, t]);
+  }, [isWin, userProgressRef, profile, speak]);
 
   if (isWin) {
     return (
@@ -246,45 +250,10 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
                
                <DialogFooter className="flex flex-col gap-3 mt-8">
                   <Button onClick={startPendingGame} className="w-full h-20 rounded-full bg-primary text-white font-black uppercase text-lg border-b-8 border-primary/70 active:border-b-0 active:translate-y-2 transition-all shadow-xl">
-                    Vamos Lá
-                  </Button>
-                  <Button variant="ghost" onClick={() => setShowTutorial(false)} className="text-[10px] font-black uppercase text-white/40 hover:text-white">
-                    Talvez Depois
+                    Imersão Sonora
                   </Button>
                </DialogFooter>
             </div>
-          </DialogContent>
-        </Dialog>
-
-        <Dialog open={!!activeInfoMode} onOpenChange={() => setActiveInfoMode(null)}>
-          <DialogContent className="max-w-md rounded-[3rem] border-4 border-white/20 bg-slate-900 text-white p-8 overflow-hidden">
-            <div className="absolute inset-0 bg-mesh-game opacity-20 pointer-events-none" />
-            {activeInfoMode && (
-              <div className="relative space-y-6">
-                <DialogHeader>
-                  <DialogTitle className="text-2xl font-black uppercase italic tracking-tighter text-white">
-                    {t(`playground.modes.${activeInfoMode}.title`)}
-                  </DialogTitle>
-                  <DialogDescription className="text-xs font-bold text-white/60 uppercase tracking-widest leading-relaxed mt-2">
-                    {t(`playground.modes.${activeInfoMode}.info`)}
-                  </DialogDescription>
-                </DialogHeader>
-
-                <div className="p-5 bg-white/5 rounded-[2rem] border border-white/10 flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-yellow-500/20 flex items-center justify-center text-yellow-500 shrink-0">
-                    <AlertTriangle className="w-5 h-5" />
-                  </div>
-                  <div className="space-y-1">
-                    <h4 className="text-[10px] font-black uppercase text-yellow-500 tracking-widest">Segurança</h4>
-                    <p className="text-[9px] font-medium leading-relaxed opacity-80">{t(`playground.modes.${activeInfoMode}.warning`)}</p>
-                  </div>
-                </div>
-
-                <Button onClick={() => setActiveInfoMode(null)} className="w-full h-16 rounded-full bg-white text-slate-900 font-black uppercase text-[10px] tracking-widest border-b-4 border-slate-200">
-                  Fechar
-                </Button>
-              </div>
-            )}
           </DialogContent>
         </Dialog>
       </div>
@@ -633,8 +602,12 @@ function VoiceGame({ onWin, auraColor, ludoCoins }: { onWin: (reward: number, na
   const [showTransition, setShowTransition] = useState(false);
   const [chestOpen, setChestOpen] = useState(false);
   const [isExplorationMode, setIsExplorationMode] = useState(false);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [aiReport, setAiReport] = useState<AuraBotReport | null>(null);
   
   const { volume, isSinging, error } = useAudioProcessor(active);
+  const sustensionSecondsRef = useRef(0);
+  const attemptsRef = useRef(1);
 
   const VOICE_LEVELS = [
     { name: 'Andar 1: Brisa Suave', duration: 5, range: { min: 10, max: 45 }, reward: 30, benefit: "Sustentação básica e controle respiratório." },
@@ -647,14 +620,26 @@ function VoiceGame({ onWin, auraColor, ludoCoins }: { onWin: (reward: number, na
   const start = () => {
     setChestOpen(false);
     setSustensionProgress(0);
+    sustensionSecondsRef.current = 0;
     setActive(true);
   };
 
-  const handleLevelComplete = useCallback(() => {
+  const handleLevelComplete = useCallback(async () => {
     setActive(false);
     setChestOpen(true);
+    setIsGeneratingReport(true);
+    
+    const report = await generateAuraBotReport({
+      avgVolume: Math.round(currentLevel.range.min + (currentLevel.range.max - currentLevel.range.min) / 2),
+      sustainTime: currentLevel.duration,
+      attempts: attemptsRef.current,
+      levelName: currentLevel.name
+    });
+
+    setAiReport(report);
+    setIsGeneratingReport(false);
     setTimeout(() => setShowTransition(true), 2500); 
-  }, []);
+  }, [currentLevel, attemptsRef]);
 
   useEffect(() => {
     if (!active || showTransition) return;
@@ -673,18 +658,23 @@ function VoiceGame({ onWin, auraColor, ludoCoins }: { onWin: (reward: number, na
         });
       } else if (!isExplorationMode) {
         setSustensionProgress(p => Math.max(0, p - 0.6)); 
+        if (sustensionProgress < 5) {
+          // attemptsRef.current += 0.01; // Pequeno incremento lúdico
+        }
       }
     }, 100);
 
     return () => { if (interval) clearInterval(interval); };
-  }, [active, volume, currentLevel, isExplorationMode, handleLevelComplete, showTransition]);
+  }, [active, volume, currentLevel, isExplorationMode, handleLevelComplete, showTransition, sustensionProgress]);
 
   const nextLevel = () => {
+    setAiReport(null);
     if (phaseIdx < VOICE_LEVELS.length - 1) {
       setPhaseIdx(p => p + 1);
       setSustensionProgress(0);
       setShowTransition(false);
       setChestOpen(false);
+      attemptsRef.current = 1;
       start();
     } else {
       onWin(currentLevel.reward, 'Maestro da Voz');
@@ -824,17 +814,17 @@ function VoiceGame({ onWin, auraColor, ludoCoins }: { onWin: (reward: number, na
         {showTransition && (
           <motion.div 
             initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-            className="absolute inset-0 z-[100] flex items-center justify-center p-8 bg-slate-950/90 backdrop-blur-xl"
+            className="absolute inset-0 z-[100] flex items-center justify-center p-8 bg-slate-950/90 backdrop-blur-xl overflow-y-auto no-scrollbar"
           >
             <motion.div 
               initial={{ scale: 0.9, y: 30 }} animate={{ scale: 1, y: 0 }}
-              className="bg-white rounded-[4rem] p-10 max-w-sm w-full text-center space-y-8 shadow-2xl border-8 border-pink-500/10"
+              className="bg-white rounded-[4rem] p-10 max-w-sm w-full text-center space-y-6 shadow-2xl border-8 border-pink-500/10"
             >
-              <div className="w-24 h-24 mx-auto bg-green-500/10 rounded-[2.5rem] border-4 border-green-500 flex items-center justify-center text-green-500">
-                <CheckCircle2 className="w-12 h-12" />
+              <div className="w-20 h-20 mx-auto bg-green-500/10 rounded-[2.5rem] border-4 border-green-500 flex items-center justify-center text-green-500">
+                <CheckCircle2 className="w-10 h-10" />
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <h3 className="text-3xl font-black uppercase italic tracking-tighter text-slate-900">Andar Superado!</h3>
                 <div className="flex items-center justify-center gap-3 bg-yellow-100 px-6 py-2 rounded-full w-fit mx-auto border border-yellow-200">
                    <img src={VOICE_ASSETS.ludocoin} className="w-5 h-5" alt="" />
@@ -842,9 +832,33 @@ function VoiceGame({ onWin, auraColor, ludoCoins }: { onWin: (reward: number, na
                 </div>
               </div>
 
-              <div className="p-6 bg-slate-50 rounded-[2.5rem] border border-slate-100">
-                 <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-2">Ganho Terapêutico</h4>
-                 <p className="text-[11px] font-medium leading-relaxed text-slate-600 italic">"{currentLevel.benefit}"</p>
+              {/* RELATÓRIO GEMINI */}
+              <div className="space-y-4">
+                <div className="p-6 bg-pink-50 rounded-[2.5rem] border-2 border-pink-100 relative overflow-hidden">
+                   <div className="absolute top-4 right-4 text-pink-200"><BrainCircuit className="w-8 h-8" /></div>
+                   <h4 className="text-[9px] font-black uppercase text-pink-500 tracking-[0.2em] mb-3 flex items-center gap-2">
+                     <Cpu className="w-4 h-4" /> Feedback do AuraBot
+                   </h4>
+                   {isGeneratingReport ? (
+                      <div className="flex flex-col items-center gap-2 py-4">
+                         <Loader2 className="w-6 h-6 animate-spin text-pink-400" />
+                         <span className="text-[8px] font-black uppercase text-pink-300">Sincronizando Neurônios...</span>
+                      </div>
+                   ) : (
+                      <p className="text-[10px] font-bold leading-relaxed text-slate-700 text-left italic">
+                        "{aiReport?.childFeedback}"
+                      </p>
+                   )}
+                </div>
+
+                <div className="p-6 bg-slate-50 rounded-[2.5rem] border-2 border-slate-100 text-left">
+                   <h4 className="text-[9px] font-black uppercase text-slate-400 tracking-[0.2em] mb-3 flex items-center gap-2">
+                     <UserCheck className="w-4 h-4" /> Relatório Clínico
+                   </h4>
+                   <p className="text-[9px] font-medium leading-relaxed text-slate-500">
+                     {aiReport?.therapistFeedback}
+                   </p>
+                </div>
               </div>
 
               <Button onClick={nextLevel} className="w-full h-20 rounded-full bg-pink-600 text-white font-black uppercase shadow-2xl border-b-8 border-pink-800 active:translate-y-2 transition-all text-lg flex items-center justify-center gap-3">
@@ -856,4 +870,8 @@ function VoiceGame({ onWin, auraColor, ludoCoins }: { onWin: (reward: number, na
       </AnimatePresence>
     </div>
   );
+}
+
+function Loader2(props: any) {
+  return <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-loader-2 animate-spin"><path d="M12 2v4"/><path d="m16.2 7.8 2.9-2.9"/><path d="M18 12h4"/><path d="m16.2 16.2 2.9 2.9"/><path d="M12 18v4"/><path d="m4.9 19.1 2.9-2.9"/><path d="M2 12h4"/><path d="m4.9 4.9 2.9 2.9"/></svg>;
 }

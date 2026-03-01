@@ -1,3 +1,4 @@
+
 import type {NextConfig} from 'next';
 import path from 'path';
 
@@ -19,7 +20,8 @@ const nextConfig: NextConfig = {
     '@tensorflow/tfjs-core',
     '@tensorflow/tfjs-backend-webgl',
     '@tensorflow/tfjs-converter',
-    '@mediapipe/pose'
+    '@mediapipe/pose',
+    '@google/generative-ai'
   ],
   webpack: (config) => {
     config.resolve.alias = {
