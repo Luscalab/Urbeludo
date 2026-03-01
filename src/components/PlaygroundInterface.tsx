@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -45,7 +44,7 @@ import {
 
 type GameMode = 'select' | 'balance' | 'rhythm' | 'path' | 'jump' | 'twister' | 'radar' | 'breath' | 'voice';
 
-// Helper robusto para carregar assets de jogos
+// Helper robusto para carregar assets de jogos (Caminho relativo para compatibilidade APK/Studio)
 const getGameAsset = (game: string, file: string) => `assets/images/games/${game}/${file}`;
 
 export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean }) {
@@ -607,8 +606,18 @@ function VoiceGame({ onWin, auraColor }: { onWin: (reward: number, name: string)
   const analyserRef = useRef<AnalyserNode | null>(null);
   const requestRef = useRef<number>(null);
 
-  // Mapeamento de Ativos Estáticos (Relativos para maior compatibilidade)
+  // Mapeamento de Ativos Estáticos (Relativos para compatibilidade Cloud Proxy/APK)
   const getPath = (file: string) => `assets/images/games/elevador/${file}`;
+
+  // Log de depuração para verificar caminhos de imagem no ambiente Studio
+  useEffect(() => {
+    if (active) {
+      console.log("--- URBELUDO IMAGE DEBUG ---");
+      for (let i = 1; i <= 10; i++) {
+        console.log(`Layer ${i}.png URL:`, getPath(`${i}.png`));
+      }
+    }
+  }, [active]);
 
   const VOICE_LEVELS = [
     { name: 'Nível 1: Brisa Suave', duration: 5, range: { min: 10, max: 45 }, reward: 30, benefit: "Sustentação básica e controle respiratório." },
@@ -626,7 +635,7 @@ function VoiceGame({ onWin, auraColor }: { onWin: (reward: number, name: string)
       const source = ctx.createMediaStreamSource(stream);
       const analyser = ctx.createAnalyser();
       analyser.fftSize = 512;
-      analyser.smoothingTimeConstant = 0.85; // Suavização nativa do Analyser
+      analyser.smoothingTimeConstant = 0.85; 
       source.connect(analyser);
       analyserRef.current = analyser;
 
@@ -637,7 +646,6 @@ function VoiceGame({ onWin, auraColor }: { onWin: (reward: number, name: string)
         let average = dataArray.reduce((a, b) => a + b) / dataArray.length;
         
         setVolume(average);
-        // Filtro de Suavização via Código
         setSmoothedVolume(prev => prev * 0.88 + average * 0.12);
         setIsSinging(average > 12);
 
@@ -725,7 +733,6 @@ function VoiceGame({ onWin, auraColor }: { onWin: (reward: number, name: string)
           <div className="absolute inset-y-10 w-72 z-10 flex items-center justify-center">
              <img src={getPath('4.png')} alt="" className="w-full h-full object-contain filter drop-shadow-[0_0_30px_rgba(255,255,255,0.1)]" />
              
-             {/* Faixa de Sincronia Biomecânica */}
              <motion.div 
                animate={{ y: 200 - (phaseIdx * 25) }}
                className="absolute inset-x-12 h-36 bg-green-500/5 border-y-2 border-green-500/30 backdrop-blur-sm flex items-center justify-center rounded-2xl"
