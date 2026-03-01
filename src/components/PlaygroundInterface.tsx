@@ -357,13 +357,13 @@ function RhythmGame({ onWin, auraColor }: { onWin: (reward: number, name: string
   const [beat, setBeat] = useState(false);
   const [score, setScore] = useState(0);
   const [feedback, setFeedback] = useState('');
-  const [sensorError, setSensorError] = useState(false);
   
   const lastShakeRef = useRef(0);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const level = RHYTHM_LEVELS[currentLevelIdx];
+  // Fallback seguro para evitar o erro de undefined (reading 'soundType')
+  const level = RHYTHM_LEVELS[currentLevelIdx] || RHYTHM_LEVELS[0];
 
   const playOrchestraNote = useCallback((freqIndex: number) => {
     if (!audioCtxRef.current) return;
@@ -376,6 +376,7 @@ function RhythmGame({ onWin, auraColor }: { onWin: (reward: number, name: string
     [0, 1.01, 2.02].forEach((ratio, i) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
+      // Usamos opcional encadeado ou o valor seguro do fallback acima
       osc.type = level.soundType;
       osc.frequency.setValueAtTime(freq * (1 + ratio * 0.002), now);
       gain.gain.setValueAtTime(0, now);
@@ -395,9 +396,10 @@ function RhythmGame({ onWin, auraColor }: { onWin: (reward: number, name: string
 
     if (typeof (DeviceMotionEvent as any).requestPermission === 'function') {
       try {
-        const res = await (DeviceMotionEvent as any).requestPermission();
-        if (res !== 'granted') setSensorError(true);
-      } catch (e) { setSensorError(true); }
+        await (DeviceMotionEvent as any).requestPermission();
+      } catch (e) {
+        console.warn("Permissão de movimento negada ou indisponível");
+      }
     }
     setActive(true);
   };
@@ -410,12 +412,19 @@ function RhythmGame({ onWin, auraColor }: { onWin: (reward: number, name: string
         setFeedback('EXCELENTE!');
         if (nextScore >= level.targetScore) {
           if (currentLevelIdx < RHYTHM_LEVELS.length - 1) {
-            setTimeout(() => { setCurrentLevelIdx(v => v + 1); setScore(0); }, 1200);
-          } else { onWin(level.reward, `Grande Maestro Orquestral`); }
+            setTimeout(() => { 
+              setCurrentLevelIdx(v => v + 1); 
+              setScore(0); 
+            }, 1200);
+          } else { 
+            onWin(level.reward, `Grande Maestro Orquestral`); 
+          }
         }
         return nextScore;
       });
-    } else { setFeedback('OPS!'); }
+    } else { 
+      setFeedback('OPS!'); 
+    }
     setTimeout(() => setFeedback(''), 500);
   }, [beat, level, currentLevelIdx, onWin, playOrchestraNote]);
 
@@ -432,6 +441,7 @@ function RhythmGame({ onWin, auraColor }: { onWin: (reward: number, name: string
       if (!acc) return;
       const totalAcc = Math.sqrt((acc.x || 0)**2 + (acc.y || 0)**2 + (acc.z || 0)**2);
       const now = Date.now();
+      // Ajuste de sensibilidade rítmica baseada no nível
       if (totalAcc > 20 && now - lastShakeRef.current > (60000 / level.bpm) * 0.4) {
         lastShakeRef.current = now;
         checkRhythm();
