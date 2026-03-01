@@ -43,8 +43,8 @@ export const AuraLogger = {
         const logs: LogEntry[] = rawLogs ? JSON.parse(rawLogs) : [];
         logs.push({ timestamp, level, context, message, data: data ? JSON.stringify(data) : null });
         
-        // Limita a 200 logs para economizar memória do dispositivo
-        if (logs.length > 200) logs.shift();
+        // Limita a 300 logs para economizar memória do dispositivo
+        if (logs.length > 300) logs.shift();
         localStorage.setItem('aura_logs', JSON.stringify(logs));
         
         // Dispara evento para o Visualizador de Logs atualizar se estiver aberto
@@ -85,7 +85,7 @@ export const AuraLogger = {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `urbeludo_logs_${new Date().getTime()}.json`;
+    a.download = `urbeludo_telemetria_${new Date().getTime()}.json`;
     a.click();
   }
 };

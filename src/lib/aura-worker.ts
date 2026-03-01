@@ -5,15 +5,15 @@
 
 import { pipeline, env } from '@xenova/transformers';
 
-// Configuração defensiva do ambiente
+// Configuração defensiva do ambiente para APK/Navegador
 try {
   if (env) {
-    env.allowLocalModels = true;
+    // Para 100% offline, use true. Para MVP híbrido, use false.
+    env.allowLocalModels = false;
     env.allowRemoteModels = true; 
-    env.localModelPath = '/models/';
+    env.useBrowserCache = true;
   }
 } catch (e) {
-  // Envia log de erro para o main thread via postMessage
   self.postMessage({ type: 'log', level: 'error', message: 'Falha ao configurar Transformers env', data: e });
 }
 
@@ -26,18 +26,19 @@ self.onmessage = async (event) => {
   try {
     if (type === 'init') {
       if (!extractor) {
-        self.postMessage({ type: 'log', level: 'info', message: 'Iniciando pipeline Transformers.js...' });
+        self.postMessage({ type: 'log', level: 'info', message: 'Iniciando pipeline Transformers.js: all-MiniLM-L6-v2' });
         
         extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', {
           progress_callback: (data: any) => {
             if (data.status === 'progress') {
               self.postMessage({ type: 'progress', progress: Math.round(data.progress) });
+              self.postMessage({ type: 'log', level: 'debug', message: `Carregando pesos: ${Math.round(data.progress)}%` });
             }
           }
         });
 
         if (examples && Array.isArray(examples)) {
-          self.postMessage({ type: 'log', level: 'info', message: 'Gerando embeddings para intenções locais...' });
+          self.postMessage({ type: 'log', level: 'info', message: 'Vetorizando base de intenções local...' });
           intentCache = [];
           for (const intent of examples) {
             const vectors: number[][] = [];
@@ -47,10 +48,11 @@ self.onmessage = async (event) => {
             }
             intentCache.push({ id: intent.id, vectors });
           }
+          self.postMessage({ type: 'log', level: 'info', message: 'Base de conhecimento cacheada com sucesso.' });
         }
         
         self.postMessage({ type: 'ready' });
-        self.postMessage({ type: 'log', level: 'info', message: 'AuraWorker pronto e cacheado.' });
+        self.postMessage({ type: 'log', level: 'info', message: 'AuraWorker STATUS: READY' });
       } else {
         self.postMessage({ type: 'ready' });
       }
@@ -59,7 +61,7 @@ self.onmessage = async (event) => {
     if (type === 'classify' && extractor) {
       if (!text) return;
 
-      self.postMessage({ type: 'log', level: 'debug', message: `Classificando: "${text}"` });
+      self.postMessage({ type: 'log', level: 'debug', message: `Processando intenção: "${text}"` });
       const output = await extractor(text, { pooling: 'mean', normalize: true });
       const userVector = Array.from(output.data as Float32Array);
 
@@ -87,11 +89,11 @@ self.onmessage = async (event) => {
       self.postMessage({ 
         type: 'log', 
         level: 'info', 
-        message: `Resultado: ${bestMatch.id} (Score: ${bestMatch.score.toFixed(4)})` 
+        message: `Classificação concluída: ${bestMatch.id} (Similaridade: ${bestMatch.score.toFixed(4)})` 
       });
     }
   } catch (error: any) {
     self.postMessage({ type: 'error', message: error.message || "Erro no Worker" });
-    self.postMessage({ type: 'log', level: 'error', message: 'Erro fatal no Worker', data: error });
+    self.postMessage({ type: 'log', level: 'error', message: 'Erro crítico na thread de IA', data: error });
   }
 };

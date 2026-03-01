@@ -41,10 +41,10 @@ export function FloatingAuraBot() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    AuraLogger.info('AuraBot', 'Componente montado. Iniciando warmup...');
+    AuraLogger.info('AuraBot', 'Inicializando componente. Disparando warmup semântico...');
     initAuraBrain((p) => {
       setLoadProgress(p);
-      if (p === 100) AuraLogger.info('AuraBot', 'Aura sincronizada e pronta.');
+      if (p === 100) AuraLogger.info('AuraBot', 'Aura sincronizada e operante.');
     });
   }, []);
 
@@ -58,22 +58,28 @@ export function FloatingAuraBot() {
   }, [messages, isLoading]);
 
   const processMessage = useCallback(async (text: string) => {
-    if (!text.trim() || isLoading || loadProgress < 100) return;
+    if (!text.trim() || isLoading || loadProgress < 100) {
+      if (loadProgress < 100) {
+        AuraLogger.warn('AuraBot', 'Tentativa de mensagem ignorada: Cérebro ainda sincronizando.');
+      }
+      return;
+    }
 
-    AuraLogger.debug('AuraBot', `Mensagem enviada pelo usuário: "${text}"`);
+    AuraLogger.info('AuraBot', `Mensagem recebida: "${text}"`);
     setMessages(prev => [...prev, { role: 'user', text }]);
     setIsLoading(true);
 
     try {
       const response = await askAuraHelper({
         question: text,
-        context: `Tela: ${pathname}`
+        context: `Tela Atual: ${pathname}`
       });
       
       setMessages(prev => [...prev, { role: 'bot', text: response.answer }]);
+      AuraLogger.info('AuraBot', 'Resposta gerada com sucesso.');
     } catch (error) {
-      AuraLogger.error('AuraBot', 'Falha no processamento da mensagem', error);
-      setMessages(prev => [...prev, { role: 'bot', text: "Minha percepção sensorial oscilou. Pode repetir de outra forma?" }]);
+      AuraLogger.error('AuraBot', 'Erro fatal no processamento da mensagem', error);
+      setMessages(prev => [...prev, { role: 'bot', text: "Minha percepção sensorial oscilou. Verifique o console de telemetria." }]);
     } finally {
       setIsLoading(false);
     }
@@ -88,12 +94,13 @@ export function FloatingAuraBot() {
   };
 
   const handleIconClick = () => {
-    // Clique secreto: 5 vezes abre o console de logs
+    // Clique secreto: 5 vezes abre o console de logs técnico
     const newCount = clickCount + 1;
     setClickCount(newCount);
     if (newCount >= 5) {
       setIsLogViewerOpen(true);
       setClickCount(0);
+      AuraLogger.info('AuraBot', 'Console de Telemetria ativado via clique sequencial.');
     }
     
     setIsOpen(!isOpen);
@@ -113,8 +120,8 @@ export function FloatingAuraBot() {
             className={cn(
               "pointer-events-auto h-12 px-6 rounded-full flex items-center gap-3 shadow-2xl transition-all border-b-4 active:border-b-0 active:translate-y-1",
               isOpen 
-                ? "bg-slate-900 text-white border-slate-700" 
-                : "bg-white/80 backdrop-blur-xl text-primary border-primary/20"
+                ? "bg-slate-950 text-white border-slate-800" 
+                : "bg-white/90 backdrop-blur-xl text-primary border-primary/20"
             )}
           >
             {isOpen ? <ChevronDown className="w-4 h-4" /> : <BrainCircuit className="w-5 h-5 animate-pulse" />}
@@ -131,7 +138,7 @@ export function FloatingAuraBot() {
                 initial={{ opacity: 0, y: -20, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -20, scale: 0.95 }}
-                className="pointer-events-auto mt-4 w-full bg-white rounded-[2.5rem] shadow-[0_40px_80px_rgba(0,0,0,0.15)] border-4 border-primary/5 flex flex-col overflow-hidden max-h-[500px]"
+                className="pointer-events-auto mt-4 w-full bg-white rounded-[2.5rem] shadow-[0_40px_80px_rgba(0,0,0,0.2)] border-4 border-primary/5 flex flex-col overflow-hidden max-h-[520px]"
               >
                 <div className="p-6 bg-primary/5 border-b flex items-center gap-4">
                   <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-white shadow-lg">
@@ -139,9 +146,13 @@ export function FloatingAuraBot() {
                   </div>
                   <div className="flex-1">
                     <h3 className="text-sm font-black uppercase italic tracking-tighter">Guia de Sensibilidade</h3>
-                    <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">IA de Borda (Thread Isolada)</p>
+                    <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">Processamento Híbrido Ativo</p>
                   </div>
-                  <button onClick={() => setIsLogViewerOpen(true)} className="p-2 hover:bg-slate-100 rounded-full text-slate-400">
+                  <button 
+                    onClick={() => setIsLogViewerOpen(true)} 
+                    className="p-2.5 hover:bg-slate-100 rounded-xl text-slate-400 transition-colors"
+                    title="Ver Telemetria"
+                  >
                     <Terminal className="w-4 h-4" />
                   </button>
                 </div>
@@ -149,22 +160,22 @@ export function FloatingAuraBot() {
                 <ScrollArea className="flex-1 p-6" ref={scrollRef}>
                   <div className="space-y-4 pb-4">
                     {!isReady ? (
-                      <div className="flex flex-col items-center justify-center p-8 bg-primary/5 rounded-[2rem] border-2 border-primary/10 space-y-4">
-                        <div className="text-primary text-[10px] font-black uppercase tracking-widest animate-pulse">
+                      <div className="flex flex-col items-center justify-center p-8 bg-slate-50 rounded-[2.5rem] border-2 border-slate-100 space-y-5">
+                        <div className="text-primary text-[10px] font-black uppercase tracking-[0.2em] animate-pulse text-center">
                           Aura está expandindo o cérebro em background...
                         </div>
-                        <div className="w-full bg-white h-2 rounded-full overflow-hidden shadow-inner">
+                        <div className="w-full bg-white h-3 rounded-full overflow-hidden shadow-inner border">
                           <motion.div 
-                            className="bg-primary h-full"
+                            className="bg-gradient-to-r from-primary to-accent h-full shadow-[0_0_10px_rgba(var(--primary),0.5)]"
                             initial={{ width: 0 }}
                             animate={{ width: `${loadProgress}%` }}
                             transition={{ duration: 0.5 }}
                           />
                         </div>
                         <div className="flex justify-between w-full">
-                          <span className="text-[8px] font-black text-primary/40 uppercase">{loadProgress}% carregado</span>
-                          <p className="text-primary/40 text-[8px] font-black uppercase italic">
-                            Processamento Offline Ativo
+                          <span className="text-[8px] font-black text-primary uppercase">{loadProgress}% sincronizado</span>
+                          <p className="text-muted-foreground text-[8px] font-black uppercase italic">
+                            Modelo: all-MiniLM-L6 (25MB)
                           </p>
                         </div>
                       </div>
@@ -179,7 +190,7 @@ export function FloatingAuraBot() {
                             )}
                           >
                             <div className={cn(
-                              "p-4 rounded-3xl text-[11px] font-medium leading-relaxed shadow-sm",
+                              "p-4 rounded-[1.8rem] text-[11px] font-medium leading-relaxed shadow-sm",
                               msg.role === 'bot' 
                                 ? "bg-slate-100 text-slate-800 rounded-tl-none border-l-4 border-primary" 
                                 : "bg-primary text-white rounded-tr-none shadow-primary/20"
@@ -220,15 +231,15 @@ export function FloatingAuraBot() {
                   </div>
                 </div>
 
-                <div className="p-4 border-t bg-slate-50/50">
+                <div className="p-4 border-t bg-white">
                   <div className="relative">
                     <Input
                       value={inputValue}
                       onChange={(e) => setInputValue(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                       disabled={isLoading || !isReady}
-                      placeholder={isReady ? "Dúvidas técnicas ou clínicas..." : "Aguarde a sincronização..."}
-                      className="h-14 rounded-2xl pr-14 pl-6 border-transparent bg-white shadow-inner font-bold text-xs focus:ring-primary"
+                      placeholder={isReady ? "Dúvidas técnicas ou clínicas..." : "Aguarde a sincronização técnica..."}
+                      className="h-14 rounded-2xl pr-14 pl-6 border-transparent bg-slate-50 shadow-inner font-bold text-xs focus:ring-primary"
                     />
                     <Button
                       size="icon"
