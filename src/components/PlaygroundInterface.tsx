@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -170,7 +171,7 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
       </header>
 
       <AnimatePresence mode="wait">
-        {gameMode === 'balance' && <BalanceGame key="balance" onWin={() => handleWin(50, 'Mestre do Equilíbrio')} auraColor={auraColor} />}
+        {gameMode === 'balance' && <BalanceGame key="balance" onWin={(reward, name) => handleWin(reward, name)} auraColor={auraColor} />}
         {gameMode === 'rhythm' && <RhythmGame key="rhythm" onWin={(reward, name) => handleWin(reward, name)} auraColor={auraColor} />}
         {gameMode === 'path' && <PathGame key="path" onWin={(reward, name) => handleWin(reward, name)} auraColor={auraColor} />}
         {gameMode === 'breath' && <BreathGame key="breath" onWin={() => handleWin(40, 'Mestre do Sopro')} auraColor={auraColor} />}
@@ -204,18 +205,24 @@ function GameModeCard({ icon, title, desc, goal, color, onClick }: any) {
   );
 }
 
-// --- JOGO 1: EQUILIBRISTA DE AURAS ---
-function BalanceGame({ onWin, auraColor }: any) {
+// --- JOGO 1: EQUILIBRISTA DE AURAS (REFORMULADO) ---
+function BalanceGame({ onWin, auraColor }: { onWin: (reward: number, type: string) => void, auraColor: string }) {
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const [progress, setProgress] = useState(0);
   const [active, setActive] = useState(false);
+  const [phaseIdx, setPhaseIdx] = useState(0);
+  const [targetPos, setTargetPos] = useState({ x: 0, y: 0 });
 
-  useEffect(() => {
-    if (progress >= 100) {
-      onWin();
-    }
-  }, [progress, onWin]);
+  const BALANCE_PHASES = [
+    { name: 'Centro Estável', threshold: 12, targetSize: 48, ballSize: 32, reward: 30, moveFrequency: 0 },
+    { name: 'Órbita Lunar', threshold: 10, targetSize: 40, ballSize: 28, reward: 45, moveFrequency: 4000 },
+    { name: 'Micro-Precisão', threshold: 7, targetSize: 30, ballSize: 24, reward: 60, moveFrequency: 2500 },
+    { name: 'Desafio do Vácuo', threshold: 5, targetSize: 20, ballSize: 18, reward: 80, moveFrequency: 1500 }
+  ];
 
+  const currentPhase = BALANCE_PHASES[phaseIdx];
+
+  // Iniciar sensores
   const start = async () => {
     if (typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
       const res = await (DeviceOrientationEvent as any).requestPermission();
@@ -225,28 +232,82 @@ function BalanceGame({ onWin, auraColor }: any) {
     }
   };
 
+  // Sensor de orientação
   useEffect(() => {
     if (!active) return;
     const handleOrientation = (e: DeviceOrientationEvent) => {
-      setTilt({ x: e.gamma || 0, y: (e.beta || 0) - 45 });
+      // Gamma: inclinação lateral (esquerda/direita)
+      // Beta: inclinação frontal (frente/trás) - Ajustamos o offset para 45 graus (posição natural)
+      setTilt({ 
+        x: (e.gamma || 0), 
+        y: ((e.beta || 0) - 45) 
+      });
     };
     window.addEventListener('deviceorientation', handleOrientation);
     return () => window.removeEventListener('deviceorientation', handleOrientation);
   }, [active]);
 
+  // Movimentação do alvo
+  useEffect(() => {
+    if (!active || currentPhase.moveFrequency === 0) {
+      setTargetPos({ x: 0, y: 0 });
+      return;
+    }
+
+    const moveTarget = () => {
+      // Gera uma posição aleatória dentro de um raio seguro (-20 a 20)
+      setTargetPos({
+        x: (Math.random() * 40) - 20,
+        y: (Math.random() * 40) - 20
+      });
+    };
+
+    const interval = setInterval(moveTarget, currentPhase.moveFrequency);
+    return () => clearInterval(interval);
+  }, [active, phaseIdx, currentPhase.moveFrequency]);
+
+  // Lógica de progresso e vitória
   useEffect(() => {
     if (!active) return;
-    const distance = Math.sqrt(tilt.x * tilt.x + tilt.y * tilt.y);
-    const isCentered = distance < 12;
-    let timer: NodeJS.Timeout;
 
-    if (isCentered) {
-      timer = setInterval(() => setProgress(p => Math.min(100, p + 2.5)), 100);
+    // Distância euclidiana entre a bolinha (tilt) e o alvo (targetPos)
+    const dist = Math.sqrt(
+      Math.pow(tilt.x - targetPos.x, 2) + 
+      Math.pow(tilt.y - targetPos.y, 2)
+    );
+
+    const isInside = dist < currentPhase.threshold;
+
+    let timer: NodeJS.Timeout;
+    if (isInside) {
+      timer = setInterval(() => {
+        setProgress(prev => {
+          if (prev >= 100) return 100;
+          return prev + 2;
+        });
+      }, 100);
     } else {
-      setProgress(0);
+      // Se sair do alvo, o progresso cai devagar
+      timer = setInterval(() => {
+        setProgress(prev => Math.max(0, prev - 1));
+      }, 100);
     }
+
     return () => clearInterval(timer);
-  }, [tilt, active]);
+  }, [active, tilt, targetPos, currentPhase.threshold]);
+
+  // Transição de fase
+  useEffect(() => {
+    if (progress >= 100) {
+      if (phaseIdx < BALANCE_PHASES.length - 1) {
+        setPhaseIdx(prev => prev + 1);
+        setProgress(0);
+        if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+      } else {
+        onWin(currentPhase.reward, 'Mestre do Equilíbrio');
+      }
+    }
+  }, [progress, phaseIdx, onWin, currentPhase.reward]);
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-12 bg-slate-900 relative">
@@ -257,26 +318,78 @@ function BalanceGame({ onWin, auraColor }: any) {
       ) : (
         <>
           <div className="absolute top-32 w-full max-w-xs px-12 space-y-4">
-             <div className="flex justify-between text-[8px] font-black uppercase text-white/40 tracking-widest">
-                <span>Concentração</span>
-                <span>{Math.round(progress)}%</span>
+             <div className="flex justify-between items-end">
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-black uppercase text-primary tracking-widest">{currentPhase.name}</span>
+                  <span className="text-[8px] font-bold text-white/40 uppercase tracking-widest">Fase {phaseIdx + 1} de 4</span>
+                </div>
+                <span className="text-xl font-black text-white">{Math.round(progress)}%</span>
              </div>
              <div className="h-4 bg-white/10 rounded-full overflow-hidden border border-white/5">
-                <motion.div animate={{ width: `${progress}%` }} className="h-full bg-primary" />
+                <motion.div 
+                  initial={{ width: 0 }}
+                  animate={{ width: `${progress}%` }} 
+                  className="h-full bg-primary shadow-[0_0_20px_rgba(147,51,234,0.5)]" 
+                />
              </div>
           </div>
+
           <div className="relative w-80 h-80 flex items-center justify-center">
-            <div className="absolute inset-0 border-8 border-dashed border-white/5 rounded-full animate-spin-slow" />
-            <div className="absolute w-32 h-32 border-4 border-white/20 rounded-full flex items-center justify-center">
-               <div className="w-2 h-2 bg-white/40 rounded-full" />
-            </div>
+            {/* Grid Isométrico de Fundo */}
+            <div className="absolute inset-0 opacity-10" style={{ 
+               backgroundImage: `radial-gradient(circle at center, white 1px, transparent 1px)`,
+               backgroundSize: '20px 20px'
+            }} />
+            
+            {/* Anéis de Orientação */}
+            <div className="absolute inset-0 border-4 border-white/5 rounded-full" />
+            <div className="absolute inset-16 border-2 border-white/5 rounded-full" />
+
+            {/* Alvo Móvel (Onde equilibrar) */}
+            <motion.div
+              animate={{ 
+                x: targetPos.x * 4, 
+                y: targetPos.y * 4,
+                scale: [1, 1.1, 1]
+              }}
+              transition={{ 
+                x: { type: "spring", stiffness: 100, damping: 20 },
+                y: { type: "spring", stiffness: 100, damping: 20 },
+                scale: { duration: 2, repeat: Infinity }
+              }}
+              className="absolute rounded-full border-4 border-dashed border-white/30 flex items-center justify-center"
+              style={{ 
+                width: currentPhase.targetSize * 2.5, 
+                height: currentPhase.targetSize * 2.5,
+                backgroundColor: progress > 5 ? 'rgba(255,255,255,0.05)' : 'transparent'
+              }}
+            >
+               <div className="w-1.5 h-1.5 bg-white/20 rounded-full" />
+            </motion.div>
+
+            {/* AURA do Usuário (Bolinha) */}
             <motion.div 
               animate={{ x: tilt.x * 4, y: tilt.y * 4 }} 
-              transition={{ type: "spring", stiffness: 100, damping: 15 }} 
-              className="w-20 h-20 rounded-full border-4 border-white shadow-2xl z-20" 
-              style={{ backgroundColor: auraColor }}
-            />
+              transition={{ type: "spring", stiffness: 150, damping: 25 }} 
+              className="rounded-full border-4 border-white shadow-[0_0_50px_rgba(0,0,0,0.5)] z-20 flex items-center justify-center overflow-hidden" 
+              style={{ 
+                backgroundColor: auraColor,
+                width: currentPhase.ballSize * 2,
+                height: currentPhase.ballSize * 2
+              }}
+            >
+              <div className="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent" />
+              <motion.div 
+                animate={{ scale: [1, 1.2, 1] }}
+                transition={{ duration: 3, repeat: Infinity }}
+                className="w-full h-full bg-white opacity-10 rounded-full blur-md"
+              />
+            </motion.div>
           </div>
+
+          <p className="absolute bottom-32 text-[8px] font-black uppercase text-white/30 tracking-[0.3em] text-center max-w-[200px] leading-relaxed">
+            Incline o celular suavemente para manter a Aura no círculo pontilhado.
+          </p>
         </>
       )}
     </div>
