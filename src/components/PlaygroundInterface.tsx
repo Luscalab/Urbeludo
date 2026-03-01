@@ -170,7 +170,7 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
         psychomotorLevel: Math.floor((completedCount + 1) / 5) + 1
       });
     }
-  }, [isWin, userProgressRef, profile, speak]);
+  }, [isWin, userProgressRef, profile, speak, t]);
 
   if (isWin) {
     return (

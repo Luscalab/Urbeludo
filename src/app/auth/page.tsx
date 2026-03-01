@@ -46,9 +46,11 @@ export default function AuthPage() {
 
     setIsLoading(true);
     
+    // Simulação de UID local
     const uid = `URBE_${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
     const firstAvatar = getDefaultAvatar();
 
+    // Persistência Offline
     await LocalPersistence.saveUserId(uid);
     await LocalPersistence.saveProgress({
       id: uid,

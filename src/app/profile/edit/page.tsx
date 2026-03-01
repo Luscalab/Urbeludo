@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -26,10 +25,6 @@ import { Card } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { UrbeLudoLogo } from '@/components/UrbeLudoLogo';
 
-/**
- * Página de Edição de Identidade Ludo.
- * Permite trocar o avatar (qualquer arquivo em public/assets/avatars) e o nome.
- */
 export default function EditProfilePage() {
   const router = useRouter();
   const { toast } = useToast();
@@ -42,7 +37,6 @@ export default function EditProfilePage() {
   const [isAvatarizing, setIsAvatarizing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Sincroniza o estado local apenas quando o perfil carregar
   useEffect(() => {
     if (profile) {
       if (selectedAvatarId === null) setSelectedAvatarId(profile.avatar?.avatarId || '');
@@ -77,6 +71,7 @@ export default function EditProfilePage() {
     reader.onloadend = async () => {
       try {
         const base64String = reader.result as string;
+        // Chama o fluxo AI (agora rodando no cliente)
         const result = await avatarizeUser({ photoDataUri: base64String });
         
         updateDocumentNonBlocking(userProgressRef, {
@@ -138,7 +133,6 @@ export default function EditProfilePage() {
       </header>
 
       <main className="flex-1 space-y-12 py-8 overflow-x-hidden">
-        {/* Seletor Dinâmico de Avatar */}
         <section className="container max-w-lg mx-auto">
           <AvatarSelection 
             initialAvatarId={selectedAvatarId || undefined} 
@@ -146,7 +140,6 @@ export default function EditProfilePage() {
           />
         </section>
 
-        {/* Campos de Nome e IA */}
         <section className="container max-w-lg mx-auto px-6 space-y-8">
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-[10px] font-black uppercase text-muted-foreground tracking-widest px-2">
