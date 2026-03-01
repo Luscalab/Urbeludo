@@ -12,7 +12,6 @@ import {
   User, 
   History as HistoryIcon,
   Calendar,
-  Sparkles,
   ShieldCheck,
   Edit3
 } from 'lucide-react';
@@ -30,7 +29,7 @@ export default function DashboardPage() {
   const userProgressRef = useMemoFirebase(() => user ? { id: user.uid, path: `user_progress/${user.uid}` } : null, [user]);
   const { data: profile } = useDoc(userProgressRef);
 
-  const avatarInfo = getAvatarById(profile?.avatar?.avatarId || '1.png');
+  const avatarInfo = getAvatarById(profile?.avatar?.avatarId);
   const history = (profile?.history || []).slice(0, 5);
   const auraColor = profile?.dominantColor || '#9333ea';
   const level = profile?.psychomotorLevel || 1;
@@ -50,25 +49,22 @@ export default function DashboardPage() {
       </header>
 
       <main className="flex-1 p-8 space-y-10 container max-w-lg mx-auto">
-        {/* Seção de Evolução de Aura */}
         <div className="flex flex-col items-center text-center space-y-6">
            <div className="relative group">
              <motion.div 
                animate={{ 
                  scale: [1, 1.1, 1],
-                 opacity: [0.3, 0.6, 0.3],
-                 rotate: [0, 180, 360]
+                 opacity: [0.3, 0.6, 0.3]
                }}
-               transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+               transition={{ duration: 4, repeat: Infinity }}
                className="absolute inset-0 rounded-full blur-3xl -z-10"
                style={{ backgroundColor: auraColor }}
              />
              <div className="w-40 h-40 rounded-[4rem] overflow-hidden border-4 border-white shadow-2xl bg-white p-4 relative">
                <img src={avatarInfo.src} alt="Avatar" className="w-full h-full object-contain" />
-               <div className="absolute inset-0 pointer-events-none rounded-[3.8rem] border-2 border-primary/10" />
              </div>
              
-             <Link href="/profile/edit" className="absolute -bottom-2 -right-2 w-12 h-12 rounded-full bg-accent border-4 border-white flex items-center justify-center text-white shadow-lg hover:scale-110 active:scale-95 transition-all">
+             <Link href="/profile/edit" className="absolute -bottom-2 -right-2 w-12 h-12 rounded-full bg-accent border-4 border-white flex items-center justify-center text-white shadow-lg">
                <Edit3 className="w-5 h-5" />
              </Link>
            </div>
@@ -79,7 +75,7 @@ export default function DashboardPage() {
                  <div className="flex items-center gap-3">
                    <Badge variant="outline" className="text-[9px] font-black uppercase border-primary/20 text-primary px-3 py-1 rounded-full">Nível {level}</Badge>
                    <Badge variant="outline" className="text-[9px] font-black uppercase border-accent/20 text-accent px-3 py-1 rounded-full">
-                     {profile?.avatar?.accessoryType || "Explorador Iniciante"}
+                     {profile?.avatar?.accessoryType || "Herói Digital"}
                    </Badge>
                  </div>
                  <p className="text-[8px] font-black text-muted-foreground uppercase tracking-[0.3em]">{t('dashboard.evolution')}</p>
@@ -89,24 +85,19 @@ export default function DashboardPage() {
 
         <Button asChild className="w-full h-24 rounded-full font-black uppercase tracking-widest shadow-2xl flex justify-center gap-4 bg-primary border-b-8 border-primary/70 active:border-b-0 active:translate-y-2 transition-all group overflow-hidden relative">
           <Link href="/playground">
-            <Zap className="w-8 h-8 group-hover:scale-125 transition-transform" /> Iniciar Brincadeira
-            <motion.div 
-              animate={{ x: [-200, 600] }}
-              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12"
-            />
+            <Zap className="w-8 h-8" /> Iniciar Brincadeira
           </Link>
         </Button>
 
         <div className="grid grid-cols-2 gap-4">
-           <Card className="p-6 bg-white border-none rounded-[2.5rem] shadow-lg flex flex-col items-center gap-3 text-center border-b-4 border-zinc-100">
+           <Card className="p-6 bg-white border-none rounded-[2.5rem] shadow-lg flex flex-col items-center gap-3 text-center">
               <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary"><Target className="w-5 h-5" /></div>
               <div className="space-y-1">
                  <div className="text-xl font-black">{profile?.totalChallengesCompleted || 0}</div>
                  <div className="text-[8px] font-black text-muted-foreground uppercase tracking-widest">Sessões</div>
               </div>
            </Card>
-           <Card className="p-6 bg-white border-none rounded-[2.5rem] shadow-lg flex flex-col items-center gap-3 text-center border-b-4 border-zinc-100">
+           <Card className="p-6 bg-white border-none rounded-[2.5rem] shadow-lg flex flex-col items-center gap-3 text-center">
               <div className="w-10 h-10 rounded-2xl bg-accent/10 flex items-center justify-center text-accent"><Award className="w-5 h-5" /></div>
               <div className="space-y-1">
                  <div className="text-xl font-black">{profile?.currentStreak || 0}</div>
@@ -119,7 +110,7 @@ export default function DashboardPage() {
           <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2"><HistoryIcon className="w-4 h-4" /> Histórico Recente</h3>
           <div className="space-y-3">
             {history.length > 0 ? history.map((session: any, idx: number) => (
-              <Card key={idx} className="p-4 border-none rounded-[2rem] bg-white shadow-sm flex items-center justify-between border-b-2 border-zinc-50">
+              <Card key={idx} className="p-4 border-none rounded-[2rem] bg-white shadow-sm flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center"><Calendar className="w-5 h-5 text-muted-foreground" /></div>
                   <div>
@@ -139,7 +130,7 @@ export default function DashboardPage() {
 
         <div className="flex items-center justify-center gap-2 text-[8px] font-black uppercase text-muted-foreground opacity-40 py-4">
           <ShieldCheck className="w-3 h-3 text-primary" />
-          Soberania de Dados: Suas auras são privadas e locais.
+          Soberania de Dados: Suas imagens são privadas e locais.
         </div>
       </main>
 

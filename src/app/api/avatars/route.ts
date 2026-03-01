@@ -5,7 +5,7 @@ import path from 'path';
 
 /**
  * API para listar dinamicamente todos os arquivos de imagem na pasta de avatares.
- * Caminho atualizado: public/assets/avatars
+ * Caminho: public/assets/avatars
  */
 export async function GET() {
   const avatarsDir = path.join(process.cwd(), 'public/assets/avatars');
@@ -17,18 +17,13 @@ export async function GET() {
     }
 
     const files = fs.readdirSync(avatarsDir);
-    // Filtra apenas arquivos de imagem comuns e ignora arquivos ocultos
+    // Filtra qualquer arquivo de imagem, independente do nome
     const images = files.filter(file => 
       !file.startsWith('.') && /\.(png|jpe?g|svg|webp)$/i.test(file)
     );
     
-    // Ordenação alfabética ou numérica para consistência
-    images.sort((a, b) => {
-      const numA = parseInt(a.match(/\d+/)?.[0] || '0');
-      const numB = parseInt(b.match(/\d+/)?.[0] || '0');
-      if (numA && numB) return numA - numB;
-      return a.localeCompare(b);
-    });
+    // Ordenação natural
+    images.sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
     
     return NextResponse.json(images);
   } catch (error) {

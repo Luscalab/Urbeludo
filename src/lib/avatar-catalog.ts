@@ -1,7 +1,6 @@
 
 /**
- * Utilitário para o catálogo de avatares do UrbeLudo.
- * Centraliza o caminho dos assets localizados em public/assets/avatars.
+ * Utilitário para o catálogo de avatares dinâmico do UrbeLudo.
  */
 
 export interface AvatarAsset {
@@ -10,22 +9,25 @@ export interface AvatarAsset {
   src: string;
 }
 
-// Ponto de verdade para o avatar inicial (fallback)
-export const FALLBACK_AVATAR = {
-  id: '1.png',
-  name: 'Explorador Alfa',
-  src: '/assets/avatars/1.png'
-};
+// Placeholder caso a pasta esteja vazia ou o arquivo suma
+export const FALLBACK_AVATAR_SRC = "https://picsum.photos/seed/ludo/400/400";
 
 /**
- * Mapeia um ID de arquivo para um objeto de asset completo.
- * @param filename Nome do arquivo na pasta public/assets/avatars
+ * Mapeia um nome de arquivo para um objeto de asset completo.
+ * Aceita qualquer nome de arquivo que esteja na pasta /assets/avatars/
  */
-export const getAvatarById = (filename: string) => {
-  if (!filename) return FALLBACK_AVATAR;
+export const getAvatarById = (filename: string | null | undefined): AvatarAsset => {
+  if (!filename) {
+    return {
+      id: 'placeholder',
+      name: 'Explorador',
+      src: FALLBACK_AVATAR_SRC
+    };
+  }
+
   return {
     id: filename,
-    name: `Herói ${filename.split('.')[0]}`,
+    name: filename.split('.')[0].replace(/[-_]/g, ' '),
     src: `/assets/avatars/${filename}`
   };
 };
