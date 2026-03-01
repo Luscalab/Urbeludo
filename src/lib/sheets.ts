@@ -1,4 +1,3 @@
-
 /**
  * @fileOverview Serviço de Sincronização com Google Sheets - 100% Client-Side.
  * Projetado para funcionar dentro de um APK (Capacitor) sem erros de CORS.
@@ -21,8 +20,8 @@ export interface SheetsPayload {
 export const saveToSheets = async (data: SheetsPayload) => {
   const url = process.env.NEXT_PUBLIC_SHEETS_API_URL;
 
-  if (!url) {
-    console.error("Sheets: URL da API não configurada (NEXT_PUBLIC_SHEETS_API_URL)");
+  if (!url || url.includes("COLE_AQUI")) {
+    console.warn("Sheets: URL da API não configurada (NEXT_PUBLIC_SHEETS_API_URL)");
     return;
   }
 
@@ -36,11 +35,17 @@ export const saveToSheets = async (data: SheetsPayload) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        ...data,
+        paciente: data.paciente,
+        volume: data.volume,
+        sustentacao: data.sustentacao,
+        tentativas: data.tentativas,
+        feedback: data.feedback,
+        relatorio: data.relatorio,
+        fase: data.fase,
         timestamp: new Date().toISOString()
       }),
     });
-    console.log("✅ Dados arremessados para a planilha clínica.");
+    console.log("✅ Dados sincronizados com a planilha clínica.");
   } catch (error) {
     console.error("❌ Erro ao enviar dados para Sheets:", error);
   }
