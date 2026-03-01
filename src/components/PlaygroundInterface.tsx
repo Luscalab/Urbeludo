@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -14,7 +13,9 @@ import {
   Zap,
   Wind,
   Volume2,
-  Loader2
+  Loader2,
+  AlertTriangle,
+  Eye
 } from 'lucide-react';
 
 import { useUser, useDoc, useMemoFirebase } from '@/firebase';
@@ -39,12 +40,7 @@ const VOICE_ASSETS = {
   fundo: "/games/elevador/1.png",
   roboParado: "/games/elevador/2.png",
   roboCantando: "/games/elevador/3.png",
-  torre: "/games/elevador/4.png",
-  cabine: "/games/elevador/5.png",
-  medidor: "/games/elevador/6.png",
   caixaFechada: "/games/elevador/7.png",
-  ludocoin: "/games/elevador/8.png",
-  pilhaMoedas: "/games/elevador/9.png",
   caixaAberta: "/games/elevador/10.png"
 };
 
@@ -52,15 +48,12 @@ const GameModeCard = React.memo(({ icon, title, desc, goal, color, onClick }: an
   return (
     <motion.div whileHover={{ scale: 1.02, x: 5 }} className="relative group w-full">
       <button onClick={onClick} className="p-5 rounded-[2.5rem] bg-white/5 border border-white/10 flex items-center gap-5 text-left transition-all hover:bg-white/10 w-full relative overflow-hidden active:scale-95">
-        <div className={cn("w-14 h-14 rounded-[1.5rem] flex items-center justify-center text-white shadow-2xl group-hover:rotate-6 transition-transform shrink-0", color)}>
+        <div className={cn("w-14 h-14 rounded-[1.5rem] flex items-center justify-center text-white shadow-2xl shrink-0", color)}>
           {React.cloneElement(icon, { className: "w-8 h-8" })}
         </div>
         <div className="flex-1 min-w-0 space-y-1">
           <h3 className="text-sm font-black uppercase italic tracking-tighter text-white leading-tight">{title}</h3>
           <p className="text-[8px] text-white/40 font-bold uppercase leading-relaxed">{desc}</p>
-          <div className="flex items-center gap-1.5 pt-1">
-            <span className="text-[7px] font-black uppercase text-primary/60 tracking-widest">Meta: {goal.split(' ')[0]}</span>
-          </div>
         </div>
       </button>
     </motion.div>
@@ -78,38 +71,20 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
   const [rewardAmount, setRewardAmount] = useState(0);
   const [showTutorial, setShowTutorial] = useState(false);
   const [pendingMode, setPendingMode] = useState<GameMode | null>(null);
+  const [highContrast, setHighContrast] = useState(false);
   
   const userProgressRef = useMemoFirebase(() => user ? { id: user.uid, path: `user_progress/${user.uid}` } : null, [user]);
   const { data: profile } = useDoc(userProgressRef);
 
-  useEffect(() => {
-    AuraLogger.info('Playground', `Mudança de estado: Navegando para modo ${gameMode.toUpperCase()}`);
-  }, [gameMode]);
-
-  const speak = useCallback((text: string) => {
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 0.95;
-      utterance.pitch = 1.1;
-      window.speechSynthesis.speak(utterance);
-    }
-  }, []);
-
   const handleModeSelect = (mode: GameMode) => {
-    AuraLogger.debug('Playground', `Pré-seleção de desafio: ${mode}`);
     setPendingMode(mode);
     setShowTutorial(true);
-    const tutorialText = t(`playground.modes.${mode}.info`);
-    speak(tutorialText);
   };
 
   const handleWin = useCallback((reward: number = 30, type: string = 'Desafio Concluído') => {
     if (isWin) return;
-    AuraLogger.info('Playground', `VITÓRIA DETECTADA: ${type} (+${reward} LC)`);
     setIsWin(true);
     setRewardAmount(reward);
-    speak("Incrível! Sua aura está brilhando!");
     
     if (userProgressRef && profile) {
       const history = profile.history || [];
@@ -125,131 +100,184 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
       updateDocumentNonBlocking(userProgressRef, { 
         ludoCoins: (profile.ludoCoins || 0) + reward,
         totalChallengesCompleted: completedCount + 1,
-        history: newHistory,
-        psychomotorLevel: Math.floor((completedCount + 1) / 5) + 1
+        history: newHistory
       });
     }
-  }, [isWin, userProgressRef, profile, speak]);
+  }, [isWin, userProgressRef, profile]);
 
   if (isWin) {
     return (
-      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="fixed inset-0 z-[100] bg-slate-950 flex flex-col items-center justify-center text-white p-12 text-center">
-        <Trophy className="w-40 h-40 text-yellow-400 mb-8 animate-bounce relative z-10" />
-        <h2 className="text-5xl font-black uppercase italic mb-8 relative z-10">{t('playground.winTitle')}</h2>
-        <div className="bg-white/10 backdrop-blur-xl p-8 rounded-[3rem] mb-10 border-4 border-white/20 relative z-10">
-           <span className="text-6xl font-black text-white">+{rewardAmount} LC</span>
-        </div>
-        <Button onClick={() => router.push('/dashboard')} className="h-20 px-16 rounded-full bg-primary text-white font-black uppercase shadow-2xl text-xl relative z-10 border-b-8 border-primary/70">
-          {t('playground.collectCoins')}
+      <div className="fixed inset-0 z-[100] bg-slate-950 flex flex-col items-center justify-center text-white p-12 text-center">
+        <Trophy className="w-40 h-40 text-yellow-400 mb-8 animate-bounce" />
+        <h2 className="text-5xl font-black uppercase italic mb-8">Maestria!</h2>
+        <Button onClick={() => router.push('/dashboard')} className="h-20 px-16 rounded-full bg-primary text-white font-black uppercase text-xl">
+          Coletar +{rewardAmount} LC
         </Button>
-      </motion.div>
-    );
-  }
-
-  if (gameMode === 'select') {
-    return (
-      <div className="flex-1 bg-slate-950 p-8 flex flex-col items-center justify-start gap-10 relative overflow-y-auto no-scrollbar">
-        <AccessibilityToolbar />
-        <h2 className="text-4xl font-black uppercase italic tracking-tighter text-white">Centro de Treino</h2>
-        <div className="grid gap-4 w-full max-w-sm pb-10">
-          <GameModeCard icon={<Move />} title={t('playground.modes.balance.title')} desc={t('playground.modes.balance.desc')} goal={t('playground.modes.balance.goal')} color="bg-blue-500" onClick={() => handleModeSelect('balance')} />
-          <GameModeCard icon={<Music />} title={t('playground.modes.rhythm.title')} desc={t('playground.modes.rhythm.desc')} goal={t('playground.modes.rhythm.goal')} color="bg-primary" onClick={() => handleModeSelect('rhythm')} />
-          <GameModeCard icon={<Fingerprint />} title={t('playground.modes.path.title')} desc={t('playground.modes.path.desc')} goal={t('playground.modes.path.goal')} color="bg-accent" onClick={() => handleModeSelect('path')} />
-          <GameModeCard icon={<Wind />} title={t('playground.modes.breath.title')} desc={t('playground.modes.breath.desc')} goal={t('playground.modes.breath.goal')} color="bg-teal-500" onClick={() => handleModeSelect('breath')} />
-          <GameModeCard icon={<Volume2 />} title={t('playground.modes.voice.title')} desc={t('playground.modes.voice.desc')} goal={t('playground.modes.voice.goal')} color="bg-pink-500" onClick={() => handleModeSelect('voice')} />
-        </div>
-        
-        <Dialog open={showTutorial} onOpenChange={setShowTutorial}>
-          <DialogContent className="max-w-md rounded-[3rem] border-8 border-primary/20 bg-slate-900 text-white p-10">
-            <DialogHeader>
-              <DialogTitle className="text-3xl font-black uppercase italic text-white text-center">Preparar Missão!</DialogTitle>
-              <DialogDescription className="text-sm font-bold text-white/70 uppercase text-center mt-4">
-                {pendingMode ? t(`playground.modes.${pendingMode}.info`) : t('playground.selectGame')}
-              </DialogDescription>
-            </DialogHeader>
-            <Button onClick={() => { 
-               AuraLogger.info('Playground', `Iniciando desafio: ${pendingMode}`);
-               setGameMode(pendingMode!); 
-               setShowTutorial(false); 
-            }} className="w-full h-20 rounded-full bg-primary text-white font-black uppercase text-lg border-b-8 border-primary/70 active:translate-y-2 transition-all">Iniciar Desafio</Button>
-          </DialogContent>
-        </Dialog>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-slate-950 relative overflow-hidden">
-      <AccessibilityToolbar />
-      <header className="absolute top-0 inset-x-0 p-8 flex items-center justify-between z-50">
-        <Button variant="ghost" size="icon" onClick={() => setGameMode('select')} className="text-white/40 hover:text-white bg-white/5 rounded-2xl">
-          <ArrowLeft className="w-6 h-6" />
-        </Button>
-        <span className="text-[10px] font-black uppercase tracking-widest text-white">{t(`playground.modes.${gameMode}.title`)}</span>
-        <div className="w-10" />
-      </header>
+    <div className="flex-1 bg-slate-950 flex flex-col relative overflow-hidden">
+      {gameMode === 'select' ? (
+        <div className="flex-1 p-8 flex flex-col items-center gap-10 overflow-y-auto no-scrollbar">
+          <h2 className="text-4xl font-black uppercase italic text-white">Missões</h2>
+          <div className="grid gap-4 w-full max-w-sm">
+            <GameModeCard icon={<Move />} title="Equilíbrio" desc="Mantenha a bolha estável." color="bg-blue-500" onClick={() => handleModeSelect('balance')} />
+            <GameModeCard icon={<Volume2 />} title="Elevador de Voz" desc="Use sua voz para subir." color="bg-pink-500" onClick={() => handleModeSelect('voice')} />
+            <GameModeCard icon={<Wind />} title="Nuvem de Sopro" desc="Sopre para girar o moinho." color="bg-teal-500" onClick={() => handleModeSelect('breath')} />
+          </div>
+        </div>
+      ) : (
+        <div className="flex-1 relative flex flex-col">
+          <header className="absolute top-0 inset-x-0 p-8 flex items-center justify-between z-50">
+            <Button variant="ghost" size="icon" onClick={() => setGameMode('select')} className="text-white/40 bg-white/5 rounded-2xl">
+              <ArrowLeft className="w-6 h-6" />
+            </Button>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setHighContrast(!highContrast)}
+                className={cn("rounded-full border px-4 font-black text-[8px] uppercase", highContrast ? "bg-yellow-400 text-black border-black" : "text-white/40 border-white/10")}
+              >
+                <Eye className="w-3 h-3 mr-1" /> {highContrast ? 'Acessível ON' : 'Acessível OFF'}
+              </Button>
+            </div>
+          </header>
 
-      <AnimatePresence mode="wait">
-        {gameMode === 'balance' && <BalanceGame key="balance" onWin={handleWin} />}
-        {gameMode === 'voice' && <VoiceGame key="voice" onWin={handleWin} ludoCoins={profile?.ludoCoins || 0} userName={profile?.displayName || "Explorador"} />}
-      </AnimatePresence>
+          <AnimatePresence mode="wait">
+            {gameMode === 'voice' && (
+              <VoiceGame 
+                key="voice" 
+                onWin={handleWin} 
+                userName={profile?.displayName || "Explorador"} 
+                highContrast={highContrast}
+                onSuggestBreath={() => setGameMode('breath')}
+              />
+            )}
+            {gameMode === 'balance' && <div className="flex-1 flex items-center justify-center text-white font-black uppercase">Modo Equilíbrio Ativo</div>}
+            {gameMode === 'breath' && <div className="flex-1 flex items-center justify-center text-white font-black uppercase">Modo Sopro Ativo</div>}
+          </AnimatePresence>
+        </div>
+      )}
+
+      <Dialog open={showTutorial} onOpenChange={setShowTutorial}>
+        <DialogContent className="max-w-md rounded-[3rem] bg-slate-900 text-white p-10 border-none">
+          <DialogHeader>
+            <DialogTitle className="text-3xl font-black uppercase italic text-center">Missão Identificada</DialogTitle>
+            <DialogDescription className="text-sm font-bold text-white/70 text-center uppercase mt-4">
+              Prepare-se para o treino de Aura! Use seus sentidos para vencer.
+            </DialogDescription>
+          </DialogHeader>
+          <Button onClick={() => { setGameMode(pendingMode!); setShowTutorial(false); }} className="w-full h-20 rounded-full bg-primary font-black uppercase text-lg">Iniciar</Button>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
-function BalanceGame({ onWin }: any) {
-  return (
-    <div className="flex-1 flex flex-col items-center justify-center text-white space-y-4">
-      <Move className="w-20 h-20 text-blue-500 animate-pulse" />
-      <p className="text-[10px] font-black uppercase tracking-widest">Equilíbrio Ativo</p>
-    </div>
-  );
-}
-
-function VoiceGame({ onWin, ludoCoins, userName }: any) {
-  const { volume, isSinging } = useAudioProcessor(true);
+function VoiceGame({ onWin, userName, highContrast, onSuggestBreath }: any) {
+  const { volume } = useAudioProcessor(true);
   const [progress, setProgress] = useState(0);
-  const [chestOpen, setChestOpen] = useState(false);
+  const [fails, setFails] = useState(0);
+  const [isStable, setIsStable] = useState(false);
+  const [showFailDialog, setShowFailDialog] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => {
-      if (volume > 20) setProgress(p => {
-        if (p >= 100) {
-          if (!chestOpen) {
-            setChestOpen(true);
-            AuraLogger.info('VoiceGame', 'Sincronizando relatório biomecânico com Sheets...');
-            saveToSheets({ 
-              paciente: userName, 
-              volume: Math.round(volume), 
-              sustentacao: 10, 
-              tentativas: 1, 
-              feedback: "Aura Forte!", 
-              relatorio: "Estabilidade fonatória ok.", 
-              fase: "Andar 1" 
-            });
-            setTimeout(() => onWin(50, 'Maestro da Voz'), 2000);
-          }
-          return 100;
-        }
-        return p + 1;
-      });
-      else setProgress(p => Math.max(0, p - 0.5));
+      // Zona de Estabilidade: Volume entre 30 e 70
+      const stable = volume > 30 && volume < 70;
+      setIsStable(stable);
+
+      if (stable) {
+        setProgress(p => Math.min(100, p + 1.5));
+      } else if (volume > 5) {
+        // Punindo instabilidade (volume muito alto ou baixo demais, mas ainda com som)
+        setProgress(p => Math.max(0, p - 0.5));
+      }
+
+      // Detecção de falha na sustentação
+      if (volume < 5 && progress > 5 && progress < 95) {
+         setFails(f => f + 1);
+         setProgress(0); // Reinicia o elevador
+      }
     }, 100);
     return () => clearInterval(timer);
-  }, [volume, chestOpen, onWin, userName]);
+  }, [volume, progress]);
+
+  useEffect(() => {
+    if (fails >= 3) {
+      setShowFailDialog(true);
+      setFails(0);
+    }
+  }, [fails]);
+
+  useEffect(() => {
+    if (progress >= 100) {
+      saveToSheets({ 
+        paciente: userName, 
+        volume: Math.round(volume), 
+        sustentacao: 10, 
+        tentativas: 1, 
+        feedback: "Aura Estável!", 
+        relatorio: "Voz controlada com sucesso.", 
+        fase: "Elevador 1" 
+      });
+      onWin(50, 'Mestre da Voz');
+    }
+  }, [progress, userName, volume, onWin]);
 
   return (
-    <div className="flex-1 relative flex flex-col items-center justify-center">
-      <img src={VOICE_ASSETS.fundo} loading="lazy" className="absolute inset-0 w-full h-full object-cover opacity-40" />
-      <div className="relative z-10 w-full max-w-xs space-y-8">
-        <div className="h-4 bg-white/10 rounded-full overflow-hidden border border-white/5">
-          <motion.div animate={{ width: `${progress}%` }} className="h-full bg-pink-500 shadow-[0_0_20px_pink]" />
+    <div className="flex-1 flex flex-col items-center justify-center p-8 space-y-12">
+      <div className="relative w-full max-w-xs h-80 bg-slate-900 rounded-[3rem] border-4 border-white/10 overflow-hidden flex flex-col justify-end">
+        
+        {/* ZONA DE ESTABILIDADE */}
+        <div className={cn(
+          "absolute left-0 right-0 h-32 transition-all duration-300 flex items-center justify-center",
+          "bottom-[30%]",
+          highContrast ? "bg-yellow-400/30 border-y-[6px] border-black" : "bg-green-500/20 border-y-2 border-green-500/50",
+          isStable && (highContrast ? "bg-yellow-400 shadow-[0_0_40px_rgba(0,0,0,0.5)]" : "bg-green-500 shadow-[0_0_30px_rgba(34,197,94,0.4)]")
+        )}>
+          <span className={cn("text-[10px] font-black uppercase tracking-widest", highContrast ? "text-black" : "text-green-500")}>
+            {isStable ? "ZONA ATIVA" : "MANTENHA AQUI"}
+          </span>
         </div>
-        <div className="flex flex-col items-center gap-4">
-           <img src={isSinging ? VOICE_ASSETS.roboCantando : VOICE_ASSETS.roboParado} loading="lazy" className="w-32 h-32 object-contain" />
-           <p className="text-white font-black uppercase italic tracking-widest">{Math.round(progress)}%</p>
-        </div>
+
+        {/* ELEVADOR */}
+        <motion.div 
+          animate={{ y: -progress * 2.5 }}
+          className={cn(
+            "w-24 h-24 mx-auto relative z-10 flex items-center justify-center rounded-[2rem]",
+            highContrast ? "bg-white border-[6px] border-black" : "bg-pink-500 shadow-xl"
+          )}
+        >
+          <img src={volume > 30 ? VOICE_ASSETS.roboCantando : VOICE_ASSETS.roboParado} className="w-16 h-16 object-contain" />
+        </motion.div>
       </div>
+
+      <div className="space-y-2 text-center">
+        <div className="text-5xl font-black italic text-white">{Math.round(progress)}%</div>
+        <div className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40">Sustentação Vocal</div>
+      </div>
+
+      <Dialog open={showFailDialog} onOpenChange={setShowFailDialog}>
+        <DialogContent className="max-w-md rounded-[3rem] bg-slate-900 text-white p-10 border-none">
+          <DialogHeader>
+            <div className="mx-auto w-16 h-16 bg-yellow-400 rounded-2xl flex items-center justify-center mb-4">
+              <AlertTriangle className="text-black w-8 h-8" />
+            </div>
+            <DialogTitle className="text-2xl font-black uppercase text-center">Aura Cansada?</DialogTitle>
+            <DialogDescription className="text-sm font-bold text-white/70 text-center uppercase mt-4 leading-relaxed">
+              Percebi que está difícil subir o elevador. Que tal treinar sua respiração com a Nuvem de Sopro primeiro?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-3 mt-6">
+            <Button onClick={() => { onSuggestBreath(); setShowFailDialog(false); }} className="h-16 rounded-full bg-teal-500 font-black uppercase">Ir para Nuvem de Sopro</Button>
+            <Button variant="ghost" onClick={() => setShowFailDialog(false)} className="text-white/40 font-black uppercase text-[10px]">Tentar Novamente</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

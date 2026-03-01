@@ -1,7 +1,7 @@
-
 'use client';
 /**
- * @fileOverview AuraHelper - Orquestrador de Inteligência Híbrida instrumentado.
+ * @fileOverview AuraHelper - Motor de Triagem Híbrida para APK.
+ * Prioriza respostas locais antes de acionar o Gemini Cloud.
  */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -24,89 +24,72 @@ export interface AuraHelperOutput {
 const RESPOSTAS_FIXAS: Record<string, { response: string, action: string }> = {
   jogar_elevador: {
     response: "Use sua voz para subir! Mantenha um som constante e tente ficar dentro da Zona de Estabilidade para encher a barra até 100%.",
-    action: "Tente manter o som firme!"
+    action: "Foque no som firme!"
   },
   zona_estabilidade: {
-    response: "A Zona de Estabilidade é a área verde na tela. Ela indica que sua voz está firme e controlada, o que é fundamental para o seu treino fonatário!",
-    action: "Foque no verde!"
+    response: "A Zona de Estabilidade é a área verde (ou neon no alto contraste). Ela indica que sua voz está no controle, treinando sua musculatura vocal!",
+    action: "Busque o Verde/Neon!"
   },
   clinico_psico: {
-    response: "A psicomotricidade estuda como nossos pensamentos e movimentos trabalham juntos! No UrbeLudo, ajudamos seu corpo e mente a dançarem no mesmo ritmo.",
-    action: "O movimento consciente é a chave!"
-  },
-  tonicidade: {
-    response: "A tonicidade é o controle dos seus músculos. No Elevador de Voz, quando você mantém o som estável, treina o tônus das pregas vocais e do diafragma!",
-    action: "Sinta a firmeza muscular."
+    response: "No UrbeLudo, unimos mente e corpo. Ao controlar sua voz ou equilíbrio, seu cérebro aprende a coordenar melhor seus movimentos urbanos.",
+    action: "Movimento Consciente!"
   },
   moedas: {
-    response: "As LudoCoins (LC) são suas moedas de conquista! Você as ganha completando desafios e pode usá-las na Loja para personalizar seu Estúdio.",
-    action: "Visite a Loja no Painel!"
+    response: "As LudoCoins (LC) são prêmios pelo seu treino. Use-as na Loja para comprar novos itens e personalizar seu Estúdio.",
+    action: "Visite a Loja!"
   },
   tecnico_ajuda: {
-    response: "Verifique se o microfone está ativo e se deu permissão ao app. No Android, confira se o volume está alto e se o ambiente está silencioso.",
+    response: "Confira se o microfone está ativo nas permissões do Android. Reduza o barulho ao redor para que a Aura ouça apenas sua voz.",
     action: "Calibrar Hardware"
-  },
-  praxia_fina: {
-    response: "A praxia fina é a nossa capacidade de fazer movimentos pequenos e precisos. Seguir o Caminho de Luz treina seus dedos e olhos para agirem em harmonia!",
-    action: "Precisão é poder!"
-  },
-  esquema_corporal: {
-    response: "O esquema corporal é a consciência que você tem do seu corpo. Ver seu progresso ajuda seu cérebro a mapear melhor suas capacidades físicas!",
-    action: "Evolua sua percepção."
   }
 };
 
+/**
+ * Função de triagem que roda 100% no cliente (APK).
+ */
 export async function askAuraHelper(input: AuraHelperInput): Promise<AuraHelperOutput> {
-  const query = input.question;
-  AuraLogger.info('AuraFlow', `Nova consulta: "${query}"`);
+  const query = input.question.toLowerCase();
+  AuraLogger.info('AuraFlow', `Triagem para: "${query}"`);
   
   try {
     const intentId = await classifyIntent(query);
-    AuraLogger.debug('AuraFlow', `Intenção detectada localmente: ${intentId}`);
 
     if (intentId !== 'fallback' && RESPOSTAS_FIXAS[intentId]) {
-      AuraLogger.info('AuraFlow', 'Respondendo via base de dados local (Offline).');
+      AuraLogger.info('AuraFlow', `Intenção Local Detectada: ${intentId}`);
       return {
         answer: RESPOSTAS_FIXAS[intentId].response,
         suggestedAction: RESPOSTAS_FIXAS[intentId].action
       };
     }
   } catch (err) {
-    AuraLogger.error('AuraFlow', 'Erro na classificação local', err);
+    AuraLogger.error('AuraFlow', 'Falha na triagem local', err);
   }
 
-  // Fallback para nuvem
-  AuraLogger.warn('AuraFlow', 'Iniciando fallback para Gemini Cloud...');
-  
-  if (!API_KEY || API_KEY.length < 10) {
-    const errorMsg = "Chave de API (NEXT_PUBLIC_GEMINI_API_KEY) ausente ou inválida.";
-    AuraLogger.error('AuraFlow', errorMsg);
+  // Fallback para Cloud Gemini (Apenas se houver Internet e Chave)
+  if (!API_KEY) {
     return {
-      answer: "Minha percepção sensorial oscilou (Chave Ausente). Verifique sua conexão para perguntas complexas!",
-      suggestedAction: "Conectar à Nuvem"
+      answer: "Minha conexão com a Grande Aura está offline. Tente perguntar sobre os jogos ou as moedas!",
+      suggestedAction: "Tente 'Como jogar?'"
     };
   }
 
   try {
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-    const prompt = `Você é o AuraHelper, assistente especialista em Psicomotricidade do UrbeLudo.
-    Explique os benefícios usando conceitos como tonicidade, praxia fina e esquema corporal de forma lúdica.
-    Máximo 3 frases. Retorne APENAS um JSON: {"answer": "...", "suggestedAction": "..."}
-    Contexto: ${input.context || ''}
-    Pergunta: ${query}`;
+    const prompt = `Você é o AuraHelper, assistente de Psicomotricidade.
+      Responda de forma lúdica em até 2 frases.
+      Pergunta: ${query}
+      Contexto: ${input.context || ''}
+      Retorne APENAS um JSON: {"answer": "...", "suggestedAction": "..."}`;
 
     const result = await model.generateContent(prompt);
     const text = result.response.text().replace(/```json|```/g, "").trim();
-    
-    AuraLogger.info('AuraFlow', 'Resposta Gemini gerada com sucesso.');
+    AuraLogger.info('AuraFlow', 'Resposta gerada via Gemini Cloud.');
     return JSON.parse(text) as AuraHelperOutput;
   } catch (error: any) {
-    const technicalError = error.message || error;
-    AuraLogger.error('AuraFlow', 'Erro técnico no Gemini Cloud', technicalError);
+    AuraLogger.error('AuraFlow', 'Erro no Fallback Cloud', error.message);
     return {
-      answer: "Minha conexão com a Grande Aura está instável, mas continue brilhando! Tente perguntar algo sobre os jogos.",
-      suggestedAction: "Tente 'Voz'."
+      answer: "Minha percepção sensorial oscilou. Vamos focar nos seus desafios atuais?",
+      suggestedAction: "Ver Painel"
     };
   }
 }
