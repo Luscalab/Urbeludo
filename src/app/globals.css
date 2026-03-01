@@ -5,26 +5,33 @@
 
 @layer base {
   :root {
-    --background: 210 100% 98%;
-    --foreground: 222 47% 11%;
+    --background: 230 40% 98%;
+    --foreground: 240 20% 10%;
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 240 20% 10%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
-    --primary: 262 83% 58%; 
+    --popover-foreground: 240 20% 10%;
+    --primary: 270 100% 60%; /* Roxo Elétrico */
     --primary-foreground: 210 40% 98%;
-    --secondary: 199 89% 48%; 
+    --secondary: 180 100% 45%; /* Ciano Bio */
     --secondary-foreground: 222 47% 11%;
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 346 84% 61%; 
-    --accent-foreground: 222 47% 11%;
+    --accent: 330 100% 60%; /* Rosa Cinético */
+    --accent-foreground: 210 40% 98%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 262 83% 58%;
-    --radius: 2.5rem;
+    --ring: 270 100% 60%;
+    --radius: 3rem;
+  }
+
+  .dark {
+    --background: 240 20% 5%;
+    --foreground: 210 40% 98%;
+    --primary: 270 100% 65%;
+    --accent: 330 100% 65%;
   }
 
   * {
@@ -57,9 +64,9 @@
 
   .bg-mesh-game {
     background-image: 
-      radial-gradient(at 0% 0%, hsla(262, 83%, 58%, 0.15) 0px, transparent 50%),
-      radial-gradient(at 100% 0%, hsla(199, 89%, 48%, 0.15) 0px, transparent 50%),
-      radial-gradient(at 100% 100%, hsla(346, 84%, 61%, 0.1) 0px, transparent 50%);
+      radial-gradient(at 0% 0%, hsla(270, 100%, 60%, 0.2) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, hsla(180, 100%, 45%, 0.2) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, hsla(330, 100%, 60%, 0.15) 0px, transparent 50%);
   }
 
   .animate-pulse-soft {
@@ -72,10 +79,14 @@
   }
 
   .aura-glow {
-    filter: drop-shadow(0 0 10px currentColor);
+    filter: drop-shadow(0 0 15px hsla(var(--primary), 0.6));
   }
 
   .text-shadow-game {
-    text-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    text-shadow: 0 8px 16px rgba(0,0,0,0.1);
+  }
+
+  .glass-card {
+    @apply bg-white/70 backdrop-blur-3xl border border-white/40 shadow-[0_32px_64px_rgba(0,0,0,0.05)];
   }
 }
