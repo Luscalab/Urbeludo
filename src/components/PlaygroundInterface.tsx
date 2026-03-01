@@ -22,7 +22,8 @@ import {
   ShieldCheck,
   Sparkles,
   Info,
-  Play
+  Play,
+  Volume2
 } from 'lucide-react';
 
 import { useUser, useDoc, useMemoFirebase } from '@/firebase';
@@ -131,9 +132,6 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
           <GameModeCard icon={<Move />} title={t('playground.modes.balance.title')} desc={t('playground.modes.balance.desc')} goal={t('playground.modes.balance.goal')} color="bg-blue-500" onClick={() => setGameMode('balance')} />
           <GameModeCard icon={<Music />} title={t('playground.modes.rhythm.title')} desc={t('playground.modes.rhythm.desc')} goal={t('playground.modes.rhythm.goal')} color="bg-primary" onClick={() => setGameMode('rhythm')} />
           <GameModeCard icon={<Fingerprint />} title={t('playground.modes.path.title')} desc={t('playground.modes.path.desc')} goal={t('playground.modes.path.goal')} color="bg-accent" onClick={() => setGameMode('path')} />
-          <GameModeCard icon={<Rocket />} title={t('playground.modes.jump.title')} desc={t('playground.modes.jump.desc')} goal={t('playground.modes.jump.goal')} color="bg-orange-500" onClick={() => setGameMode('jump')} />
-          <GameModeCard icon={<Hand />} title={t('playground.modes.twister.title')} desc={t('playground.modes.twister.desc')} goal={t('playground.modes.twister.goal')} color="bg-green-500" onClick={() => setGameMode('twister')} />
-          <GameModeCard icon={<Radar />} title={t('playground.modes.radar.title')} desc={t('playground.modes.radar.desc')} goal={t('playground.modes.radar.goal')} color="bg-indigo-500" onClick={() => setGameMode('radar')} />
           
           <div className="w-full border-t border-white/10 pt-4 mt-2">
             <p className="text-[8px] font-black text-white/30 uppercase tracking-[0.4em] mb-4 text-center">Fonoaudiologia e Respiração</p>
@@ -176,8 +174,9 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
         {gameMode === 'balance' && <BalanceGame key="balance" onWin={() => handleWin(50, 'Mestre do Equilíbrio')} auraColor={auraColor} />}
         {gameMode === 'rhythm' && <RhythmGame key="rhythm" onWin={(reward, name) => handleWin(reward, name)} auraColor={auraColor} />}
         {gameMode === 'path' && <PathGame key="path" onWin={(reward, name) => handleWin(reward, name)} auraColor={auraColor} />}
-        {gameMode === 'jump' && <div className="flex-1 flex items-center justify-center text-white">Próximo Desafio...</div>}
-        {gameMode === 'twister' && <div className="flex-1 flex items-center justify-center text-white">Próximo Desafio...</div>}
+        {gameMode === 'breath' && <BreathGame key="breath" onWin={() => handleWin(40, 'Mestre do Sopro')} auraColor={auraColor} />}
+        {gameMode === 'voice' && <VoiceGame key="voice" onWin={() => handleWin(45, 'Voz de Cristal')} auraColor={auraColor} />}
+        {gameMode === 'pitch' && <VoiceGame key="pitch" onWin={() => handleWin(50, 'Maestro Vocal')} auraColor={auraColor} />}
       </AnimatePresence>
     </div>
   );
@@ -288,7 +287,6 @@ function RhythmGame({ onWin, auraColor }: any) {
   const [active, setActive] = useState(false);
   const [phase, setPhase] = useState(0);
   const [hits, setHits] = useState(0);
-  const [lastHitTime, setLastHitTime] = useState(0);
   const [pulse, setPulse] = useState(false);
   
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -319,29 +317,24 @@ function RhythmGame({ onWin, auraColor }: any) {
     if (ctx.state === 'suspended') ctx.resume();
 
     const now = ctx.currentTime;
-    const freq = 261.63 * Math.pow(2, hits / 12); // Melodia ascendente
+    const freq = 261.63 * Math.pow(2, hits / 12);
 
-    const oscs = [0, 5, 12].map(transpose => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(freq * Math.pow(2, transpose/12), now);
-      
-      gain.gain.setValueAtTime(0, now);
-      gain.gain.linearRampToValueAtTime(0.3, now + 0.1);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
-      
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      return osc;
-    });
-
-    oscs.forEach(o => { o.start(now); o.stop(now + 1.5); });
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(freq, now);
+    gain.gain.setValueAtTime(0.3, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(now + 1);
   };
 
   const start = async () => {
     const AC = (window as any).AudioContext || (window as any).webkitAudioContext;
     audioContextRef.current = new AC();
+    if (audioContextRef.current?.state === 'suspended') await audioContextRef.current.resume();
     
     if (typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
       const res = await (DeviceOrientationEvent as any).requestPermission();
@@ -367,12 +360,8 @@ function RhythmGame({ onWin, auraColor }: any) {
       );
 
       if (accel > 15) {
-        const now = Date.now();
-        if (now - lastHitTime > 300) {
-          setHits(h => h + 1);
-          setLastHitTime(now);
-          playSound();
-        }
+        setHits(h => h + 1);
+        playSound();
       }
     };
 
@@ -381,7 +370,7 @@ function RhythmGame({ onWin, auraColor }: any) {
       clearInterval(interval);
       window.removeEventListener('devicemotion', handleMotion);
     };
-  }, [active, currentPhase, lastHitTime]);
+  }, [active, currentPhase]);
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-900">
@@ -410,10 +399,9 @@ function RhythmGame({ onWin, auraColor }: any) {
                  <span>{hits}/{currentPhase.goal}</span>
               </div>
               <div className="h-4 bg-white/10 rounded-full overflow-hidden border border-white/5 p-1">
-                 <motion.div animate={{ width: `${(hits/currentPhase.goal)*100}%` }} className="h-full bg-primary rounded-full shadow-[0_0_15px_rgba(147,51,234,0.5)]" />
+                 <motion.div animate={{ width: `${(hits/currentPhase.goal)*100}%` }} className="h-full bg-primary rounded-full" />
               </div>
            </div>
-           <p className="text-[9px] font-black uppercase text-white/20 tracking-widest animate-bounce">Balance o celular no ritmo!</p>
         </div>
       )}
     </div>
@@ -430,8 +418,7 @@ function PathGame({ onWin, auraColor }: any) {
   const PHASES = [
     { name: 'Voo do Beija-Flor', path: 'M 50,450 L 50,50', reward: 30 },
     { name: 'Deslize da Serpente', path: 'M 50,450 C 150,350 -50,150 50,50', reward: 45 },
-    { name: 'Montanhas de Cristal', path: 'M 50,450 L 150,350 L 50,250 L 150,150 L 50,50', reward: 60 },
-    { name: 'Portal do Zen', path: 'M 50,450 C 250,450 250,50 50,50 C -150,50 -150,450 50,450', reward: 100 }
+    { name: 'Montanhas de Cristal', path: 'M 50,450 L 150,350 L 50,250 L 150,150 L 50,50', reward: 60 }
   ];
 
   const currentPhase = PHASES[phase] || PHASES[0];
@@ -452,15 +439,11 @@ function PathGame({ onWin, auraColor }: any) {
     
     const touch = e.touches[0];
     const rect = svgRef.current.getBoundingClientRect();
-    
-    // Converte coordenadas do Viewport para o ViewBox do SVG (0 a 100/500)
     const x = ((touch.clientX - rect.left) / rect.width) * 200; 
     const y = ((touch.clientY - rect.top) / rect.height) * 500;
 
     const path = pathRef.current;
     const length = path.getTotalLength();
-    
-    // Encontra o ponto no caminho mais próximo do toque (Iteração simples)
     let bestDist = Infinity;
     let bestProg = 0;
     
@@ -473,7 +456,6 @@ function PathGame({ onWin, auraColor }: any) {
       }
     }
 
-    // Só avança se o toque estiver próximo da linha (Ímã de precisão) e for para frente
     if (bestDist < 40 && bestProg > progress - 0.05) {
       setProgress(Math.max(progress, bestProg));
     }
@@ -483,60 +465,135 @@ function PathGame({ onWin, auraColor }: any) {
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-900">
-      <div className="text-center mb-8 space-y-1">
-        <h3 className="text-2xl font-black uppercase italic text-white tracking-tighter">{currentPhase.name}</h3>
-        <p className="text-[8px] font-black uppercase text-primary tracking-[0.4em]">Fase {phase + 1} de {PHASES.length}</p>
-      </div>
-
-      <div className="relative w-full max-w-xs aspect-[2/5] bg-white/5 rounded-[3rem] border-4 border-white/10 overflow-hidden shadow-2xl">
-        <svg 
-          ref={svgRef} 
-          viewBox="0 0 200 500" 
-          className="w-full h-full touch-none"
-          onTouchMove={handleTouchMove}
-        >
-          {/* Caminho Base (Guia) */}
-          <path 
-            ref={pathRef}
-            d={currentPhase.path}
-            fill="none"
-            stroke="white"
-            strokeWidth="30"
-            strokeLinecap="round"
-            strokeOpacity="0.1"
-          />
-          
-          {/* Caminho Ativado (Luz) */}
-          <path 
-            d={currentPhase.path}
-            fill="none"
-            stroke={auraColor}
-            strokeWidth="30"
-            strokeLinecap="round"
-            strokeDasharray="1000"
-            strokeDashoffset={1000 - (progress * 1000)}
-            className="aura-glow"
-          />
-
-          {/* O Alvo (Aura do Usuário) */}
-          <circle 
-            cx={currentPoint.x} 
-            cy={currentPoint.y} 
-            r="15" 
-            fill="white" 
-            className="shadow-2xl"
-          />
+      <div className="relative w-full max-w-xs aspect-[2/5] bg-white/5 rounded-[3rem] border-4 border-white/10 overflow-hidden">
+        <svg ref={svgRef} viewBox="0 0 200 500" className="w-full h-full touch-none" onTouchMove={handleTouchMove}>
+          <path ref={pathRef} d={currentPhase.path} fill="none" stroke="white" strokeWidth="30" strokeLinecap="round" strokeOpacity="0.1" />
+          <path d={currentPhase.path} fill="none" stroke={auraColor} strokeWidth="30" strokeLinecap="round" strokeDasharray="1000" strokeDashoffset={1000 - (progress * 1000)} />
+          <circle cx={currentPoint.x} cy={currentPoint.y} r="15" fill="white" />
         </svg>
-
-        {/* HUD de Progresso Interno */}
-        <div className="absolute bottom-4 inset-x-4 h-1 bg-white/10 rounded-full">
-           <motion.div animate={{ width: `${progress * 100}%` }} className="h-full bg-primary" />
-        </div>
       </div>
+    </div>
+  );
+}
+
+// --- JOGOS DE VOZ E SOPRO ---
+function BreathGame({ onWin, auraColor }: any) {
+  const [active, setActive] = useState(false);
+  const [level, setLevel] = useState(0);
+  const rotationRef = useRef(0);
+  const requestRef = useRef<number>(null);
+
+  const start = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const AC = (window as any).AudioContext || (window as any).webkitAudioContext;
+      const ctx = new AC();
+      const source = ctx.createMediaStreamSource(stream);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 256;
+      source.connect(analyser);
       
-      <p className="mt-8 text-[9px] font-black uppercase text-white/40 tracking-[0.3em] flex items-center gap-2">
-        <Fingerprint className="w-4 h-4" /> Deslize com cuidado
-      </p>
+      const bufferLength = analyser.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+
+      const update = () => {
+        analyser.getByteFrequencyData(dataArray);
+        let average = 0;
+        for(let i=0; i<bufferLength; i++) average += dataArray[i];
+        average /= bufferLength;
+
+        if (average > 30) {
+          rotationRef.current += average / 5;
+          setLevel(prev => Math.min(100, prev + 0.5));
+        } else {
+          setLevel(prev => Math.max(0, prev - 0.2));
+        }
+
+        const wheel = document.getElementById('sopro-wheel');
+        if (wheel) wheel.style.transform = `rotate(${rotationRef.current}deg)`;
+
+        if (level >= 99) {
+          onWin();
+          return;
+        }
+        requestRef.current = requestAnimationFrame(update);
+      };
+
+      setActive(true);
+      update();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  useEffect(() => () => { if(requestRef.current) cancelAnimationFrame(requestRef.current); }, []);
+
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-900">
+      {!active ? (
+        <Button onClick={start} className="h-20 px-12 rounded-full bg-teal-500 text-white font-black uppercase">Ativar Microfone</Button>
+      ) : (
+        <div className="space-y-12 flex flex-col items-center">
+          <div id="sopro-wheel" className="w-48 h-48 flex items-center justify-center">
+             <Wind className="w-40 h-40 text-white" />
+          </div>
+          <div className="w-64 h-4 bg-white/10 rounded-full overflow-hidden">
+             <motion.div animate={{ width: `${level}%` }} className="h-full bg-teal-400" />
+          </div>
+          <p className="text-[10px] font-black text-white/40 uppercase">Sopre no microfone!</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function VoiceGame({ onWin, auraColor }: any) {
+  const [active, setActive] = useState(false);
+  const [volume, setVolume] = useState(0);
+  const [progress, setProgress] = useState(0);
+
+  const start = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const AC = (window as any).AudioContext || (window as any).webkitAudioContext;
+      const ctx = new AC();
+      const analyser = ctx.createAnalyser();
+      ctx.createMediaStreamSource(stream).connect(analyser);
+      const data = new Uint8Array(analyser.frequencyBinCount);
+
+      const update = () => {
+        analyser.getByteFrequencyData(data);
+        let avg = data.reduce((a, b) => a + b) / data.length;
+        setVolume(avg);
+        
+        if (avg > 20 && avg < 80) {
+          setProgress(p => Math.min(100, p + 0.5));
+        } else {
+          setProgress(p => Math.max(0, p - 0.5));
+        }
+        
+        if (progress < 100) requestAnimationFrame(update);
+        else onWin();
+      };
+      setActive(true);
+      update();
+    } catch (e) {}
+  };
+
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-900">
+      {!active ? (
+        <Button onClick={start} className="h-20 px-12 rounded-full bg-pink-500 text-white font-black uppercase">Ativar Elevador</Button>
+      ) : (
+        <div className="h-[400px] w-32 bg-white/5 rounded-3xl relative overflow-hidden flex flex-col items-center border-2 border-white/10">
+          <motion.div animate={{ y: 350 - (volume * 3) }} className="w-16 h-16 rounded-2xl bg-white shadow-2xl flex items-center justify-center absolute bottom-0">
+             <Volume2 className="w-8 h-8 text-pink-500" />
+          </motion.div>
+          <div className="absolute top-4 w-full px-4 h-1">
+             <motion.div animate={{ width: `${progress}%` }} className="h-full bg-pink-400" />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
