@@ -28,6 +28,19 @@ export default function AuthPage() {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  const getDefaultAvatar = async () => {
+    try {
+      const res = await fetch('/api/avatars');
+      if (res.ok) {
+        const list = await res.json();
+        return list[0] || '';
+      }
+    } catch (e) {
+      return '';
+    }
+    return '';
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!termsAccepted) {
@@ -41,8 +54,9 @@ export default function AuthPage() {
 
     setIsLoading(true);
     
-    // Standalone Mock Auth
     const uid = `URBE_${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+    const firstAvatar = await getDefaultAvatar();
+
     await LocalPersistence.saveUserId(uid);
     await LocalPersistence.saveProgress({
       id: uid,
@@ -53,7 +67,7 @@ export default function AuthPage() {
       currentStreak: 0,
       hasSeenTutorial: false,
       dominantColor: '#9333ea',
-      avatar: { avatarId: '1.png' },
+      avatar: { avatarId: firstAvatar },
       history: []
     });
 
@@ -68,6 +82,8 @@ export default function AuthPage() {
   const handleGuestSignIn = async () => {
     setIsLoading(true);
     const uid = `GUEST_${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+    const firstAvatar = await getDefaultAvatar();
+
     await LocalPersistence.saveUserId(uid);
     await LocalPersistence.saveProgress({
       id: uid,
@@ -78,7 +94,7 @@ export default function AuthPage() {
       currentStreak: 0,
       hasSeenTutorial: false,
       dominantColor: '#3b82f6',
-      avatar: { avatarId: '1.png' },
+      avatar: { avatarId: firstAvatar },
       history: []
     });
     router.push('/dashboard');
@@ -158,7 +174,6 @@ export default function AuthPage() {
                 id="terms" 
                 checked={termsAccepted} 
                 onCheckedChange={(checked) => {
-                  // Use setTimeout to avoid flushSync error in React 19/Radix
                   setTimeout(() => setTermsAccepted(!!checked), 0);
                 }}
                 className="w-5 h-5 rounded-md border-2 border-primary"

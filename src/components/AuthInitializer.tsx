@@ -26,19 +26,18 @@ export function AuthInitializer({ children }: { children: React.ReactNode }) {
             await LocalPersistence.saveUserId(uid);
           }
 
-          // Busca o primeiro herói disponível na pasta public/assets/avatars
-          let defaultAvatar = 'placeholder.png';
+          // Busca o primeiro herói disponível na pasta public/assets/avatars dinamicamente
+          let defaultAvatar = '';
           try {
             const res = await fetch('/api/avatars');
             if (res.ok) {
               const list = await res.json();
               if (list && list.length > 0) {
-                // Seleciona o primeiro arquivo encontrado dinamicamente
                 defaultAvatar = list[0];
               }
             }
           } catch (e) {
-            console.warn("API de avatares inacessível no boot, usando fallback.");
+            console.warn("API de avatares inacessível no boot.");
           }
 
           const initialData = {

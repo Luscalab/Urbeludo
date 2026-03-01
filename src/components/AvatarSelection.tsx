@@ -40,7 +40,7 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
       if (files && files.length > 0) {
         setAvatars(files);
         
-        // Se temos um avatar inicial, tentamos encontrá-lo na lista
+        // Tenta sincronizar com o avatar inicial salvo no perfil
         if (initialAvatarId) {
           const idx = files.indexOf(initialAvatarId);
           if (idx !== -1) {
