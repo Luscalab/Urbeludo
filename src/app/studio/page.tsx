@@ -2,33 +2,30 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { StudioItem } from '@/components/studio/StudioItem';
-import { ShopDrawer } from '@/components/studio/ShopDrawer';
-import { AiGeneratorDialog } from '@/components/studio/AiGeneratorDialog';
-import { TutorialOverlay } from '@/components/studio/TutorialOverlay';
-import { useStudio } from '@/hooks/use-studio';
-import { useUser, useDoc, useMemoFirebase } from '@/firebase';
-import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, 
   Edit3, 
   Check, 
   Zap,
   Coins,
-  Sparkles,
   ShoppingBag,
-  Wand2,
   Trophy,
   Battery
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+
+import { useStudio } from '@/hooks/use-studio';
+import { useUser, useDoc, useMemoFirebase } from '@/firebase';
+import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { StudioItem } from '@/components/studio/StudioItem';
+import { ShopDrawer } from '@/components/studio/ShopDrawer';
+import { TutorialOverlay } from '@/components/studio/TutorialOverlay';
 import { cn } from '@/lib/utils';
 
 /**
- * Página do Estúdio - Simulador Social 2.5D de Psicomotricidade.
+ * Página do Estúdio - Simulador Social 2.5D Total (Cafeland & The Sims Style).
+ * Mecânicas de Loja, Mochila e Depth Sorting reais.
  */
 export default function StudioPage() {
   const { user } = useUser();
@@ -37,7 +34,6 @@ export default function StudioPage() {
     updateItemPosition, 
     updateAvatarPosition, 
     buyItem, 
-    addCustomItem,
     placeItem, 
     storeItem, 
     sellItem 
@@ -46,7 +42,6 @@ export default function StudioPage() {
   const viewportRef = useRef<HTMLDivElement>(null);
   const [mode, setMode] = useState<'explore' | 'edit'>('explore');
   const [isShopOpen, setIsShopOpen] = useState(false);
-  const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
   
   const userProgressRef = useMemoFirebase(() => user ? { id: user.uid, path: `user_progress/${user.uid}` } : null, [user]);
@@ -65,13 +60,12 @@ export default function StudioPage() {
       const rect = world.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
-      // Impede caminhar nas paredes (topo da tela)
-      if (y > 450) updateAvatarPosition(x, y);
+      // Impede caminhar nas paredes (topo da tela isométrica)
+      if (y > 500) updateAvatarPosition(x, y);
     }
   };
 
-  const avatarFilename = profile?.avatar?.avatarId || '1.png';
-  const avatarSrc = `/assets/avatars/${avatarFilename}`;
+  const avatarSrc = `/assets/avatars/${profile?.avatar?.avatarId || '1.png'}`;
   const auraColor = profile?.dominantColor || '#9333ea';
   const avatarPos = studioState.avatar.lastPosition;
   const isSapient = profile?.displayName?.toLowerCase() === 'sapient';
@@ -91,7 +85,7 @@ export default function StudioPage() {
         )}
       </AnimatePresence>
 
-      {/* Cafeland HUD - Topo */}
+      {/* Cafeland HUD - Cabeçalho de Recursos */}
       <header className="fixed top-0 inset-x-0 h-28 flex items-center justify-between px-6 z-[200] pointer-events-none">
         <div className="flex items-center gap-4 pointer-events-auto">
           <Link href="/dashboard" className="p-4 bg-white rounded-full shadow-2xl border-b-4 border-zinc-200 active:border-b-0 active:translate-y-1 transition-all">
@@ -130,16 +124,16 @@ export default function StudioPage() {
           dragConstraints={viewportRef}
           onTap={handleFloorClick}
           className="w-[1800px] h-[1800px] relative bg-white flex flex-col shadow-[0_0_100px_rgba(0,0,0,0.2)]"
-          initial={{ x: -500, y: -400 }} 
+          initial={{ x: -450, y: -500 }} 
         >
-          {/* Paredes Estilizadas */}
-          <div className="relative w-full h-[35%] flex">
+          {/* Paredes Estilizadas 2.5D */}
+          <div className="relative w-full h-[40%] flex">
             <div className="flex-1 bg-gradient-to-br from-indigo-50 to-indigo-100 border-r-8 border-white/40" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 100%, 0 85%)' }} />
             <div className="flex-1 bg-gradient-to-bl from-indigo-50 to-indigo-100" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 85%, 0 100%)' }} />
           </div>
 
-          {/* Chão com Grid de Lajotas (Cafeland Style) */}
-          <div className="relative w-full h-[65%] bg-[#f4f7ff] overflow-hidden">
+          {/* Chão com Lajotas e Grid Magnético */}
+          <div className="relative w-full h-[60%] bg-[#f4f7ff] overflow-hidden">
             <div className="absolute inset-0 opacity-10" style={{ 
                backgroundImage: `linear-gradient(45deg, #000 1px, transparent 1px), linear-gradient(-45deg, #000 1px, transparent 1px)`,
                backgroundSize: '80px 80px',
@@ -147,7 +141,7 @@ export default function StudioPage() {
             }} />
           </div>
 
-          {/* Itens e Profundidade */}
+          {/* Itens com Depth Sorting Dinâmico */}
           <div className="absolute inset-0 z-20 pointer-events-none">
             <AnimatePresence>
               {studioState.placedItems.map(item => (
@@ -165,7 +159,7 @@ export default function StudioPage() {
             </AnimatePresence>
           </div>
 
-          {/* Avatar (Oclusão Dinâmica) */}
+          {/* Avatar (Oclusão Dinâmica baseada em Y) */}
           <motion.div 
             id="studio-avatar"
             animate={{ x: avatarPos.x - 64, y: avatarPos.y - 140 }}
@@ -187,7 +181,7 @@ export default function StudioPage() {
           </motion.div>
         </motion.div>
 
-        {/* Cafeland Bottom Controls */}
+        {/* Cafeland Bottom Menu - Controles de Jogo */}
         <div className="fixed bottom-12 inset-x-0 flex justify-center items-end gap-6 z-[250] pointer-events-none">
            <div className="flex items-center gap-4 bg-white/80 backdrop-blur-3xl p-4 rounded-[3.5rem] shadow-[0_30px_60px_rgba(0,0,0,0.3)] border-b-8 border-zinc-200 pointer-events-auto">
               <button 
@@ -209,14 +203,6 @@ export default function StudioPage() {
                 <ShoppingBag className="w-10 h-10" />
                 <span className="text-[10px] font-black uppercase">Mercado</span>
               </button>
-
-              <button 
-                onClick={() => setIsGeneratorOpen(true)}
-                className="w-20 h-20 rounded-full bg-accent text-white flex flex-col items-center justify-center gap-1 shadow-xl border-b-4 border-accent/70 active:border-b-0 active:translate-y-1 transition-all"
-              >
-                <Wand2 className="w-8 h-8" />
-                <span className="text-[8px] font-black uppercase">IA</span>
-              </button>
            </div>
 
            <Link href="/playground" id="btn-play" className="pointer-events-auto">
@@ -233,17 +219,9 @@ export default function StudioPage() {
         onClose={() => setIsShopOpen(false)}
         userCoins={profile?.ludoCoins || 0}
         unlockedItemIds={studioState.unlockedItemIds}
-        customItems={studioState.customItems}
         onBuyItem={buyItem}
         onPlaceItem={placeItem}
-        onOpenGenerator={() => { setIsShopOpen(false); setIsGeneratorOpen(true); }}
         userName={profile?.displayName}
-      />
-
-      <AiGeneratorDialog 
-        isOpen={isGeneratorOpen}
-        onClose={() => setIsGeneratorOpen(false)}
-        onItemGenerated={addCustomItem}
       />
     </div>
   );

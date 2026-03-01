@@ -5,9 +5,8 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PlacedItem } from '@/lib/types';
 import { STUDIO_CATALOG } from '@/lib/studio-catalog';
-import { Package, Trash2, Move, RotateCw } from 'lucide-react';
+import { Package, Trash2, Move } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useStudio } from '@/hooks/use-studio';
 
 interface StudioItemProps {
   data: PlacedItem;
@@ -20,14 +19,12 @@ interface StudioItemProps {
 }
 
 /**
- * Item Individual do Estúdio com Profundidade 2.5D e Menu de Contexto.
+ * Item Individual do Estúdio com Profundidade 2.5D e Menu de Contexto (Bubble Menu).
+ * Segue a mecânica de Cafeland/The Sims.
  */
 export function StudioItem({ data, onUpdate, onStore, onSell, isEditing, auraColor, userName }: StudioItemProps) {
   const [isSelected, setIsSelected] = useState(false);
-  const { studioState } = useStudio();
-  
-  const allItems = [...STUDIO_CATALOG, ...(studioState.customItems || [])];
-  const itemInfo = allItems.find(i => i.id === data.itemId);
+  const itemInfo = STUDIO_CATALOG.find(i => i.id === data.itemId);
   
   if (!itemInfo) return null;
 
@@ -61,13 +58,13 @@ export function StudioItem({ data, onUpdate, onStore, onSell, isEditing, auraCol
       exit={{ opacity: 0, scale: 0.5 }}
       whileDrag={{ scale: 1.1, zIndex: 100000 }}
       className={cn(
-        "absolute cursor-grab active:cursor-grabbing select-none pointer-events-auto touch-none transition-shadow",
+        "absolute cursor-grab active:cursor-grabbing select-none pointer-events-auto touch-none",
         isEditing && isSelected && "ring-8 ring-primary/30 rounded-[3rem] ring-offset-8"
       )}
       style={{ transform: 'translate(-50%, -50%)', left: 0, top: 0 }}
     >
       <div className="relative group">
-        {/* Sombra Isométrica */}
+        {/* Sombra Isométrica Suave */}
         <div 
           className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-black/15 blur-xl rounded-full -z-10"
           style={{ 
@@ -87,7 +84,7 @@ export function StudioItem({ data, onUpdate, onStore, onSell, isEditing, auraCol
           />
         </div>
 
-        {/* Bubble Menu - Cafeland Style */}
+        {/* Menu de Bolha (Bubble Menu) - Estilo Cafeland */}
         <AnimatePresence>
           {isEditing && isSelected && (
             <motion.div 
@@ -99,14 +96,12 @@ export function StudioItem({ data, onUpdate, onStore, onSell, isEditing, auraCol
               <button 
                 onClick={(e) => { e.stopPropagation(); onStore(data.instanceId); }}
                 className="bg-primary text-white p-4 rounded-full shadow-lg hover:scale-110 active:scale-90 transition-all border-b-4 border-primary/70"
-                title="Guardar na Mochila"
               >
                 <Package className="w-5 h-5" />
               </button>
               <button 
                 onClick={(e) => { e.stopPropagation(); onSell(data.instanceId, userName); }}
                 className="bg-red-500 text-white p-4 rounded-full shadow-lg hover:scale-110 active:scale-90 transition-all border-b-4 border-red-700"
-                title="Vender Item"
               >
                 <Trash2 className="w-5 h-5" />
               </button>
@@ -115,7 +110,7 @@ export function StudioItem({ data, onUpdate, onStore, onSell, isEditing, auraCol
         </AnimatePresence>
         
         {isEditing && !isSelected && (
-          <div className="absolute -top-4 -right-4 bg-white p-2.5 rounded-full text-primary shadow-2xl border-2 border-primary animate-bounce-subtle">
+          <div className="absolute -top-4 -right-4 bg-white p-2 rounded-full text-primary shadow-2xl border-2 border-primary animate-pulse">
             <Move className="w-4 h-4" />
           </div>
         )}

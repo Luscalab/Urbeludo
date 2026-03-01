@@ -7,17 +7,16 @@ import { PlacedItem, StudioState, StudioItem } from '@/lib/types';
 import { STUDIO_CATALOG } from '@/lib/studio-catalog';
 
 const GRID_SIZE = 40; 
-const WORLD_SIZE = 1500;
+const WORLD_SIZE = 1800; // Tamanho gigante para exploração
 
 /**
  * Hook de Gerenciamento do Estúdio (Engine Estilo Cafeland/Sims).
- * Lida com posicionamento isométrico, inventário e persistência local.
+ * Lida com posicionamento isométrico, inventário (mochila) e persistência local.
  */
 export function useStudio() {
   const [studioState, setStudioState] = useState<StudioState>({
     unlockedItemIds: [],
     placedItems: [],
-    customItems: [],
     backgroundId: 'default',
     worldConfig: {
       width: WORLD_SIZE,
@@ -25,7 +24,7 @@ export function useStudio() {
       theme: 'minimalist-purple'
     },
     avatar: {
-      lastPosition: { x: 750, y: 1000 }
+      lastPosition: { x: 900, y: 1200 }
     }
   });
   const [isLoading, setIsLoading] = useState(true);
@@ -106,25 +105,14 @@ export function useStudio() {
     return true;
   };
 
-  const addCustomItem = async (item: StudioItem) => {
-    setStudioState(prev => {
-      const newState = {
-        ...prev,
-        customItems: [...(prev.customItems || []), item],
-        unlockedItemIds: [...prev.unlockedItemIds, item.id]
-      };
-      saveState(newState);
-      return newState;
-    });
-  };
-
   const placeItem = async (itemId: string) => {
     setStudioState(prev => {
       const index = prev.unlockedItemIds.indexOf(itemId);
       if (index === -1) return prev;
 
-      const yPos = snapToGrid(WORLD_SIZE * 0.6);
-      const xPos = snapToGrid(WORLD_SIZE / 2);
+      // Posiciona perto do centro do mundo visível
+      const yPos = snapToGrid(1200);
+      const xPos = snapToGrid(900);
       
       const newItem: PlacedItem = {
         instanceId: `inst-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
@@ -168,8 +156,7 @@ export function useStudio() {
     const itemToSell = studioState.placedItems.find(i => i.instanceId === instanceId);
     if (!itemToSell) return;
 
-    const allItems = [...STUDIO_CATALOG, ...(studioState.customItems || [])];
-    const catalogItem = allItems.find(i => i.id === itemToSell.itemId);
+    const catalogItem = STUDIO_CATALOG.find(i => i.id === itemToSell.itemId);
     const isSapient = userName?.toLowerCase() === 'sapient';
     
     const profile = await LocalPersistence.getProgress();
@@ -196,7 +183,6 @@ export function useStudio() {
     updateItemPosition, 
     updateAvatarPosition,
     buyItem,
-    addCustomItem,
     placeItem,
     storeItem, 
     sellItem

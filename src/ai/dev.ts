@@ -5,4 +5,4 @@ config();
 import '@/ai/flows/propose-dynamic-challenges.ts';
 import '@/ai/flows/identify-urban-elements-flow.ts';
 import '@/ai/flows/avatarize-user-flow.ts';
-import '@/ai/flows/generate-studio-item-flow.ts';
+// Removida a geração de itens para focar em mecânicas puras de simulador social

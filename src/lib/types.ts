@@ -29,7 +29,6 @@ export interface StudioItem {
     height: number;
   };
   gridSize?: { w: number; h: number };
-  isAiGenerated?: boolean;
 }
 
 /**
@@ -48,11 +47,11 @@ export interface PlacedItem {
 
 /**
  * Estado completo do Estúdio para persistência no banco de dados local.
+ * Segue a lógica de The Sims/Cafeland: Itens desbloqueados (mochila) vs Itens posicionados.
  */
 export interface StudioState {
-  unlockedItemIds: string[]; // Itens que o usuário comprou mas não posicionou (mochila)
+  unlockedItemIds: string[]; // Itens que o usuário comprou mas não posicionou (mochila/inventário)
   placedItems: PlacedItem[]; // Itens atualmente no cenário
-  customItems?: StudioItem[]; // Itens criados por IA
   backgroundId: string;
   worldConfig: {
     width: number;
@@ -80,7 +79,7 @@ export interface UserProgress {
   avatar: {
     energy: number;
     avatarId: string;
-    unlockedItems: string[];
+    unlockedItems: string[]; // Itens de vestuário (legado)
     equippedItems: string[];
     studioLevel: number;
   };
