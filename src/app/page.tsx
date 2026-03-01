@@ -27,8 +27,8 @@ import { PlaceHolderImages } from '@/lib/placeholder-images';
 export default function Home() {
   const { t } = useI18n();
 
-  const heroImage = PlaceHolderImages.find(img => img.id === 'hero-urban');
-  const playImage = PlaceHolderImages.find(img => img.id === 'play-movement');
+  // Usando a foto focada em movimento para o Hero
+  const heroImage = PlaceHolderImages.find(img => img.id === 'play-movement');
 
   return (
     <div className="flex flex-col min-h-screen bg-background bg-mesh-game overflow-x-hidden">
@@ -37,14 +37,14 @@ export default function Home() {
       <header className="px-6 h-20 flex items-center justify-between border-b border-primary/10 sticky top-0 z-50 bg-background/60 backdrop-blur-2xl">
         <div className="flex items-center gap-3">
           <motion.div 
-            whileHover={{ rotate: 15 }}
+            whileHover={{ rotate: 15, scale: 1.1 }}
             className="p-1 bg-white rounded-2xl border border-primary/20 shadow-inner"
           >
             <UrbeLudoLogo className="w-10 h-10 text-primary" />
           </motion.div>
           <div className="flex flex-col">
-            <span className="text-xl font-black uppercase italic tracking-tighter leading-none">UrbeLudo</span>
-            <span className="text-[7px] font-bold text-primary uppercase tracking-[0.1em]">{t('home.tagline')}</span>
+            <span className="text-2xl font-black uppercase italic tracking-tighter leading-none text-primary">UrbeLudo</span>
+            <span className="text-[7px] font-bold text-muted-foreground uppercase tracking-[0.2em]">{t('home.tagline')}</span>
           </div>
         </div>
         
@@ -58,34 +58,34 @@ export default function Home() {
 
       <main className="flex-1">
         {/* HERO SECTION */}
-        <section className="relative pt-12 pb-20 px-6 container mx-auto overflow-hidden">
-          <div className="flex flex-col gap-12">
+        <section className="relative pt-16 pb-20 px-6 container mx-auto overflow-hidden">
+          <div className="flex flex-col gap-12 lg:flex-row lg:items-center">
             <motion.div 
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0, x: -50 }}
+              animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.8 }}
-              className="space-y-8 text-center"
+              className="space-y-8 text-left lg:flex-1"
             >
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-black uppercase tracking-widest animate-pulse-soft mx-auto">
-                <Sparkles className="w-3 h-3" /> Digital Playground 2026
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-black uppercase tracking-widest animate-pulse-soft">
+                <Sparkles className="w-3 h-3" /> Playground Psicomotor 2026
               </div>
               
-              <h1 className="text-5xl lg:text-8xl font-black uppercase italic tracking-tighter leading-[0.9] text-foreground">
-                TRANSFORME O <span className="text-primary block">MOVIMENTO</span> EM ARTE
+              <h1 className="text-6xl lg:text-9xl font-black uppercase italic tracking-tighter leading-[0.85] text-foreground">
+                DOMINE O <span className="text-primary block">EQUILÍBRIO</span> URBANO
               </h1>
               
-              <p className="text-sm text-muted-foreground leading-relaxed max-w-sm mx-auto font-medium">
-                O primeiro ecossistema móvel de psicomotricidade que usa IA de borda para converter seu equilíbrio e voz em conquistas digitais.
+              <p className="text-lg text-muted-foreground leading-relaxed max-w-sm font-medium">
+                Sincronize seu corpo com a cidade através de sensores de precisão e IA de borda.
               </p>
 
-              <div className="flex flex-col gap-3 max-w-xs mx-auto">
-                <Button asChild size="lg" className="h-20 rounded-full px-10 text-[12px] font-black uppercase tracking-widest shadow-2xl bg-primary border-b-8 border-primary/70 active:border-b-0 active:translate-y-2 transition-all group">
+              <div className="flex flex-col sm:flex-row gap-4 max-w-md">
+                <Button asChild size="lg" className="h-20 rounded-full px-12 text-[14px] font-black uppercase tracking-widest shadow-2xl bg-primary border-b-8 border-primary/70 active:border-b-0 active:translate-y-2 transition-all group flex-1">
                   <Link href="/auth" className="flex items-center justify-between w-full">
                     <span>{t('home.startJourney')}</span>
-                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                    <ArrowRight className="w-6 h-6 group-hover:translate-x-2 transition-transform" />
                   </Link>
                 </Button>
-                <Button asChild variant="ghost" size="lg" className="h-14 rounded-full text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                <Button asChild variant="outline" size="lg" className="h-20 rounded-full px-8 text-[12px] font-black uppercase tracking-widest border-4 border-primary/10 hover:bg-primary/5">
                   <Link href="/playground">{t('home.exploreTech')}</Link>
                 </Button>
               </div>
@@ -93,141 +93,96 @@ export default function Home() {
 
             {/* INTERACTIVE PREVIEW */}
             <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
+              initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 1, delay: 0.2 }}
-              className="relative aspect-[4/5] sm:aspect-video rounded-[3rem] overflow-hidden shadow-2xl border-4 border-white bg-muted"
+              className="relative aspect-[3/4] sm:aspect-video lg:flex-1 rounded-[4rem] overflow-hidden shadow-[0_50px_100px_rgba(0,0,0,0.2)] border-8 border-white bg-muted"
             >
                <Image 
-                src={heroImage?.imageUrl || "https://picsum.photos/seed/hero/1200/800"} 
-                alt="Urban Playground" 
+                src={heroImage?.imageUrl || "https://picsum.photos/seed/balance/1200/1600"} 
+                alt="Movement Playground" 
                 fill 
                 className="object-cover"
-                data-ai-hint={heroImage?.imageHint || "urban architecture"}
+                data-ai-hint={heroImage?.imageHint || "balance movement"}
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-primary/80 via-transparent to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
               
-              <div className="absolute bottom-8 left-8 right-8 p-8 rounded-[2.5rem] bg-white/10 backdrop-blur-2xl border border-white/20 flex flex-col sm:flex-row items-center justify-between gap-6">
+              <div className="absolute bottom-8 left-8 right-8 p-8 rounded-[3rem] bg-white/20 backdrop-blur-3xl border border-white/30 flex flex-col sm:flex-row items-center justify-between gap-6">
                 <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-2xl bg-accent flex items-center justify-center text-white shadow-xl animate-bounce">
-                    <Activity className="w-7 h-7" />
+                  <div className="w-16 h-16 rounded-[1.8rem] bg-accent flex items-center justify-center text-white shadow-2xl animate-bounce">
+                    <Activity className="w-8 h-8" />
                   </div>
                   <div>
-                    <div className="text-[10px] font-black uppercase text-white/70 tracking-widest">Aura Ativa</div>
-                    <div className="text-lg font-black text-white italic">Sincronia Vestibular</div>
+                    <div className="text-[10px] font-black uppercase text-white/80 tracking-widest">Foco Ativo</div>
+                    <div className="text-xl font-black text-white italic">Sincronia 98%</div>
                   </div>
                 </div>
-                <div className="flex -space-x-3">
-                  {[1, 2, 3, 4].map(i => (
-                    <div key={i} className="w-10 h-10 rounded-full border-2 border-white bg-primary/20 backdrop-blur-md overflow-hidden shadow-lg">
-                      <img src={`https://picsum.photos/seed/${i}/100/100`} alt="Player" className="w-full h-full object-cover" />
+                <div className="flex -space-x-4">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="w-12 h-12 rounded-full border-4 border-white bg-primary/20 backdrop-blur-md overflow-hidden shadow-xl">
+                      <img src={`https://picsum.photos/seed/avatar${i}/100/100`} alt="Explorer" className="w-full h-full object-cover" />
                     </div>
                   ))}
-                  <div className="w-10 h-10 rounded-full border-2 border-white bg-accent flex items-center justify-center text-[10px] font-black text-white shadow-lg">+2k</div>
                 </div>
               </div>
             </motion.div>
           </div>
         </section>
 
-        {/* GAME MODES SECTION */}
-        <section className="py-24 px-6 bg-slate-900 text-white rounded-t-[4rem]">
-          <div className="container mx-auto space-y-16">
-            <div className="text-center space-y-4">
-              <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary">O Traço Vivo</span>
-              <h2 className="text-4xl font-black uppercase italic tracking-tighter leading-none">Desafios de Precisão</h2>
-              <p className="text-xs text-white/40 uppercase font-bold tracking-widest">Laboratórios Sensoriais Portáteis</p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <ModePreviewCard 
-                icon={<Waves className="w-8 h-8" />}
-                title="Equilíbrio"
-                desc="Use o giroscópio para manter sua Aura no centro da zona segura."
-                color="bg-blue-500"
-              />
-              <ModePreviewCard 
-                icon={<Music className="w-8 h-8" />}
-                title="Ritmo"
-                desc="Mova seu dispositivo seguindo a pulsação sonora da cidade."
-                color="bg-primary"
-              />
-              <ModePreviewCard 
-                icon={<Fingerprint className="w-8 h-8" />}
-                title="Precisão"
-                desc="Desenhe trilhas de luz em labirintos de coordenação motora fina."
-                color="bg-accent"
-              />
-            </div>
-          </div>
-        </section>
-
         {/* FEATURES GRID */}
-        <section className="py-24 px-6">
-          <div className="container mx-auto space-y-12">
-            <div className="text-center space-y-2">
-              <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary">{t('home.coreEngine')}</span>
-              <h2 className="text-4xl font-black uppercase italic tracking-tighter leading-none">{t('home.whyUrbeLudo')}</h2>
-            </div>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <FeatureCard 
-                icon={<Shield className="w-6 h-6" />}
-                title={t('home.privacyTitle')}
-                description={t('home.privacyDesc')}
-                color="bg-emerald-500"
-              />
-              <FeatureCard 
-                icon={<Smartphone className="w-6 h-6" />}
-                title={t('home.mobileTitle')}
-                description={t('home.mobileDesc')}
-                color="bg-zinc-900"
-              />
-              <FeatureCard 
-                icon={<Zap className="w-6 h-6" />}
-                title={t('home.aiTitle')}
-                description={t('home.aiDesc')}
-                color="bg-orange-500"
-              />
-              <FeatureCard 
-                icon={<Trophy className="w-6 h-6" />}
-                title="Evolução Lúdica"
-                description="Ganhe moedas, suba de nível e personalize seu estúdio privado."
-                color="bg-primary"
-              />
-            </div>
+        <section className="py-24 px-6 container mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <FeatureCard 
+              icon={<Waves className="w-8 h-8" />}
+              title="Equilíbrio"
+              description="Ajuste sua postura milimetricamente para dominar a Aura."
+              color="bg-blue-500"
+            />
+            <FeatureCard 
+              icon={<Music className="w-8 h-8" />}
+              title="Ritmo"
+              description="Siga a pulsação sonora da cidade com precisão motora."
+              color="bg-primary"
+            />
+            <FeatureCard 
+              icon={<Fingerprint className="w-8 h-8" />}
+              title="Precisão"
+              description="Controle motor fino através de trilhas de luz digitais."
+              color="bg-accent"
+            />
           </div>
         </section>
 
         {/* CTA SECTION */}
         <section className="py-20 px-6 container mx-auto">
-          <div className="bg-primary rounded-[3.5rem] p-12 text-center space-y-8 relative overflow-hidden shadow-2xl">
-            <div className="absolute inset-0 bg-mesh-game opacity-30 pointer-events-none" />
+          <div className="bg-slate-950 rounded-[4rem] p-12 text-center space-y-8 relative overflow-hidden shadow-2xl">
+            <div className="absolute inset-0 bg-mesh-game opacity-20 pointer-events-none" />
             <div className="relative z-10 space-y-4">
-              <h2 className="text-4xl font-black uppercase italic text-white tracking-tighter">{t('home.ctaTitle')}</h2>
-              <p className="text-white/80 text-sm font-medium max-w-xs mx-auto">{t('home.ctaDesc')}</p>
+              <h2 className="text-5xl font-black uppercase italic text-white tracking-tighter leading-none">PRONTO PARA O SALTO?</h2>
+              <p className="text-white/40 text-sm font-bold uppercase tracking-widest max-w-xs mx-auto">Conecte sua identidade e comece o treino agora.</p>
             </div>
-            <Button asChild size="lg" className="h-20 px-12 rounded-full bg-white text-primary font-black uppercase tracking-widest text-lg shadow-xl relative z-10 active:scale-95 transition-all">
+            <Button asChild size="lg" className="h-24 px-16 rounded-full bg-white text-slate-950 font-black uppercase tracking-widest text-xl shadow-2xl relative z-10 border-b-8 border-zinc-200 active:border-b-0 active:translate-y-2 transition-all">
               <Link href="/auth">{t('home.connectIdentity')}</Link>
             </Button>
           </div>
         </section>
       </main>
 
-      <footer className="py-16 border-t border-primary/10 px-6 bg-white/20 text-center space-y-8">
-        <div className="flex flex-col items-center gap-4">
-          <div className="p-2 bg-white rounded-3xl shadow-lg">
-            <UrbeLudoLogo className="w-16 h-16 text-primary" />
+      <footer className="py-16 border-t border-primary/10 px-6 bg-white/20 text-center space-y-10">
+        <div className="flex flex-col items-center gap-6">
+          <div className="p-3 bg-white rounded-[2rem] shadow-2xl border-2 border-primary/5">
+            <UrbeLudoLogo className="w-20 h-20 text-primary" />
           </div>
-          <span className="text-2xl font-black uppercase italic tracking-tighter">UrbeLudo</span>
-          <p className="text-[10px] font-bold text-primary uppercase tracking-widest opacity-60 max-w-xs mx-auto leading-relaxed">
-            Desenvolvido para transformar qualquer ambiente em um espaço de exploração e movimento seguro.
-          </p>
+          <div className="space-y-1">
+            <span className="text-3xl font-black uppercase italic tracking-tighter text-primary">UrbeLudo</span>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.4em]">Playground Digital 2026</p>
+          </div>
         </div>
         
-        <div className="flex items-center justify-center gap-6 text-[9px] font-black uppercase text-muted-foreground tracking-widest opacity-40">
+        <div className="flex items-center justify-center gap-8 text-[10px] font-black uppercase text-muted-foreground tracking-widest opacity-60">
           <Link href="/terms" className="hover:text-primary transition-colors">Termos</Link>
           <Link href="/privacy" className="hover:text-primary transition-colors">Privacidade</Link>
+          <div className="w-1.5 h-1.5 rounded-full bg-primary/20" />
           <span>© 2026 UrbeLudo</span>
         </div>
       </footer>
@@ -235,32 +190,18 @@ export default function Home() {
   );
 }
 
-function ModePreviewCard({ icon, title, desc, color }: { icon: React.ReactNode, title: string, desc: string, color: string }) {
-  return (
-    <div className="bg-white/5 border border-white/10 rounded-[3rem] p-10 space-y-6 flex flex-col items-center text-center group hover:bg-white/10 transition-all">
-      <div className={cn("w-20 h-20 rounded-[2rem] flex items-center justify-center text-white shadow-2xl group-hover:scale-110 transition-transform", color)}>
-        {icon}
-      </div>
-      <div className="space-y-2">
-        <h3 className="text-xl font-black uppercase italic tracking-tighter">{title}</h3>
-        <p className="text-[10px] text-white/40 font-bold uppercase leading-relaxed">{desc}</p>
-      </div>
-    </div>
-  );
-}
-
 function FeatureCard({ icon, title, description, color }: { icon: React.ReactNode, title: string, description: string, color: string }) {
   return (
     <motion.div 
-      whileTap={{ scale: 0.98 }}
-      className="p-10 rounded-[3rem] bg-white border border-primary/5 shadow-xl space-y-6 flex items-start gap-8"
+      whileHover={{ y: -10 }}
+      className="p-10 rounded-[3.5rem] bg-white border-b-8 border-zinc-100 shadow-xl space-y-6 flex flex-col items-center text-center"
     >
-      <div className={`w-16 h-16 shrink-0 rounded-[1.5rem] ${color} flex items-center justify-center text-white shadow-lg`}>
+      <div className={`w-20 h-20 rounded-[2rem] ${color} flex items-center justify-center text-white shadow-2xl`}>
         {icon}
       </div>
       <div className="space-y-2">
-        <h3 className="text-lg font-black uppercase italic tracking-tighter leading-none text-foreground">{title}</h3>
-        <p className="text-xs text-muted-foreground font-medium leading-relaxed">{description}</p>
+        <h3 className="text-2xl font-black uppercase italic tracking-tighter leading-none text-foreground">{title}</h3>
+        <p className="text-xs text-muted-foreground font-medium leading-relaxed uppercase tracking-wider">{description}</p>
       </div>
     </motion.div>
   );

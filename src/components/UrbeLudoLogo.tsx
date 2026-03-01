@@ -17,56 +17,39 @@ export function UrbeLudoLogo({ className }: { className?: string }) {
       {/* Atmosfera Urbana */}
       <circle cx="50" cy="50" r="46" fill="var(--primary, #9333ea)" fillOpacity="0.08" />
 
-      {/* Skyline - Prédios Estilizados */}
+      {/* Skyline - Prédios Estilizados com Cantos Arredondados */}
+      <rect x="22" y="55" width="13" height="20" rx="4" fill="currentColor" opacity="0.3" />
+      <rect x="37" y="40" width="16" height="35" rx="5" fill="currentColor" opacity="0.5" />
+      <rect x="55" y="30" width="16" height="45" rx="5" fill="currentColor" opacity="0.4" />
+      <rect x="73" y="50" width="13" height="25" rx="4" fill="currentColor" opacity="0.3" />
+
+      {/* Caminho Lúdico - Curva Dinâmica */}
       <path 
-        d="M22 75 L22 55 Q22 52 25 52 L32 52 Q35 52 35 55 L35 75 Z" 
-        fill="currentColor" opacity="0.4" 
-      />
-      <path 
-        d="M37 75 L37 40 Q37 37 40 37 L50 37 Q53 37 53 40 L53 75 Z" 
-        fill="currentColor" opacity="0.6" 
-      />
-      <path 
-        d="M55 75 L55 30 Q55 27 58 27 L68 27 Q71 27 71 30 L71 75 Z" 
-        fill="currentColor" opacity="0.5" 
-      />
-      <path 
-        d="M73 75 L73 50 Q73 47 76 47 L83 47 Q86 47 86 50 L86 75 Z" 
-        fill="currentColor" opacity="0.4" 
+        d="M20 85 C 40 95, 60 65, 85 75" 
+        stroke="var(--accent, #f43f5e)" 
+        strokeWidth="4" 
+        strokeLinecap="round" 
+        className="aura-glow"
       />
 
-      {/* Sol / Luz de Fundo */}
-      <circle cx="50" cy="30" r="10" fill="currentColor" opacity="0.1" />
-
-      {/* Caminho - Curva que cruza a cidade */}
-      <path 
-        d="M50 95 C 65 85, 35 75, 50 50" 
-        stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeOpacity="0.2" 
-      />
-
-      {/* Silhuetas das Crianças Saltando */}
-      {/* Personagem 1 (Esquerda) */}
-      <g transform="translate(35, 65) scale(0.8) rotate(-15)">
-        <circle cx="0" cy="0" r="5" fill="currentColor" />
+      {/* Personagem Saltando (Estilizado/Lúdico) */}
+      <g transform="translate(60, 45) scale(0.9) rotate(-10)">
+        <circle cx="0" cy="-12" r="6" fill="currentColor" />
         <path 
-          d="M0 5 L0 15 M0 10 L-7 5 M0 10 L7 5 M0 15 L-5 22 M0 15 L5 22" 
-          stroke="currentColor" strokeWidth="3" strokeLinecap="round" 
+          d="M-8 0 Q0 -5 8 0 M-4 12 L0 0 L4 12" 
+          stroke="currentColor" 
+          strokeWidth="4" 
+          strokeLinecap="round" 
+          strokeLinejoin="round" 
         />
       </g>
+
+      {/* Elementos Decorativos - Estrelas/Brilhos */}
+      <path d="M85 25 L87 30 L92 32 L87 34 L85 39 L83 34 L78 32 L83 30 Z" fill="var(--accent, #f43f5e)" opacity="0.6" />
+      <circle cx="15" cy="20" r="3" fill="var(--primary, #9333ea)" opacity="0.4" />
       
-      {/* Personagem 2 (Direita) */}
-      <g transform="translate(68, 62) scale(0.8) rotate(15)">
-        <circle cx="0" cy="0" r="5" fill="currentColor" />
-        <path 
-          d="M0 5 L0 15 M0 10 L-7 5 M0 10 L7 5 M0 15 L-5 22 M0 15 L5 22" 
-          stroke="currentColor" strokeWidth="3" strokeLinecap="round" 
-        />
-        {/* Detalhe do cabelo/rabicho */}
-        <path d="M4 -3 Q6 -1 4 1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      </g>
-
-      {/* Linha do Chão */}
-      <path d="M10 88 Q50 82 90 88" stroke="currentColor" strokeWidth="2" strokeLinecap="round" opacity="0.2" />
+      {/* Linha de Chão Lúdica */}
+      <path d="M10 85 Q50 78 90 85" stroke="currentColor" strokeWidth="2" strokeLinecap="round" opacity="0.1" />
     </svg>
   );
 }

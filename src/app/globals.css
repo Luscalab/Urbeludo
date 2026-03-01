@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -16,7 +17,7 @@
     --secondary-foreground: 222 47% 11%;
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 322 90% 60%; 
+    --accent: 346 84% 61%; 
     --accent-foreground: 222 47% 11%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
@@ -30,6 +31,8 @@
     -webkit-tap-highlight-color: transparent;
     user-select: none;
     scrollbar-width: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   *::-webkit-scrollbar {
@@ -37,9 +40,13 @@
   }
 
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply bg-background text-foreground;
     overflow-x: hidden;
     font-family: 'Inter', sans-serif;
+  }
+
+  h1, h2, h3, h4, .font-black {
+    font-weight: 900;
   }
 }
 
@@ -50,9 +57,9 @@
 
   .bg-mesh-game {
     background-image: 
-      radial-gradient(at 0% 0%, hsla(262, 83%, 58%, 0.1) 0px, transparent 50%),
-      radial-gradient(at 100% 0%, hsla(199, 89%, 48%, 0.1) 0px, transparent 50%),
-      radial-gradient(at 100% 100%, hsla(322, 90%, 60%, 0.05) 0px, transparent 50%);
+      radial-gradient(at 0% 0%, hsla(262, 83%, 58%, 0.15) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, hsla(199, 89%, 48%, 0.15) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, hsla(346, 84%, 61%, 0.1) 0px, transparent 50%);
   }
 
   .animate-pulse-soft {
@@ -61,14 +68,14 @@
 
   @keyframes pulse-soft {
     0%, 100% { opacity: 0.8; transform: scale(1); }
-    50% { opacity: 1; transform: scale(1.05); }
+    50% { opacity: 1; transform: scale(1.02); }
   }
 
   .aura-glow {
-    filter: drop-shadow(0 0 15px currentColor);
+    filter: drop-shadow(0 0 10px currentColor);
   }
 
-  .glass-card {
-    @apply bg-white/60 backdrop-blur-lg border border-white/40 shadow-xl;
+  .text-shadow-game {
+    text-shadow: 0 4px 8px rgba(0,0,0,0.1);
   }
 }
