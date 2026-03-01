@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -24,7 +23,8 @@ import {
   BookOpen,
   Cpu,
   BrainCircuit,
-  UserCheck
+  UserCheck,
+  Loader2
 } from 'lucide-react';
 
 import { useUser, useDoc, useMemoFirebase } from '@/firebase';
@@ -43,7 +43,7 @@ import {
 } from '@/components/ui/dialog';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { generateAuraBotReport, AuraBotReport } from '@/lib/gemini';
-import { sincronizarComPlanilha } from '@/lib/sheets-service';
+import { saveToSheets } from '@/lib/sheets';
 
 type GameMode = 'select' | 'balance' | 'rhythm' | 'path' | 'jump' | 'twister' | 'radar' | 'breath' | 'voice';
 
@@ -645,7 +645,7 @@ function VoiceGame({ onWin, auraColor, ludoCoins, userName }: { onWin: (reward: 
       setAiReport(report);
 
       // 2. Sincroniza com a planilha clínica (Google Sheets)
-      await sincronizarComPlanilha({
+      await saveToSheets({
         paciente: userName,
         fase: currentLevel.name,
         volume: avgVol,
@@ -896,4 +896,3 @@ function VoiceGame({ onWin, auraColor, ludoCoins, userName }: { onWin: (reward: 
 function Loader2(props: any) {
   return <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-loader-2 animate-spin"><path d="M12 2v4"/><path d="m16.2 7.8 2.9-2.9"/><path d="M18 12h4"/><path d="m16.2 16.2 2.9 2.9"/><path d="M12 18v4"/><path d="m4.9 19.1 2.9-2.9"/><path d="M2 12h4"/><path d="m4.9 4.9 2.9 2.9"/></svg>;
 }
-

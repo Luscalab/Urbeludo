@@ -1,13 +1,10 @@
-
 /**
- * @fileOverview Serviço de Integração Gemini 1.5 Flash - 100% Client-Side.
- * Responsável por gerar relatórios de biofeedback para fonoaudiologia.
- * Versão otimizada para Soberania Offline no APK.
+ * @fileOverview Serviço de Inteligência Artificial AuraBot - 100% Client-Side.
+ * Gera relatórios biomecânicos e feedbacks lúdicos para fonoaudiologia.
  */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// A chave é injetada durante o build estático do Next.js (output: export)
 const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
 const genAI = new GoogleGenerativeAI(API_KEY);
 
@@ -17,7 +14,7 @@ export interface AuraBotReport {
 }
 
 /**
- * Gera um relatório lúdico e técnico baseado na performance vocal captada pelo hardware.
+ * Gera um relatório automatizado baseado na performance captada pelos sensores.
  */
 export async function generateAuraBotReport(data: {
   avgVolume: number;
@@ -25,12 +22,11 @@ export async function generateAuraBotReport(data: {
   attempts: number;
   levelName: string;
 }): Promise<AuraBotReport> {
-  // Verificação de segurança para evitar crash em build estático sem chave
-  if (!API_KEY || API_KEY === "") {
+  if (!API_KEY) {
     console.warn("AuraBot: Chave de API ausente. Usando fallback biomecânico.");
     return {
-      childFeedback: "Sua Aura brilhou intensamente! Você conseguiu manter o som firme como um herói espacial!",
-      therapistFeedback: "Desempenho estável. Volume médio observado dentro da zona alvo. Sustentação glótica adequada para o nível."
+      childFeedback: "Incrível! Sua voz brilhou como uma estrela! O baú se abriu!",
+      therapistFeedback: `Performance estável no nível ${data.levelName}. Volume médio de ${data.avgVolume}% sustentado por ${data.sustainTime}s.`
     };
   }
 
@@ -38,34 +34,29 @@ export async function generateAuraBotReport(data: {
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     const prompt = `
-      Aja como o AuraBot, o assistente robótico de fonoaudiologia do ecossistema UrbeLudo.
-      Sua missão é analisar uma sessão de treinamento vocal e gerar um biofeedback preciso.
+      Você é o AuraBot, assistente inteligente de fonoaudiologia do app UrbeLudo.
+      Analise os dados desta sessão de exercício vocal:
       
-      DADOS DA SESSÃO:
-      - Nível Alcançado: ${data.levelName}
-      - Intensidade Média (Volume): ${data.avgVolume}%
-      - Tempo de Sustentação Vocal: ${data.sustainTime} segundos
-      - Persistência: ${data.attempts} tentativas
+      - Nível: ${data.levelName}
+      - Intensidade Média: ${data.avgVolume}%
+      - Tempo de Sustentação: ${data.sustainTime} segundos
+      - Tentativas Realizadas: ${data.attempts}
 
-      REQUISITOS DO RELATÓRIO:
-      1. Para a Criança (childFeedback): Use tom lúdico, encorajador, sobre 'Aura Vocal', 'Energia de Estrela' e 'Foco de Mestre'. Seja curto (máx 2 frases).
-      2. Para o Terapeuta (therapistFeedback): Seja técnico, descreva controle de intensidade, estabilidade respiratória e fadiga observada. (máx 2 frases).
+      Gere dois feedbacks curtos:
+      1. Para a Criança (childFeedback): Use tom lúdico, encorajador, sobre 'Aura Vocal' e 'Energia'. Máximo 2 frases.
+      2. Para o Terapeuta (therapistFeedback): Seja técnico, descreva o controle de intensidade e estabilidade. Máximo 2 frases.
 
-      RETORNO OBRIGATÓRIO: Um objeto JSON puro com os campos "childFeedback" e "therapistFeedback". Não use markdown ou blocos de código.
+      Retorne APENAS um JSON puro (sem markdown) com as chaves: "childFeedback" e "therapistFeedback".
     `;
 
     const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
-    
-    // Limpeza de possíveis formatações markdown automáticas do Gemini
-    const cleanJson = text.replace(/```json|```/g, "").trim();
-    return JSON.parse(cleanJson) as AuraBotReport;
+    const text = result.response.text().replace(/```json|```/g, "").trim();
+    return JSON.parse(text) as AuraBotReport;
   } catch (error) {
-    console.error("AuraBot Offline Error:", error);
+    console.error("Erro na geração de relatório IA:", error);
     return {
-      childFeedback: "Incrível! Sua voz tem um poder único. O baú se abriu com a força do seu canto!",
-      therapistFeedback: "Erro na conexão com a IA Studio. Dados brutos: Volume " + data.avgVolume + "%, Tempo " + data.sustainTime + "s."
+      childFeedback: "Parabéns! Você conseguiu abrir o baú com sua voz mágica!",
+      therapistFeedback: "Erro no processamento da IA. Dados brutos: Volume " + data.avgVolume + "%, Tempo " + data.sustainTime + "s."
     };
   }
 }
