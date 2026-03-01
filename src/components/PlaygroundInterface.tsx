@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -24,8 +23,7 @@ import {
   BookOpen,
   Cpu,
   BrainCircuit,
-  UserCheck,
-  Loader2
+  UserCheck
 } from 'lucide-react';
 
 import { useUser, useDoc, useMemoFirebase } from '@/firebase';
@@ -61,6 +59,9 @@ const VOICE_ASSETS = {
   caixaAberta: "games/elevador/10.png"
 };
 
+/**
+ * Componente de Chuva de Moedas para celebração de vitória.
+ */
 const CoinRain = () => {
   const coins = Array.from({ length: 15 });
   return (
@@ -89,6 +90,9 @@ const CoinRain = () => {
   );
 };
 
+/**
+ * Card de seleção de modo de jogo.
+ */
 function GameModeCard({ icon, title, desc, goal, color, onClick, onInfo }: any) {
   return (
     <motion.div whileHover={{ scale: 1.02, x: 5 }} className="relative group w-full">
@@ -635,7 +639,6 @@ function VoiceGame({ onWin, auraColor, ludoCoins, userName }: { onWin: (reward: 
     setIsGeneratingReport(true);
     
     try {
-      // 1. Gera relatório IA (Gemini Client-Side)
       const report = await generateAuraBotReport({
         avgVolume: Math.round(avgVol),
         sustainTime: currentLevel.duration,
@@ -645,7 +648,6 @@ function VoiceGame({ onWin, auraColor, ludoCoins, userName }: { onWin: (reward: 
 
       setAiReport(report);
 
-      // 2. Sincroniza com a planilha clínica (Google Sheets)
       await saveToSheets({
         paciente: userName,
         fase: currentLevel.name,
@@ -666,7 +668,6 @@ function VoiceGame({ onWin, auraColor, ludoCoins, userName }: { onWin: (reward: 
   useEffect(() => {
     if (!active || showTransition) return;
 
-    // Lógica da Zona de Estabilidade Biomecânica
     const isInRange = volume >= currentLevel.range.min && volume <= currentLevel.range.max;
     
     const interval = setInterval(() => {
@@ -684,10 +685,7 @@ function VoiceGame({ onWin, auraColor, ludoCoins, userName }: { onWin: (reward: 
           return next;
         });
       } else if (!isExplorationMode) {
-        // Penalidade por sair da zona (Sistema de Biofeedback)
         setSustensionProgress(p => Math.max(0, p - 0.8)); 
-        
-        // Se o silêncio for detectado após algum progresso, conta como tentativa
         if (sustensionProgress > 15 && volume < 5) {
             setAttempts(a => a + 1);
         }
@@ -751,8 +749,6 @@ function VoiceGame({ onWin, auraColor, ludoCoins, userName }: { onWin: (reward: 
         </motion.div>
       ) : (
         <div className="relative w-full max-w-lg h-full flex items-center justify-center">
-          
-          {/* Medidor de Volume Bio-Visual */}
           <div className="absolute left-8 top-1/2 -translate-y-1/2 w-20 z-30">
             <div className="relative">
               <img src={VOICE_ASSETS.medidor} alt="Volume" className="w-full h-auto" />
@@ -768,8 +764,6 @@ function VoiceGame({ onWin, auraColor, ludoCoins, userName }: { onWin: (reward: 
 
           <div className="absolute left-1/2 bottom-0 -translate-x-1/2 h-[85%] z-10 flex items-center justify-center">
              <img src={VOICE_ASSETS.torre} alt="" className="h-full w-auto object-contain filter drop-shadow-[0_0_30px_rgba(255,255,255,0.1)]" />
-             
-             {/* Zona de Estabilidade Visual */}
              <motion.div 
                animate={{ y: 150 - (currentLevel.range.min * 1.5) }}
                className="absolute inset-x-8 h-24 bg-green-500/10 border-y-2 border-green-500/30 backdrop-blur-sm flex items-center justify-center rounded-2xl"
@@ -845,7 +839,6 @@ function VoiceGame({ onWin, auraColor, ludoCoins, userName }: { onWin: (reward: 
         </div>
       )}
 
-      {/* Relatório de Vitória e IA */}
       <AnimatePresence>
         {showTransition && (
           <motion.div 
@@ -876,7 +869,7 @@ function VoiceGame({ onWin, auraColor, ludoCoins, userName }: { onWin: (reward: 
                    </h4>
                    {isGeneratingReport ? (
                       <div className="flex flex-col items-center gap-2 py-4">
-                         <Loader2 className="w-6 h-6 animate-spin text-pink-400" />
+                         <div className="w-6 h-6 border-2 border-pink-400 border-t-transparent rounded-full animate-spin" />
                          <span className="text-[8px] font-black uppercase text-pink-300">Sincronizando Neurônios...</span>
                       </div>
                    ) : (
@@ -907,6 +900,9 @@ function VoiceGame({ onWin, auraColor, ludoCoins, userName }: { onWin: (reward: 
   );
 }
 
+/**
+ * Loader genérico para transições.
+ */
 function Loader2(props: any) {
   return <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-loader-2 animate-spin"><path d="M12 2v4"/><path d="m16.2 7.8 2.9-2.9"/><path d="M18 12h4"/><path d="m16.2 16.2 2.9 2.9"/><path d="M12 18v4"/><path d="m4.9 19.1 2.9-2.9"/><path d="M2 12h4"/><path d="m4.9 4.9 2.9 2.9"/></svg>;
 }
