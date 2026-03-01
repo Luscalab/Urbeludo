@@ -9,11 +9,12 @@ import { pipeline, env } from '@xenova/transformers';
 try {
   if (env) {
     env.allowLocalModels = true;
-    env.allowRemoteModels = true; // Fallback para não travar se os arquivos locais faltarem
+    env.allowRemoteModels = true; 
     env.localModelPath = '/models/';
   }
 } catch (e) {
-  console.warn("AuraWorker: Falha ao configurar env de Transformers:", e);
+  // Envia log de erro para o main thread via postMessage
+  self.postMessage({ type: 'log', level: 'error', message: 'Falha ao configurar Transformers env', data: e });
 }
 
 let extractor: any = null;
@@ -25,7 +26,7 @@ self.onmessage = async (event) => {
   try {
     if (type === 'init') {
       if (!extractor) {
-        console.log("🤖 AuraWorker: Inicializando pipeline semantic...");
+        self.postMessage({ type: 'log', level: 'info', message: 'Iniciando pipeline Transformers.js...' });
         
         extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', {
           progress_callback: (data: any) => {
@@ -35,9 +36,8 @@ self.onmessage = async (event) => {
           }
         });
 
-        // PRÉ-PROCESSAMENTO: Cache de vetores para todas as intenções (Knowledge Base)
         if (examples && Array.isArray(examples)) {
-          console.log("🧠 AuraWorker: Gerando cache de embeddings para intenções...");
+          self.postMessage({ type: 'log', level: 'info', message: 'Gerando embeddings para intenções locais...' });
           intentCache = [];
           for (const intent of examples) {
             const vectors: number[][] = [];
@@ -49,8 +49,8 @@ self.onmessage = async (event) => {
           }
         }
         
-        console.log("✅ AuraWorker: Motor de IA pronto!");
         self.postMessage({ type: 'ready' });
+        self.postMessage({ type: 'log', level: 'info', message: 'AuraWorker pronto e cacheado.' });
       } else {
         self.postMessage({ type: 'ready' });
       }
@@ -59,11 +59,10 @@ self.onmessage = async (event) => {
     if (type === 'classify' && extractor) {
       if (!text) return;
 
-      // 1. Vetoriza a entrada do usuário
+      self.postMessage({ type: 'log', level: 'debug', message: `Classificando: "${text}"` });
       const output = await extractor(text, { pooling: 'mean', normalize: true });
       const userVector = Array.from(output.data as Float32Array);
 
-      // 2. Compara com o Cache usando Similaridade de Cosseno (Dot Product)
       let bestMatch = { id: 'fallback', score: 0 };
 
       for (const intent of intentCache) {
@@ -79,19 +78,20 @@ self.onmessage = async (event) => {
         }
       }
 
-      console.log(`[AuraBrain] Input: "${text}" | Best Match: ${bestMatch.id} | Score: ${bestMatch.score.toFixed(4)}`);
-
-      // Threshold Clínico: 0.4 (Ajustado para maior sensibilidade)
-      const finalId = bestMatch.score >= 0.4 ? bestMatch.id : 'fallback';
-      
       self.postMessage({ 
         type: 'result', 
-        intentId: finalId, 
+        intentId: bestMatch.score >= 0.4 ? bestMatch.id : 'fallback', 
         score: bestMatch.score 
+      });
+      
+      self.postMessage({ 
+        type: 'log', 
+        level: 'info', 
+        message: `Resultado: ${bestMatch.id} (Score: ${bestMatch.score.toFixed(4)})` 
       });
     }
   } catch (error: any) {
-    console.error("❌ AuraWorker: Erro fatal:", error);
-    self.postMessage({ type: 'error', message: error.message || "Erro desconhecido no Worker" });
+    self.postMessage({ type: 'error', message: error.message || "Erro no Worker" });
+    self.postMessage({ type: 'log', level: 'error', message: 'Erro fatal no Worker', data: error });
   }
 };

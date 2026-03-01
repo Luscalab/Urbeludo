@@ -8,7 +8,6 @@ import {
   Sparkles, 
   BrainCircuit,
   ChevronDown,
-  AlertCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +15,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { usePathname } from 'next/navigation';
 import { askAuraHelper } from '@/ai/flows/aura-helper-flow';
 import { initAuraBrain } from '@/lib/aura-brain';
+import { AuraLogger } from '@/lib/logs/aura-logger';
 import { cn } from '@/lib/utils';
 import { SUGESTOES_AURA } from '@/lib/aura-suggestions';
 
@@ -36,12 +36,14 @@ export function FloatingAuraBot() {
   
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Inicialização estável do motor de IA
   useEffect(() => {
-    initAuraBrain((p) => setLoadProgress(p));
+    AuraLogger.info('AuraBot', 'Componente montado. Iniciando warmup...');
+    initAuraBrain((p) => {
+      setLoadProgress(p);
+      if (p === 100) AuraLogger.info('AuraBot', 'Aura sincronizada e pronta.');
+    });
   }, []);
 
-  // Efeito de scroll otimizado
   useEffect(() => {
     if (scrollRef.current) {
       const scrollContainer = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
@@ -54,6 +56,7 @@ export function FloatingAuraBot() {
   const processMessage = useCallback(async (text: string) => {
     if (!text.trim() || isLoading || loadProgress < 100) return;
 
+    AuraLogger.debug('AuraBot', `Mensagem enviada pelo usuário: "${text}"`);
     setMessages(prev => [...prev, { role: 'user', text }]);
     setIsLoading(true);
 
@@ -65,6 +68,7 @@ export function FloatingAuraBot() {
       
       setMessages(prev => [...prev, { role: 'bot', text: response.answer }]);
     } catch (error) {
+      AuraLogger.error('AuraBot', 'Falha no processamento da mensagem', error);
       setMessages(prev => [...prev, { role: 'bot', text: "Minha percepção sensorial oscilou. Pode repetir de outra forma?" }]);
     } finally {
       setIsLoading(false);
@@ -85,7 +89,10 @@ export function FloatingAuraBot() {
     <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[1000] pointer-events-none w-full max-w-lg px-6">
       <div className="flex flex-col items-center">
         <motion.button
-          onClick={() => setIsOpen(!isOpen)}
+          onClick={() => {
+            setIsOpen(!isOpen);
+            AuraLogger.debug('AuraBot', `Interface ${!isOpen ? 'aberta' : 'fechada'}`);
+          }}
           className={cn(
             "pointer-events-auto h-12 px-6 rounded-full flex items-center gap-3 shadow-2xl transition-all border-b-4 active:border-b-0 active:translate-y-1",
             isOpen 

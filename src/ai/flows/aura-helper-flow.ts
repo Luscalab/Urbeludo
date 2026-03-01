@@ -1,13 +1,12 @@
 'use client';
 /**
- * @fileOverview AuraHelper - Orquestrador de Inteligência Híbrida otimizado.
- * Utiliza o Web Worker para classificação semântica instantânea.
+ * @fileOverview AuraHelper - Orquestrador de Inteligência Híbrida instrumentado.
  */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { classifyIntent } from "@/lib/aura-brain";
+import { AuraLogger } from "@/lib/logs/aura-logger";
 
-// Usando a chave fornecida como fallback seguro e process.env para produção
 const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "AIzaSyCCwhUNlhnpxjDuZ8quod7MTnde1dZJj04";
 const genAI = new GoogleGenerativeAI(API_KEY);
 
@@ -58,23 +57,28 @@ const RESPOSTAS_FIXAS: Record<string, { response: string, action: string }> = {
 
 export async function askAuraHelper(input: AuraHelperInput): Promise<AuraHelperOutput> {
   const query = input.question;
+  AuraLogger.info('AuraFlow', `Nova consulta: "${query}"`);
   
-  // 1. TRIAGEM SEMÂNTICA (IA de Borda via Web Worker - 100% Offline)
   try {
     const intentId = await classifyIntent(query);
+    AuraLogger.debug('AuraFlow', `Intenção detectada localmente: ${intentId}`);
 
     if (intentId !== 'fallback' && RESPOSTAS_FIXAS[intentId]) {
+      AuraLogger.info('AuraFlow', 'Respondendo via base de dados local (Offline).');
       return {
         answer: RESPOSTAS_FIXAS[intentId].response,
         suggestedAction: RESPOSTAS_FIXAS[intentId].action
       };
     }
   } catch (err) {
-    console.error("❌ AuraHelper: Erro no Worker Semântico:", err);
+    AuraLogger.error('AuraFlow', 'Erro na classificação local', err);
   }
 
-  // 2. FALLBACK PARA GEMINI FLASH (Para perguntas complexas fora da base local)
+  // Fallback para nuvem
+  AuraLogger.warn('AuraFlow', 'Iniciando fallback para Gemini Cloud...');
+  
   if (!API_KEY || API_KEY.length < 10) {
+    AuraLogger.error('AuraFlow', 'Chave de API inválida para o Gemini.');
     return {
       answer: "Minha percepção sensorial oscilou. Verifique sua conexão para perguntas complexas!",
       suggestedAction: "Conectar à Nuvem"
@@ -91,12 +95,12 @@ export async function askAuraHelper(input: AuraHelperInput): Promise<AuraHelperO
     Pergunta: ${query}`;
 
     const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text().replace(/```json|```/g, "").trim();
+    const text = result.response.text().replace(/```json|```/g, "").trim();
     
+    AuraLogger.info('AuraFlow', 'Resposta Gemini gerada com sucesso.');
     return JSON.parse(text) as AuraHelperOutput;
   } catch (error: any) {
-    console.error("❌ AuraHelper: Erro Técnico Gemini:", error?.message || error);
+    AuraLogger.error('AuraFlow', 'Erro técnico no Gemini', error);
     return {
       answer: "Minha conexão com a Grande Aura está instável, mas continue brilhando! Tente perguntar algo sobre os jogos.",
       suggestedAction: "Tente 'Voz'."
