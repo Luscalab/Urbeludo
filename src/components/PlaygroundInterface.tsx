@@ -138,7 +138,7 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
           </div>
 
           <GameModeCard icon={<Wind />} title={t('playground.modes.breath.title')} desc={t('playground.modes.breath.desc')} goal={t('playground.modes.breath.goal')} color="bg-teal-500" onClick={() => setGameMode('breath')} />
-          <GameModeCard icon={<ArrowUp />} title={t('playground.modes.voice.title')} desc={t('playground.modes.voice.desc')} goal={t('playground.modes.voice.goal')} color="bg-pink-500" onClick={() => setGameMode('voice')} />
+          <GameModeCard icon={<Volume2 />} title={t('playground.modes.voice.title')} desc={t('playground.modes.voice.desc')} goal={t('playground.modes.voice.goal')} color="bg-pink-500" onClick={() => setGameMode('voice')} />
           <GameModeCard icon={<Waves />} title={t('playground.modes.pitch.title')} desc={t('playground.modes.pitch.desc')} goal={t('playground.modes.pitch.goal')} color="bg-cyan-500" onClick={() => setGameMode('pitch')} />
         </div>
         
@@ -250,7 +250,7 @@ function BalanceGame({ onWin, auraColor }: any) {
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-12 bg-slate-900 relative">
       {!active ? (
-        <Button onClick={start} className="h-20 px-16 rounded-full bg-primary text-white font-black uppercase shadow-2xl flex gap-3">
+        <Button onClick={start} className="h-20 px-16 rounded-full bg-primary text-white font-black uppercase shadow-2xl flex gap-3 text-lg">
           <Play /> Ativar Sensores
         </Button>
       ) : (
@@ -290,6 +290,7 @@ function RhythmGame({ onWin, auraColor }: any) {
   const [pulse, setPulse] = useState(false);
   
   const audioContextRef = useRef<AudioContext | null>(null);
+  const canHitRef = useRef(true);
 
   const PHASES = [
     { name: 'Adagio', bpm: 60, reward: 30, goal: 5 },
@@ -311,7 +312,7 @@ function RhythmGame({ onWin, auraColor }: any) {
     }
   }, [hits, phase, onWin, currentPhase]);
 
-  const playSound = () => {
+  const playSound = useCallback(() => {
     if (!audioContextRef.current) return;
     const ctx = audioContextRef.current;
     if (ctx.state === 'suspended') ctx.resume();
@@ -329,7 +330,7 @@ function RhythmGame({ onWin, auraColor }: any) {
     gain.connect(ctx.destination);
     osc.start();
     osc.stop(now + 1);
-  };
+  }, [hits]);
 
   const start = async () => {
     const AC = (window as any).AudioContext || (window as any).webkitAudioContext;
@@ -347,21 +348,27 @@ function RhythmGame({ onWin, auraColor }: any) {
   useEffect(() => {
     if (!active) return;
     
+    // Motor de Pulso Rítmico
     const interval = setInterval(() => {
       setPulse(true);
-      setTimeout(() => setPulse(false), 100);
+      canHitRef.current = true; // Libera acerto para esta batida
+      setTimeout(() => setPulse(false), 200); // Janela de 200ms
     }, (60 / currentPhase.bpm) * 1000);
 
     const handleMotion = (e: DeviceMotionEvent) => {
+      // Detecção de pico de aceleração (movimento brusco)
       const accel = Math.sqrt(
         (e.accelerationIncludingGravity?.x || 0) ** 2 +
         (e.accelerationIncludingGravity?.y || 0) ** 2 +
         (e.accelerationIncludingGravity?.z || 0) ** 2
       );
 
-      if (accel > 15) {
+      // SÓ aceita o movimento se for durante o pulso (janela rítmica) E se não acertou ainda nesta batida
+      if (accel > 18 && pulse && canHitRef.current) {
         setHits(h => h + 1);
+        canHitRef.current = false; // Trava para um acerto por batida
         playSound();
+        vibrate(50);
       }
     };
 
@@ -370,7 +377,7 @@ function RhythmGame({ onWin, auraColor }: any) {
       clearInterval(interval);
       window.removeEventListener('devicemotion', handleMotion);
     };
-  }, [active, currentPhase]);
+  }, [active, currentPhase, pulse, playSound]);
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-900">
@@ -386,21 +393,26 @@ function RhythmGame({ onWin, auraColor }: any) {
            </div>
 
            <motion.div 
-             animate={{ scale: pulse ? 1.2 : 1, opacity: pulse ? 1 : 0.6 }}
-             className="w-48 h-48 rounded-[4rem] border-8 border-white flex items-center justify-center shadow-[0_0_80px_rgba(255,255,255,0.2)]"
-             style={{ backgroundColor: auraColor }}
+             animate={{ 
+               scale: pulse ? 1.3 : 1, 
+               opacity: pulse ? 1 : 0.4,
+               borderColor: pulse ? 'white' : 'rgba(255,255,255,0.1)'
+             }}
+             className="w-48 h-48 rounded-[4rem] border-8 flex items-center justify-center shadow-[0_0_80px_rgba(255,255,255,0.1)] transition-colors"
+             style={{ backgroundColor: pulse ? auraColor : 'transparent' }}
            >
-             <Music className="w-20 h-20 text-white" />
+             <Music className={cn("w-20 h-20 transition-colors", pulse ? "text-white" : "text-white/20")} />
            </motion.div>
 
            <div className="w-64 space-y-4">
               <div className="flex justify-between text-[9px] font-black uppercase text-white/40 tracking-widest">
-                 <span>Tonicidade</span>
+                 <span>Precisão Rítmica</span>
                  <span>{hits}/{currentPhase.goal}</span>
               </div>
               <div className="h-4 bg-white/10 rounded-full overflow-hidden border border-white/5 p-1">
                  <motion.div animate={{ width: `${(hits/currentPhase.goal)*100}%` }} className="h-full bg-primary rounded-full" />
               </div>
+              <p className="text-[8px] font-black uppercase text-white/30 tracking-widest">Mova o celular no ritmo da luz!</p>
            </div>
         </div>
       )}
@@ -531,7 +543,7 @@ function BreathGame({ onWin, auraColor }: any) {
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-900">
       {!active ? (
-        <Button onClick={start} className="h-20 px-12 rounded-full bg-teal-500 text-white font-black uppercase">Ativar Microfone</Button>
+        <Button onClick={start} className="h-20 px-12 rounded-full bg-teal-500 text-white font-black uppercase text-lg">Ativar Microfone</Button>
       ) : (
         <div className="space-y-12 flex flex-col items-center">
           <div id="sopro-wheel" className="w-48 h-48 flex items-center justify-center">
@@ -583,7 +595,7 @@ function VoiceGame({ onWin, auraColor }: any) {
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-900">
       {!active ? (
-        <Button onClick={start} className="h-20 px-12 rounded-full bg-pink-500 text-white font-black uppercase">Ativar Elevador</Button>
+        <Button onClick={start} className="h-20 px-12 rounded-full bg-pink-500 text-white font-black uppercase text-lg">Ativar Elevador</Button>
       ) : (
         <div className="h-[400px] w-32 bg-white/5 rounded-3xl relative overflow-hidden flex flex-col items-center border-2 border-white/10">
           <motion.div animate={{ y: 350 - (volume * 3) }} className="w-16 h-16 rounded-2xl bg-white shadow-2xl flex items-center justify-center absolute bottom-0">
