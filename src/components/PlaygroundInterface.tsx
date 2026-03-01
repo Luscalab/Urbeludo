@@ -25,7 +25,8 @@ import {
   Volume2,
   AlertTriangle,
   Lightbulb,
-  X
+  X,
+  CheckCircle2
 } from 'lucide-react';
 
 import { useUser, useDoc, useMemoFirebase } from '@/firebase';
@@ -281,19 +282,36 @@ function GameModeCard({ icon, title, desc, goal, color, onClick, onInfo }: any) 
   );
 }
 
-// --- JOGO 1: EQUILIBRISTA DE AURAS ---
+// --- JOGO 1: EQUILIBRISTA DE AURAS (REENGINEERED) ---
 function BalanceGame({ onWin, auraColor }: { onWin: (reward: number, type: string) => void, auraColor: string }) {
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const [progress, setProgress] = useState(0);
   const [active, setActive] = useState(false);
   const [phaseIdx, setPhaseIdx] = useState(0);
   const [targetPos, setTargetPos] = useState({ x: 0, y: 0 });
+  const [showPhaseTransition, setShowPhaseTransition] = useState(false);
 
   const BALANCE_PHASES = [
-    { name: 'Centro Estável', threshold: 12, targetSize: 48, ballSize: 32, reward: 30, moveFrequency: 0 },
-    { name: 'Órbita Lunar', threshold: 10, targetSize: 40, ballSize: 28, reward: 45, moveFrequency: 4000 },
-    { name: 'Micro-Precisão', threshold: 7, targetSize: 30, ballSize: 24, reward: 60, moveFrequency: 2500 },
-    { name: 'Desafio do Vácuo', threshold: 5, targetSize: 20, ballSize: 18, reward: 80, moveFrequency: 1500 }
+    { name: 'Base Estável', threshold: 15, targetSize: 80, ballSize: 60, reward: 20, moveFrequency: 0, benefit: "Estabilidade básica e calibração sensorial." },
+    { name: 'Centro de Gravidade', threshold: 14, targetSize: 75, ballSize: 55, reward: 25, moveFrequency: 0, benefit: "Trabalhando o tônus muscular central." },
+    { name: 'Atenção Inicial', threshold: 13, targetSize: 70, ballSize: 50, reward: 30, moveFrequency: 6000, benefit: "Início do rastreio ocular dinâmico." },
+    { name: 'Equilíbrio Fluido', threshold: 12, targetSize: 65, ballSize: 45, reward: 35, moveFrequency: 5500, benefit: "Coordenação entre visão e movimento." },
+    { name: 'Vento Suave', threshold: 11, targetSize: 60, ballSize: 40, reward: 40, moveFrequency: 5000, benefit: "Ajustes posturais rápidos." },
+    { name: 'Órbita de Luz', threshold: 10, targetSize: 55, ballSize: 38, reward: 45, moveFrequency: 4500, benefit: "Propriocepção em movimento." },
+    { name: 'Foco Magnético', threshold: 9, targetSize: 50, ballSize: 36, reward: 50, moveFrequency: 4000, benefit: "Atenção seletiva e foco." },
+    { name: 'Micro-Pulso', threshold: 8, targetSize: 45, ballSize: 34, reward: 55, moveFrequency: 3500, benefit: "Controle motor fino e precisão." },
+    { name: 'Maré de Plasma', threshold: 7.5, targetSize: 42, ballSize: 32, reward: 60, moveFrequency: 3000, benefit: "Sincronia visomotora avançada." },
+    { name: 'Núcleo Ativo', threshold: 7, targetSize: 40, ballSize: 30, reward: 65, moveFrequency: 2800, benefit: "Estabilidade sob pressão rítmica." },
+    { name: 'Aura Dançante', threshold: 6.5, targetSize: 38, ballSize: 28, reward: 70, moveFrequency: 2500, benefit: "Flexibilidade cognitiva e motora." },
+    { name: 'Zona de Calma', threshold: 6, targetSize: 35, ballSize: 26, reward: 75, moveFrequency: 2200, benefit: "Autorregulação emocional e física." },
+    { name: 'Resiliência', threshold: 5.5, targetSize: 32, ballSize: 24, reward: 80, moveFrequency: 2000, benefit: "Superação de desafios espaciais." },
+    { name: 'Reflexo Puro', threshold: 5, targetSize: 30, ballSize: 22, reward: 85, moveFrequency: 1800, benefit: "Velocidade de processamento neural." },
+    { name: 'Estrela de Cristal', threshold: 4.5, targetSize: 28, ballSize: 20, reward: 90, moveFrequency: 1600, benefit: "Maestria no sistema vestibular." },
+    { name: 'Silêncio Motor', threshold: 4, targetSize: 25, ballSize: 18, reward: 95, moveFrequency: 1400, benefit: "Concentração absoluta sem ruído muscular." },
+    { name: 'Equilíbrio Quântico', threshold: 3.5, targetSize: 22, ballSize: 16, reward: 100, moveFrequency: 1200, benefit: "Precisão em escala microscópica." },
+    { name: 'Ponto Zero', threshold: 3, targetSize: 20, ballSize: 14, reward: 110, moveFrequency: 1000, benefit: "Unidade entre corpo e tecnologia." },
+    { name: 'Vácuo Estelar', threshold: 2.5, targetSize: 18, ballSize: 12, reward: 120, moveFrequency: 800, benefit: "O auge da consciência corporal." },
+    { name: 'Mestre da Aura', threshold: 2, targetSize: 15, ballSize: 10, reward: 150, moveFrequency: 600, benefit: "Parabéns! Você alcançou o equilíbrio perfeito." }
   ];
 
   const currentPhase = BALANCE_PHASES[phaseIdx];
@@ -308,7 +326,7 @@ function BalanceGame({ onWin, auraColor }: { onWin: (reward: number, type: strin
   };
 
   useEffect(() => {
-    if (!active) return;
+    if (!active || showPhaseTransition) return;
     const handleOrientation = (e: DeviceOrientationEvent) => {
       setTilt({ 
         x: (e.gamma || 0), 
@@ -317,62 +335,69 @@ function BalanceGame({ onWin, auraColor }: { onWin: (reward: number, type: strin
     };
     window.addEventListener('deviceorientation', handleOrientation);
     return () => window.removeEventListener('deviceorientation', handleOrientation);
-  }, [active]);
+  }, [active, showPhaseTransition]);
 
   useEffect(() => {
-    if (!active || currentPhase.moveFrequency === 0) {
+    if (!active || showPhaseTransition || currentPhase.moveFrequency === 0) {
       setTargetPos({ x: 0, y: 0 });
       return;
     }
     const moveTarget = () => {
       setTargetPos({
-        x: (Math.random() * 40) - 20,
-        y: (Math.random() * 40) - 20
+        x: (Math.random() * 50) - 25,
+        y: (Math.random() * 50) - 25
       });
     };
     const interval = setInterval(moveTarget, currentPhase.moveFrequency);
     return () => clearInterval(interval);
-  }, [active, currentPhase.moveFrequency]);
+  }, [active, showPhaseTransition, currentPhase.moveFrequency]);
 
   useEffect(() => {
-    if (!active) return;
+    if (!active || showPhaseTransition) return;
     const dist = Math.sqrt(Math.pow(tilt.x - targetPos.x, 2) + Math.pow(tilt.y - targetPos.y, 2));
     const isInside = dist < currentPhase.threshold;
 
     const timer = setInterval(() => {
       if (isInside) {
-        setProgress(prev => Math.min(100, prev + 2));
+        setProgress(prev => Math.min(100, prev + 2.5));
       } else {
-        setProgress(prev => Math.max(0, prev - 1));
+        setProgress(prev => Math.max(0, prev - 1.5));
       }
     }, 100);
     return () => clearInterval(timer);
-  }, [active, tilt, targetPos, currentPhase.threshold]);
+  }, [active, showPhaseTransition, tilt, targetPos, currentPhase.threshold]);
 
   useEffect(() => {
     if (progress >= 100) {
       if (phaseIdx < BALANCE_PHASES.length - 1) {
-        setPhaseIdx(prev => prev + 1);
+        setShowPhaseTransition(true);
         setProgress(0);
       } else {
         onWin(currentPhase.reward, 'Mestre do Equilíbrio');
       }
     }
-  }, [progress, phaseIdx, onWin, currentPhase.reward]);
+  }, [progress, phaseIdx, onWin, currentPhase.reward, BALANCE_PHASES.length]);
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-12 bg-slate-900 relative">
       {!active ? (
-        <Button onClick={start} className="h-20 px-16 rounded-full bg-primary text-white font-black uppercase shadow-2xl flex gap-3 text-lg">
-          <Play /> Ativar Sensores
-        </Button>
+        <div className="flex flex-col items-center gap-8 text-center max-w-xs">
+          <div className="w-24 h-24 rounded-[2rem] bg-blue-500/20 border-4 border-blue-500 flex items-center justify-center text-blue-500 mb-4 animate-pulse">
+            <Move className="w-12 h-12" />
+          </div>
+          <h3 className="text-3xl font-black uppercase italic text-white tracking-tighter">Equilibrista de Auras</h3>
+          <p className="text-[10px] font-black text-white/40 uppercase tracking-widest leading-relaxed">Prepare-se para 20 desafios de precisão e calma interior.</p>
+          <Button onClick={start} className="h-20 px-16 rounded-full bg-primary text-white font-black uppercase shadow-2xl flex gap-3 text-lg border-b-8 border-primary/70 active:border-b-0 active:translate-y-2">
+            <Play /> Iniciar Jornada
+          </Button>
+        </div>
       ) : (
         <>
           <div className="absolute top-32 w-full max-w-xs px-12 space-y-4">
              <div className="flex justify-between items-end">
                 <div className="flex flex-col">
                   <span className="text-[10px] font-black uppercase text-primary tracking-widest">{currentPhase.name}</span>
-                  <span className="text-[8px] font-bold text-white/40 uppercase tracking-widest">Fase {phaseIdx + 1} de 4</span>
+                  <span className="text-[8px] font-bold text-white/40 uppercase tracking-widest">Nível {phaseIdx + 1} de 20</span>
                 </div>
                 <span className="text-xl font-black text-white">{Math.round(progress)}%</span>
              </div>
@@ -380,16 +405,73 @@ function BalanceGame({ onWin, auraColor }: { onWin: (reward: number, type: strin
                 <motion.div animate={{ width: `${progress}%` }} className="h-full bg-primary shadow-[0_0_20px_rgba(147,51,234,0.5)]" />
              </div>
           </div>
+
           <div className="relative w-80 h-80 flex items-center justify-center">
             <div className="absolute inset-0 opacity-10" style={{ backgroundImage: `radial-gradient(circle at center, white 1px, transparent 1px)`, backgroundSize: '20px 20px' }} />
+            
+            {/* Alvo (Target) */}
             <motion.div
-              animate={{ x: targetPos.x * 4, y: targetPos.y * 4, scale: [1, 1.1, 1] }}
-              transition={{ x: { type: "spring", stiffness: 100, damping: 20 }, y: { type: "spring", stiffness: 100, damping: 20 }, scale: { duration: 2, repeat: Infinity } }}
-              className="absolute rounded-full border-4 border-dashed border-white/30 flex items-center justify-center"
+              animate={{ 
+                x: targetPos.x * 4, 
+                y: targetPos.y * 4, 
+                scale: [1, 1.05, 1],
+                borderColor: progress > 10 ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.2)'
+              }}
+              transition={{ 
+                x: { type: "spring", stiffness: 80, damping: 20 }, 
+                y: { type: "spring", stiffness: 80, damping: 20 }, 
+                scale: { duration: 2, repeat: Infinity } 
+              }}
+              className="absolute rounded-full border-4 border-dashed flex items-center justify-center"
               style={{ width: currentPhase.targetSize * 2.5, height: currentPhase.targetSize * 2.5, backgroundColor: progress > 5 ? 'rgba(255,255,255,0.05)' : 'transparent' }}
             />
-            <motion.div animate={{ x: tilt.x * 4, y: tilt.y * 4 }} transition={{ type: "spring", stiffness: 150, damping: 25 }} className="rounded-full border-4 border-white shadow-[0_0_50px_rgba(0,0,0,0.5)] z-20" style={{ backgroundColor: auraColor, width: currentPhase.ballSize * 2, height: currentPhase.ballSize * 2 }} />
+            
+            {/* Jogador (Ball) */}
+            <motion.div 
+              animate={{ x: tilt.x * 4, y: tilt.y * 4 }} 
+              transition={{ type: "spring", stiffness: 150, damping: 25 }} 
+              className="rounded-full border-4 border-white shadow-[0_0_50px_rgba(0,0,0,0.5)] z-20" 
+              style={{ 
+                backgroundColor: auraColor, 
+                width: currentPhase.ballSize * 2, 
+                height: currentPhase.ballSize * 2 
+              }} 
+            />
           </div>
+
+          {/* Overlay de Transição de Fase */}
+          <AnimatePresence>
+            {showPhaseTransition && (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                className="absolute inset-0 z-[110] bg-slate-900/95 backdrop-blur-xl flex flex-col items-center justify-center text-center p-8"
+              >
+                <div className="p-6 bg-green-500/20 rounded-[3rem] border-4 border-green-500 text-green-500 mb-8">
+                  <CheckCircle2 className="w-16 h-16" />
+                </div>
+                <h2 className="text-4xl font-black uppercase italic text-white mb-2">Excelente!</h2>
+                <p className="text-xs font-bold text-white/60 uppercase tracking-widest mb-10">Nível {phaseIdx + 1} Concluído</p>
+                
+                <div className="bg-white/5 p-8 rounded-[2.5rem] border border-white/10 max-w-xs mb-10">
+                   <Lightbulb className="w-8 h-8 text-yellow-500 mx-auto mb-4" />
+                   <h4 className="text-[10px] font-black uppercase text-yellow-500 tracking-widest mb-2">Pilar Pedagógico</h4>
+                   <p className="text-[11px] font-medium leading-relaxed text-white/90">{currentPhase.benefit}</p>
+                </div>
+
+                <Button 
+                  onClick={() => {
+                    setPhaseIdx(prev => prev + 1);
+                    setShowPhaseTransition(false);
+                  }}
+                  className="h-16 px-12 rounded-full bg-primary text-white font-black uppercase shadow-2xl flex gap-3 text-lg border-b-4 border-primary/70 active:border-b-0 active:translate-y-1"
+                >
+                  Próximo Desafio <ArrowUp className="w-5 h-5 rotate-90" />
+                </Button>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </>
       )}
     </div>
