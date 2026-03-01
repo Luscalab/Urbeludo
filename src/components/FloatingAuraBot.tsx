@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
@@ -20,6 +21,7 @@ import { AuraLogger } from '@/lib/logs/aura-logger';
 import { cn } from '@/lib/utils';
 import { SUGESTOES_AURA } from '@/lib/aura-suggestions';
 import { AuraLogViewer } from '@/components/AuraLogViewer';
+import { useUser, useDoc, useMemoFirebase } from '@/firebase';
 
 interface Message {
   role: 'user' | 'bot';
@@ -28,6 +30,10 @@ interface Message {
 
 export function FloatingAuraBot() {
   const pathname = usePathname();
+  const { user } = useUser();
+  const userProgressRef = useMemoFirebase(() => user ? { id: user.uid, path: `user_progress/${user.uid}` } : null, [user]);
+  const { data: profile } = useDoc(userProgressRef);
+
   const [isOpen, setIsOpen] = useState(false);
   const [isLogViewerOpen, setIsLogViewerOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
@@ -39,6 +45,9 @@ export function FloatingAuraBot() {
   const [clickCount, setClickCount] = useState(0);
   
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Privilégio administrativo baseado no e-mail solicitado
+  const isSapient = profile?.email === 'sapientcontato@gmail.com';
 
   useEffect(() => {
     AuraLogger.info('AuraBot', 'Inicializando componente. Disparando warmup semântico...');
@@ -94,13 +103,15 @@ export function FloatingAuraBot() {
   };
 
   const handleIconClick = () => {
-    // Clique secreto: 5 vezes abre o console de logs técnico
-    const newCount = clickCount + 1;
-    setClickCount(newCount);
-    if (newCount >= 5) {
-      setIsLogViewerOpen(true);
-      setClickCount(0);
-      AuraLogger.info('AuraBot', 'Console de Telemetria ativado via clique sequencial.');
+    // Clique secreto: 5 vezes abre o console de logs técnico (apenas para Sapient)
+    if (isSapient) {
+      const newCount = clickCount + 1;
+      setClickCount(newCount);
+      if (newCount >= 5) {
+        setIsLogViewerOpen(true);
+        setClickCount(0);
+        AuraLogger.info('AuraBot', 'Console de Telemetria ativado via clique sequencial.');
+      }
     }
     
     setIsOpen(!isOpen);
@@ -111,7 +122,7 @@ export function FloatingAuraBot() {
 
   return (
     <>
-      <AuraLogViewer isOpen={isLogViewerOpen} onClose={() => setIsLogViewerOpen(false)} />
+      {isSapient && <AuraLogViewer isOpen={isLogViewerOpen} onClose={() => setIsLogViewerOpen(false)} />}
       
       <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[1000] pointer-events-none w-full max-w-lg px-6">
         <div className="flex flex-col items-center">
@@ -148,13 +159,15 @@ export function FloatingAuraBot() {
                     <h3 className="text-sm font-black uppercase italic tracking-tighter">Guia de Sensibilidade</h3>
                     <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">Processamento Híbrido Ativo</p>
                   </div>
-                  <button 
-                    onClick={() => setIsLogViewerOpen(true)} 
-                    className="p-2.5 hover:bg-slate-100 rounded-xl text-slate-400 transition-colors"
-                    title="Ver Telemetria"
-                  >
-                    <Terminal className="w-4 h-4" />
-                  </button>
+                  {isSapient && (
+                    <button 
+                      onClick={() => setIsLogViewerOpen(true)} 
+                      className="p-2.5 hover:bg-slate-100 rounded-xl text-slate-400 transition-colors"
+                      title="Ver Telemetria"
+                    >
+                      <Terminal className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
 
                 <ScrollArea className="flex-1 p-6" ref={scrollRef}>

@@ -1,3 +1,4 @@
+
 /**
  * Categorias de missão definidas para o ecossistema UrbeLudo.
  */
@@ -20,6 +21,7 @@ export interface ChallengeActivity {
 export interface UserProgress {
   id: string;
   displayName: string;
+  email?: string;
   ludoCoins: number;
   psychomotorLevel: number;
   totalChallengesCompleted: number;
@@ -28,6 +30,17 @@ export interface UserProgress {
   hasSeenTutorial: boolean;
   avatar: {
     avatarId: string;
+    energy?: number;
+    unlockedItems?: string[];
+    equippedItems?: string[];
+    accessoryType?: string;
+    traits?: {
+      hair?: string;
+      hairColor?: string;
+      eyeColor?: string;
+      skinTone?: string;
+    };
   };
   history: ChallengeActivity[];
+  studioState?: any;
 }

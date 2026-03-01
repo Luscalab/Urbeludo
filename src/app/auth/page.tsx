@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState } from 'react';
@@ -54,6 +55,7 @@ export default function AuthPage() {
     await LocalPersistence.saveUserId(uid);
     await LocalPersistence.saveProgress({
       id: uid,
+      email: email, // Salva o e-mail para validação de privilégios (ex: Sapient)
       displayName: name || `Explorador_${uid.slice(-4)}`,
       ludoCoins: 50,
       psychomotorLevel: 1,
