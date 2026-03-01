@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -605,10 +606,10 @@ function VoiceGame({ onWin, auraColor, ludoCoins, userName }: { onWin: (reward: 
   const [isExplorationMode, setIsExplorationMode] = useState(false);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [aiReport, setAiReport] = useState<AuraBotReport | null>(null);
+  const [attempts, setAttempts] = useState(1);
   
   const { volume, isSinging, error } = useAudioProcessor(active);
   const sustensionSecondsRef = useRef(0);
-  const attemptsRef = useRef(1);
 
   const VOICE_LEVELS = [
     { name: 'Andar 1: Brisa Suave', duration: 5, range: { min: 10, max: 45 }, reward: 30, benefit: "Sustentação básica e controle respiratório." },
@@ -630,30 +631,36 @@ function VoiceGame({ onWin, auraColor, ludoCoins, userName }: { onWin: (reward: 
     setChestOpen(true);
     setIsGeneratingReport(true);
     
-    const report = await generateAuraBotReport({
-      avgVolume: Math.round(currentLevel.range.min + (currentLevel.range.max - currentLevel.range.min) / 2),
-      sustainTime: currentLevel.duration,
-      attempts: attemptsRef.current,
-      levelName: currentLevel.name
-    });
+    try {
+      const avgVol = Math.round(currentLevel.range.min + (currentLevel.range.max - currentLevel.range.min) / 2);
+      
+      // 1. Gera relatório IA (Gemini Client-Side)
+      const report = await generateAuraBotReport({
+        avgVolume: avgVol,
+        sustainTime: currentLevel.duration,
+        attempts: attempts,
+        levelName: currentLevel.name
+      });
 
-    setAiReport(report);
-    setIsGeneratingReport(false);
+      setAiReport(report);
 
-    // Sincronização com Planilha (Painel Clínico)
-    sincronizarComPlanilha({
-      paciente: userName,
-      fase: currentLevel.name,
-      volume: Math.round(currentLevel.range.min + (currentLevel.range.max - currentLevel.range.min) / 2),
-      sustentacao: currentLevel.duration,
-      tentativas: attemptsRef.current,
-      feedback: report.childFeedback,
-      relatorio: report.therapistFeedback,
-      data: new Date().toLocaleString()
-    });
-
-    setTimeout(() => setShowTransition(true), 2500); 
-  }, [currentLevel, attemptsRef, userName]);
+      // 2. Sincroniza com a planilha clínica (Google Sheets)
+      await sincronizarComPlanilha({
+        paciente: userName,
+        fase: currentLevel.name,
+        volume: avgVol,
+        sustentacao: currentLevel.duration,
+        tentativas: attempts,
+        feedback: report.childFeedback,
+        relatorio: report.therapistFeedback
+      });
+    } catch (err) {
+      console.error("Falha na automação clínica:", err);
+    } finally {
+      setIsGeneratingReport(false);
+      setTimeout(() => setShowTransition(true), 2500); 
+    }
+  }, [currentLevel, attempts, userName]);
 
   useEffect(() => {
     if (!active || showTransition) return;
@@ -672,11 +679,15 @@ function VoiceGame({ onWin, auraColor, ludoCoins, userName }: { onWin: (reward: 
         });
       } else if (!isExplorationMode) {
         setSustensionProgress(p => Math.max(0, p - 0.6)); 
+        // Se a queda for total, conta como uma tentativa frustrada se já tinha começado
+        if (sustensionProgress > 10 && volume < 5) {
+            setAttempts(a => a + 1);
+        }
       }
     }, 100);
 
     return () => { if (interval) clearInterval(interval); };
-  }, [active, volume, currentLevel, isExplorationMode, handleLevelComplete, showTransition]);
+  }, [active, volume, currentLevel, isExplorationMode, handleLevelComplete, showTransition, sustensionProgress]);
 
   const nextLevel = () => {
     setAiReport(null);
@@ -685,7 +696,7 @@ function VoiceGame({ onWin, auraColor, ludoCoins, userName }: { onWin: (reward: 
       setSustensionProgress(0);
       setShowTransition(false);
       setChestOpen(false);
-      attemptsRef.current = 1;
+      setAttempts(1);
       start();
     } else {
       onWin(currentLevel.reward, 'Maestro da Voz');
@@ -885,3 +896,4 @@ function VoiceGame({ onWin, auraColor, ludoCoins, userName }: { onWin: (reward: 
 function Loader2(props: any) {
   return <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-loader-2 animate-spin"><path d="M12 2v4"/><path d="m16.2 7.8 2.9-2.9"/><path d="M18 12h4"/><path d="m16.2 16.2 2.9 2.9"/><path d="M12 18v4"/><path d="m4.9 19.1 2.9-2.9"/><path d="M2 12h4"/><path d="m4.9 4.9 2.9 2.9"/></svg>;
 }
+
