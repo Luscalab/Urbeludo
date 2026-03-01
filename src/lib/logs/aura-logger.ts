@@ -2,17 +2,25 @@
 
 /**
  * @fileOverview AuraLogger - Sistema de telemetria e logs persistentes.
- * Permite monitorar o comportamento da IA em tempo real e recuperar histórico no APK.
+ * Armazena logs no LocalStorage para serem recuperados mesmo após o fechamento do APK.
  */
 
-type LogLevel = 'info' | 'warn' | 'error' | 'debug';
+export type LogLevel = 'info' | 'warn' | 'error' | 'debug';
+
+export interface LogEntry {
+  timestamp: string;
+  level: LogLevel;
+  context: string;
+  message: string;
+  data?: any;
+}
 
 export const AuraLogger = {
   log(level: LogLevel, context: string, message: string, data?: any) {
     const timestamp = new Date().toISOString();
     const formattedMessage = `[${timestamp}] [${context.toUpperCase()}] ${message}`;
 
-    // Cores para o console (estilo Chrome/Firefox)
+    // Cores para o console do desenvolvedor
     const colors = {
       info: 'color: #9333ea; font-weight: bold;',
       warn: 'color: #f59e0b; font-weight: bold;',
@@ -28,18 +36,21 @@ export const AuraLogger = {
       console.log(`%c${formattedMessage}`, colors[level], data || '');
     }
 
-    // Persistência para debug em APK (Capacitor)
+    // Persistência para visualização no APK
     if (typeof window !== 'undefined') {
       try {
         const rawLogs = localStorage.getItem('aura_logs');
-        const logs = rawLogs ? JSON.parse(rawLogs) : [];
-        logs.push({ timestamp, level, context, message, data: data ? String(data) : null });
+        const logs: LogEntry[] = rawLogs ? JSON.parse(rawLogs) : [];
+        logs.push({ timestamp, level, context, message, data: data ? JSON.stringify(data) : null });
         
-        // Mantém apenas os últimos 100 logs para não estourar o armazenamento
-        if (logs.length > 100) logs.shift();
+        // Limita a 200 logs para economizar memória do dispositivo
+        if (logs.length > 200) logs.shift();
         localStorage.setItem('aura_logs', JSON.stringify(logs));
+        
+        // Dispara evento para o Visualizador de Logs atualizar se estiver aberto
+        window.dispatchEvent(new CustomEvent('aura-log-added'));
       } catch (e) {
-        // Falha silenciosa se o localStorage estiver cheio ou indisponível
+        // Falha silenciosa se o armazenamento estiver cheio
       }
     }
   },
@@ -49,12 +60,32 @@ export const AuraLogger = {
   error(context: string, message: string, data?: any) { this.log('error', context, message, data); },
   debug(context: string, message: string, data?: any) { this.log('debug', context, message, data); },
   
-  getLogs() {
+  getLogs(): LogEntry[] {
     if (typeof window === 'undefined') return [];
-    return JSON.parse(localStorage.getItem('aura_logs') || '[]');
+    try {
+      return JSON.parse(localStorage.getItem('aura_logs') || '[]');
+    } catch (e) {
+      return [];
+    }
   },
   
   clearLogs() {
-    if (typeof window !== 'undefined') localStorage.removeItem('aura_logs');
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('aura_logs');
+      window.dispatchEvent(new CustomEvent('aura-log-added'));
+    }
+  },
+
+  /**
+   * Exporta os logs como um arquivo JSON para download.
+   */
+  exportLogs() {
+    const logs = this.getLogs();
+    const blob = new Blob([JSON.stringify(logs, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `urbeludo_logs_${new Date().getTime()}.json`;
+    a.click();
   }
 };
