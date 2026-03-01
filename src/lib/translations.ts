@@ -89,6 +89,18 @@ export const translations = {
         radar: {
           title: 'O Radar Cego',
           desc: 'Siga o som e aponte para encontrar a Aura escondida.'
+        },
+        breath: {
+          title: 'O Sopro Mágico',
+          desc: 'Sopre no microfone para girar o cata-vento!'
+        },
+        voice: {
+          title: 'O Elevador de Voz',
+          desc: 'Controle o elevador com o volume da sua voz.'
+        },
+        pitch: {
+          title: 'Montanha Russa Sonora',
+          desc: 'Sons agudos sobem, sons graves descem!'
         }
       }
     },
@@ -169,6 +181,18 @@ export const translations = {
         radar: {
           title: 'The Blind Radar',
           desc: 'Follow the sound and point to find the hidden Aura.'
+        },
+        breath: {
+          title: 'Magic Breath',
+          desc: 'Blow into the microphone to spin the windmill!'
+        },
+        voice: {
+          title: 'Voice Elevator',
+          desc: 'Control the elevator with your voice volume.'
+        },
+        pitch: {
+          title: 'Sound Rollercoaster',
+          desc: 'High sounds go up, low sounds go down!'
         }
       }
     }
