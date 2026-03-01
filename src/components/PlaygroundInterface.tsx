@@ -1,58 +1,44 @@
-
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { 
-  Loader2, 
-  CheckCircle2, 
-  MapPin, 
-  Coins, 
-  Trophy,
-  Zap,
-  Palette as PaletteIcon,
-  ShieldCheck,
-  Maximize2,
-  Volume2,
-  Sparkles,
-  Eraser,
   Play as PlayIcon,
-  ChevronRight
+  Eraser,
+  Palette as PaletteIcon,
+  Zap,
+  ChevronRight,
+  Sparkles,
+  Trophy,
+  Coins
 } from 'lucide-react';
 
 import { useUser, useDoc, useMemoFirebase } from '@/firebase';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { useI18n } from '@/components/I18nProvider';
-import { MissionCategory } from '@/lib/types';
 import { AvatarSelection } from '@/components/AvatarSelection';
 import { FALLBACK_AVATAR } from '@/lib/avatar-catalog';
 
 export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean }) {
   const { user } = useUser();
   const { toast } = useToast();
-  const { t } = useI18n();
   const router = useRouter();
   const searchParams = useSearchParams();
   
-  // Refs para o Motor de Rastros
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const trailCanvasRef = useRef<HTMLCanvasElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
-  const oscillatorRef = useRef<OscillatorNode | null>(null);
   const lastFrameRef = useRef<ImageData | null>(null);
   
   const [showGuide, setShowGuide] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [hasCameraPermission, setHasCameraPermission] = useState(false);
   const [score, setScore] = useState(0);
   const [celebrating, setCelebrating] = useState(false);
   
@@ -63,14 +49,6 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
 
   const userProgressRef = useMemoFirebase(() => user ? { id: user.uid, path: `user_progress/${user.uid}` } : null, [user]);
   const { data: profile } = useDoc(userProgressRef);
-
-  useEffect(() => {
-    const editMode = searchParams.get('edit') === 'true';
-    if (editMode) {
-      setShowGuide(true);
-      setTermsAccepted(true);
-    }
-  }, [searchParams]);
 
   useEffect(() => {
     if (profile) {
@@ -84,7 +62,6 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
     }
   }, [profile, searchParams]);
 
-  // Inicializar Áudio
   const initAudio = () => {
     if (!audioContextRef.current) {
       audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -95,21 +72,16 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
     if (!audioContextRef.current) return;
     const osc = audioContextRef.current.createOscillator();
     const gain = audioContextRef.current.createGain();
-    
     osc.type = 'sine';
     osc.frequency.setValueAtTime(freq, audioContextRef.current.currentTime);
-    
-    gain.gain.setValueAtTime(0.1, audioContextRef.current.currentTime);
+    gain.gain.setValueAtTime(0.05, audioContextRef.current.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.001, audioContextRef.current.currentTime + 0.1);
-    
     osc.connect(gain);
     gain.connect(audioContextRef.current.destination);
-    
     osc.start();
     osc.stop(audioContextRef.current.currentTime + 0.1);
   };
 
-  // Motor de Visão: Frame Differencing
   const processFrame = useCallback(() => {
     if (!videoRef.current || !canvasRef.current || !trailCanvasRef.current || !isPlaying) return;
 
@@ -121,7 +93,6 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
 
     if (!ctx || !trailCtx) return;
 
-    // Ajustar dimensões do canvas ao vídeo
     if (canvas.width !== video.videoWidth) {
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
@@ -138,15 +109,14 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
       let motionCount = 0;
 
       for (let i = 0; i < currentFrame.data.length; i += 4) {
-        const rDiff = Math.abs(currentFrame.data[i] - lastFrameRef.current.data[i]);
-        const gDiff = Math.abs(currentFrame.data[i+1] - lastFrameRef.current.data[i+1]);
-        const bDiff = Math.abs(currentFrame.data[i+2] - lastFrameRef.current.data[i+2]);
+        const diff = Math.abs(currentFrame.data[i] - lastFrameRef.current.data[i]) +
+                     Math.abs(currentFrame.data[i+1] - lastFrameRef.current.data[i+1]) +
+                     Math.abs(currentFrame.data[i+2] - lastFrameRef.current.data[i+2]);
         
-        if (rDiff + gDiff + bDiff > 80) {
+        if (diff > 80) {
           const pixelIndex = i / 4;
           const x = pixelIndex % canvas.width;
           const y = Math.floor(pixelIndex / canvas.width);
-          
           motionSumX += x;
           motionSumY += y;
           motionCount++;
@@ -156,23 +126,16 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
       if (motionCount > 100) {
         const centerX = motionSumX / motionCount;
         const centerY = motionSumY / motionCount;
-
-        // Desenhar Rastro na Aura do Usuário
         trailCtx.beginPath();
         trailCtx.arc(centerX, centerY, 15, 0, Math.PI * 2);
         trailCtx.fillStyle = avatarColor;
         trailCtx.globalAlpha = 0.4;
         trailCtx.fill();
-
-        // Feedback de Áudio (X mapeado para Frequência)
         const freq = 200 + (centerX / canvas.width) * 800;
         playBeep(freq);
-
-        // Atualizar Pontuação de "Limpeza"
         setScore(prev => prev + 1);
       }
     }
-
     lastFrameRef.current = currentFrame;
     requestAnimationFrame(processFrame);
   }, [isPlaying, avatarColor]);
@@ -183,12 +146,10 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        setHasCameraPermission(true);
         setIsPlaying(true);
       }
     } catch (err) {
-      console.error("Câmera negada:", err);
-      toast({ variant: 'destructive', title: "Acesso Negado", description: "Ative a câmera para desenhar com o corpo!" });
+      toast({ variant: 'destructive', title: "Câmera negada", description: "Ative a câmera para desenhar com o corpo!" });
     }
   };
 
@@ -198,13 +159,24 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
 
   const handleFinish = () => {
     setCelebrating(true);
-    if (userProgressRef) {
-      const earned = Math.min(score, 50);
+    const earnedCoins = Math.min(Math.floor(score / 10), 50);
+    
+    if (userProgressRef && profile) {
+      const newHistory = [{
+        id: `act-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        score: score,
+        earnedCoins: earnedCoins,
+        type: 'O Traço Vivo'
+      }, ...(profile.history || [])].slice(0, 5);
+
       updateDocumentNonBlocking(userProgressRef, { 
-        ludoCoins: (profile?.ludoCoins || 0) + earned,
-        totalChallengesCompleted: (profile?.totalChallengesCompleted || 0) + 1
+        ludoCoins: (profile.ludoCoins || 0) + earnedCoins,
+        totalChallengesCompleted: (profile.totalChallengesCompleted || 0) + 1,
+        history: newHistory
       });
     }
+
     setTimeout(() => {
       setCelebrating(false);
       router.push('/dashboard');
@@ -213,11 +185,9 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
 
   const handleSaveProfile = async () => {
     if (!termsAccepted || !explorerName.trim()) {
-      toast({ variant: 'destructive', title: "Atenção", description: "Aceite os termos e defina seu codinome." });
+      toast({ variant: 'destructive', title: "Atenção", description: "Complete seu perfil para continuar." });
       return;
     }
-    const isEditMode = searchParams.get('edit') === 'true';
-
     if (userProgressRef) {
       updateDocumentNonBlocking(userProgressRef, { 
         displayName: explorerName,
@@ -226,58 +196,40 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
         avatar: { ...profile?.avatar, avatarId: selectedAvatarId }
       });
     }
-
-    if (isEditMode) {
-      router.push('/dashboard');
-    } else {
-      setShowGuide(false);
-    }
+    const isEditMode = searchParams.get('edit') === 'true';
+    if (isEditMode) router.push('/dashboard');
+    else setShowGuide(false);
   };
 
   return (
     <div className="flex flex-col h-full bg-background relative overflow-hidden">
       <AnimatePresence>
         {!showGuide && (
-          <motion.div 
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="relative w-full h-full bg-black overflow-hidden z-10"
-          >
-            {/* Camadas do Playground */}
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="relative w-full h-full bg-black overflow-hidden z-10">
             <video ref={videoRef} className="absolute inset-0 w-full h-full object-cover scale-x-[-1] opacity-60" autoPlay muted playsInline />
             <canvas ref={canvasRef} className="hidden" />
             <canvas ref={trailCanvasRef} className="absolute inset-0 w-full h-full object-cover scale-x-[-1] pointer-events-none" />
-
-            {/* HUD de Jogo "Traço Vivo" */}
+            
             <div className="absolute inset-0 z-30 pointer-events-none p-8 flex flex-col justify-between">
                <div className="flex justify-between items-start">
-                  <div className="space-y-2">
-                     <div className="flex items-center gap-2 bg-black/40 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10 text-white">
-                        <PaletteIcon className="w-4 h-4 text-primary" />
-                        <span className="text-[10px] font-black uppercase tracking-widest">Traço Vivo_2026</span>
-                     </div>
-                     <div className="flex items-center gap-3">
-                        <div className="w-3 h-3 rounded-full animate-pulse" style={{ backgroundColor: avatarColor }} />
-                        <span className="text-[8px] font-black text-white/60 uppercase tracking-[0.3em]">Calibrando Aura...</span>
-                     </div>
+                  <div className="bg-black/40 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10 text-white flex items-center gap-2">
+                    <PaletteIcon className="w-4 h-4 text-primary" />
+                    <span className="text-[10px] font-black uppercase tracking-widest">Traço Vivo_2026</span>
                   </div>
-                  
                   <div className="bg-primary/20 backdrop-blur-xl border-2 border-white/20 p-4 rounded-[2rem] flex flex-col items-center">
-                     <span className="text-[8px] font-black text-white uppercase tracking-tighter">Fluxo Motor</span>
+                     <span className="text-[8px] font-black text-white uppercase">Fluxo</span>
                      <span className="text-2xl font-black text-white">{Math.min(Math.floor(score / 10), 50)}</span>
                   </div>
                </div>
 
                <div className="flex justify-center items-end gap-4 pointer-events-auto">
                   {!isPlaying ? (
-                    <Button onClick={startCamera} className="h-24 w-24 rounded-full bg-primary shadow-2xl border-4 border-white active:scale-95 transition-all p-0">
+                    <Button onClick={startCamera} className="h-24 w-24 rounded-full bg-primary shadow-2xl border-4 border-white active:scale-95 transition-all">
                        <PlayIcon className="w-10 h-10 fill-current" />
                     </Button>
                   ) : (
                     <>
-                      <Button onClick={() => {
-                        const ctx = trailCanvasRef.current?.getContext('2d');
-                        ctx?.clearRect(0, 0, trailCanvasRef.current!.width, trailCanvasRef.current!.height);
-                      }} variant="secondary" className="h-16 w-16 rounded-full bg-white/20 backdrop-blur-md border-2 border-white/20 p-0">
+                      <Button onClick={() => trailCanvasRef.current?.getContext('2d')?.clearRect(0,0,trailCanvasRef.current.width,trailCanvasRef.current.height)} variant="secondary" className="h-16 w-16 rounded-full bg-white/20 backdrop-blur-md border-2 border-white/20">
                          <Eraser className="w-6 h-6 text-white" />
                       </Button>
                       <Button onClick={handleFinish} className="h-20 px-10 rounded-full bg-green-500 text-white font-black uppercase tracking-widest shadow-2xl border-4 border-white active:scale-95 transition-all">
@@ -287,69 +239,34 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
                   )}
                </div>
             </div>
-
-            {/* Overlay de Guia Rápido */}
-            {!isPlaying && (
-              <div className="absolute inset-0 bg-black/40 backdrop-blur-sm flex flex-col items-center justify-center text-center p-12 z-40">
-                <div className="w-20 h-20 bg-primary rounded-[2rem] flex items-center justify-center mb-8 shadow-2xl animate-bounce">
-                  <Zap className="w-10 h-10 text-white fill-current" />
-                </div>
-                <h3 className="text-3xl font-black text-white uppercase italic tracking-tighter leading-none mb-4">Você é o Pincel</h3>
-                <p className="text-sm text-white/70 font-medium leading-relaxed max-w-xs">
-                  Mova seus braços para pintar a tela com sua Aura Digital. Sinta o ritmo do seu corpo transformar-se em som.
-                </p>
-              </div>
-            )}
           </motion.div>
         )}
       </AnimatePresence>
 
-      <div className={cn(
-        "flex-1 bg-background p-10 z-20 overflow-y-auto no-scrollbar transition-all",
-        !showGuide ? "-mt-16 rounded-t-[5rem] shadow-[0_-30px_60px_rgba(0,0,0,0.1)] border-t border-white/5 bg-white/80 backdrop-blur-xl" : "pt-12"
-      )}>
+      <div className={cn("flex-1 bg-background p-10 z-20 overflow-y-auto no-scrollbar pt-12")}>
         {showGuide ? (
           <div className="space-y-10 max-w-md mx-auto pb-20">
             <AvatarSelection initialAvatarId={selectedAvatarId} onSelect={setSelectedAvatarId} />
-            
             <div className="space-y-8 bg-muted/20 p-8 rounded-[3.5rem] border border-primary/5">
               <div className="space-y-3">
-                <Label className="text-[11px] font-black uppercase text-primary/40 tracking-[0.3em] px-4">Codinome de Explorador</Label>
-                <Input 
-                  value={explorerName} 
-                  onChange={(e) => setExplorerName(e.target.value)} 
-                  className="rounded-3xl h-16 bg-white border-none shadow-inner text-lg font-bold px-8"
-                  placeholder="EX: SAPIENT_ONE"
-                />
+                <Label className="text-[11px] font-black uppercase text-primary/40 tracking-[0.3em] px-4">Codinome</Label>
+                <Input value={explorerName} onChange={(e) => setExplorerName(e.target.value)} className="rounded-3xl h-16 bg-white border-none shadow-inner text-lg font-bold px-8" />
               </div>
-
               <div className="space-y-4">
-                <Label className="text-[11px] font-black uppercase text-primary/40 tracking-[0.3em] px-4">Cor da sua Aura</Label>
+                <Label className="text-[11px] font-black uppercase text-primary/40 tracking-[0.3em] px-4">Cor da Aura</Label>
                 <div className="grid grid-cols-5 gap-3 bg-white/50 p-4 rounded-[2rem]">
                   {['#9333ea', '#3B82F6', '#EF4444', '#10b981', '#f59e0b'].map(c => (
-                    <button 
-                      key={c} 
-                      onClick={() => setAvatarColor(c)} 
-                      className={cn(
-                        "aspect-square rounded-2xl border-4 transition-all duration-300", 
-                        avatarColor === c ? "border-primary scale-110 shadow-xl" : "border-transparent opacity-40 hover:opacity-100"
-                      )} 
-                      style={{ backgroundColor: c }} 
-                    />
+                    <button key={c} onClick={() => setAvatarColor(c)} className={cn("aspect-square rounded-2xl border-4 transition-all", avatarColor === c ? "border-primary scale-110 shadow-xl" : "border-transparent opacity-40")} style={{ backgroundColor: c }} />
                   ))}
                 </div>
               </div>
-
               <div className="flex items-center space-x-4 bg-white/50 p-4 rounded-3xl">
                 <Checkbox id="terms" checked={termsAccepted} onCheckedChange={(v) => setTermsAccepted(!!v)} className="w-8 h-8 rounded-xl border-2 border-primary" />
-                <label htmlFor="terms" className="text-[10px] font-bold text-muted-foreground leading-tight">
-                   Aceito transformar meus movimentos em arte digital segura.
-                </label>
+                <label htmlFor="terms" className="text-[10px] font-bold text-muted-foreground leading-tight">Aceito transformar meus movimentos em arte.</label>
               </div>
             </div>
-
-            <Button onClick={handleSaveProfile} disabled={!termsAccepted} className="w-full h-24 rounded-[3.5rem] font-black uppercase tracking-[0.2em] bg-primary shadow-2xl flex justify-between px-14 border-b-8 border-primary/80 active:border-b-0 active:translate-y-2 transition-all">
-              <span className="text-lg">{searchParams.get('edit') === 'true' ? 'Atualizar Perfil' : 'Entrar no Espelho'}</span>
+            <Button onClick={handleSaveProfile} disabled={!termsAccepted} className="w-full h-24 rounded-[3.5rem] font-black uppercase bg-primary shadow-2xl flex justify-between px-14 border-b-8 border-primary/80 active:border-b-0 active:translate-y-2 transition-all">
+              <span className="text-lg">Entrar no Espelho</span>
               <ChevronRight className="w-8 h-8" />
             </Button>
           </div>
@@ -358,9 +275,7 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
              <div className="bg-primary/5 p-8 rounded-[3rem] border-2 border-dashed border-primary/20 text-center space-y-4">
                 <Sparkles className="w-10 h-10 text-primary/40 mx-auto" />
                 <h4 className="text-xl font-black uppercase italic tracking-tighter">Arte Psicomotora Ativa</h4>
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-relaxed">
-                  Trabalhando Esquema Corporal e Coordenação Visomotora através da pintura em tempo real.
-                </p>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase leading-relaxed">O corpo é o pincel. Mova-se livremente para criar.</p>
              </div>
           </div>
         )}
@@ -373,7 +288,7 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
             <h2 className="text-7xl font-black uppercase italic tracking-tighter">Brilhante!</h2>
             <div className="mt-8 flex items-center gap-4 bg-white/20 px-8 py-3 rounded-full">
                <Coins className="w-6 h-6 text-yellow-400" />
-               <span className="text-2xl font-black">+{Math.min(Math.floor(score / 10), 50)} LudoCoins</span>
+               <span className="text-2xl font-black">+{Math.min(Math.floor(score / 10), 50)} LC</span>
             </div>
           </motion.div>
         )}

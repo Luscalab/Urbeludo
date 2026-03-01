@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -8,7 +7,7 @@ import { FALLBACK_AVATAR } from '@/lib/avatar-catalog';
 
 /**
  * Componente que garante a inicialização correta do estado do usuário.
- * Corrigido para remover importações de arquivos inexistentes e garantir robustez.
+ * Versão Standalone - Foco em "O Traço Vivo".
  */
 export function AuthInitializer({ children }: { children: React.ReactNode }) {
   const [isReady, setIsReady] = useState(false);
@@ -21,40 +20,20 @@ export function AuthInitializer({ children }: { children: React.ReactNode }) {
         uid = `URBE_${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
         await LocalPersistence.saveUserId(uid);
         
-        // Dados iniciais inspirados no padrão de progressão Cafeland/Sims
+        // Dados iniciais simplificados para o conceito de "O Traço Vivo"
         const initialData = {
           id: uid,
           displayName: `Explorador_${uid.slice(-4)}`,
-          bio: "Explorador Independente UrbeLudo 🌍",
-          ludoCoins: 750, // Capital inicial para decoração
+          ludoCoins: 50,
           psychomotorLevel: 1,
           totalChallengesCompleted: 0,
           currentStreak: 0,
-          totalLikesReceived: 0,
-          ageGroup: 'adolescent_adult',
-          skillLevel: 'beginner',
-          badges: [],
           hasSeenTutorial: false,
           dominantColor: '#9333ea',
           avatar: {
-            energy: 100,
-            avatarId: FALLBACK_AVATAR.id,
-            unlockedItems: ['cama-01', 'tapete-01'], // Mochila inicial
-            equippedItems: [],
-            studioLevel: 1
+            avatarId: FALLBACK_AVATAR.id
           },
-          studioState: {
-            unlockedItemIds: ['vaso-01'],
-            placedItems: [],
-            backgroundId: 'default',
-            worldConfig: { width: 1200, height: 1200, theme: 'minimalist-purple' },
-            avatar: { lastPosition: { x: 750, y: 1000 } }
-          },
-          dailyCycle: {
-            homeMissionCompleted: false,
-            streetMissionCompleted: false,
-            lastResetDate: new Date().toLocaleDateString()
-          }
+          history: []
         };
         await LocalPersistence.saveProgress(initialData);
       }
@@ -73,8 +52,8 @@ export function AuthInitializer({ children }: { children: React.ReactNode }) {
             <Loader2 className="w-10 h-10 animate-spin text-primary" />
           </div>
           <div className="text-center space-y-1">
-            <p className="text-[10px] font-black uppercase text-primary tracking-[0.4em] italic">Carregando Estúdio</p>
-            <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest opacity-60">Sincronizando Identidade Digital...</p>
+            <p className="text-[10px] font-black uppercase text-primary tracking-[0.4em] italic">Iniciando Espelho Mágico</p>
+            <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest opacity-60">Sincronizando Sensor Motor...</p>
           </div>
         </div>
       </div>
