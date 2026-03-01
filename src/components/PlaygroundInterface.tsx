@@ -579,7 +579,7 @@ function BreathGame({ onWin, auraColor }: any) {
       }
       const wheel = document.getElementById('sopro-wheel');
       if (wheel) wheel.style.transform = `rotate(${rotationRef.current}deg)`;
-      if (level >= 99) { onWin(); return; }
+      if (level >= 99) { onWin(40, 'Mestre do Sopro'); return; }
       requestRef.current = requestAnimationFrame(update);
     };
     

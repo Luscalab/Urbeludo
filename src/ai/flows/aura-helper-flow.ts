@@ -1,8 +1,7 @@
 'use client';
 /**
- * @fileOverview AuraHelper - O guia de inteligência do UrbeLudo.
- * Implementa base de conhecimento clínica e técnica expandida para o projeto SPSP.
- * Versão com Matriz de Intencionalidade para respostas rápidas e precisas.
+ * @fileOverview AuraHelper - Motor de Inteligência Semântica do UrbeLudo.
+ * Implementa triagem de intenções para respostas instantâneas e fallback para Gemini.
  */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -21,84 +20,119 @@ export interface AuraHelperOutput {
 }
 
 /**
- * Matriz de Conhecimento Determinística.
- * Permite que o bot responda instantaneamente a variações de perguntas comuns.
+ * Matriz de Conhecimento Semântica.
+ * Cada entrada possui um conjunto de "tokens" de intenção para matching flexível.
  */
 const KNOWLEDGE_BASE = [
+  // --- JOGABILIDADE & INSTRUÇÕES ---
   {
-    tags: ["jogar", "funciona", "instruções", "como faço", "brincar", "objetivo"],
+    intent: "instruções_gerais",
+    tags: ["jogar", "funciona", "instruções", "como faço", "brincar", "objetivo", "começar", "ajuda"],
     response: "Para começar, escolha um desafio no painel! O 'Elevador' treina sua voz, o 'Caminho de Luz' sua precisão e o 'Equilíbrio' sua postura. Siga as cores e os sons para vencer!",
     action: "Explore o Laboratório de Movimento!"
   },
   {
-    tags: ["voz", "fala", "elevador", "ajuda minha voz", "ajuda voz", "benefício voz", "garganta", "maestro"],
+    intent: "elevador_voz",
+    tags: ["voz", "fala", "elevador", "ajuda minha voz", "garganta", "maestro", "cantar", "som", "subir", "instrução elevador"],
     response: "O jogo do Elevador treina sua 'estabilidade fonatória'. Ele ajuda a manter sua voz firme e seu pulmão forte, o que melhora a clareza da fala e evita o cansaço ao conversar!",
     action: "Tente manter o som na Zona Verde!"
   },
   {
-    tags: ["estabilidade", "zona verde", "área verde", "barra", "subir", "não sobe"],
-    response: "A Zona de Estabilidade é a área verde na tela. Ela indica que sua pressão de ar está constante e saudável. Se o elevador não subir, tente falar um pouco mais alto ou ajuste a sensibilidade no Perfil.",
-    action: "Verifique o ícone do microfone!"
-  },
-  {
-    tags: ["sopro", "nuvem", "respiração", "ar", "pulmão", "expiração"],
-    response: "Soprar de forma controlada treina seus músculos da face e do diafragma. Isso ajuda na respiração correta, na mastigação e até na regulação das suas emoções!",
-    action: "Sopre suavemente no microfone."
-  },
-  {
-    tags: ["precisão", "caminho", "luz", "mão", "dedo", "coordenação", "desenho"],
-    response: "O Caminho de Luz treina sua 'Praxia Fina' e coordenação olho-mão. É como um GPS para seus dedos, ensinando eles a serem precisos para escrever, desenhar e usar talheres!",
+    intent: "caminho_luz",
+    tags: ["precisão", "caminho", "luz", "mão", "dedo", "coordenação", "desenho", "trilha", "seguir", "instrução caminho"],
+    response: "O Caminho de Luz treina sua 'Praxia Fina' e coordenação olho-mão. É como um GPS para seus dedos, ensinando eles a serem precisos para escrever e desenhar!",
     action: "Siga a trilha sem sair da linha!"
   },
   {
-    tags: ["moedas", "ludocoins", "lc", "ganhar", "comprar", "loja", "dinheiro", "prêmio"],
-    response: "As LudoCoins (LC) são suas moedas de mestre! Você as ganha completando desafios e pode usá-las na Loja para comprar móveis e decorações incríveis para o seu Estúdio.",
-    action: "Visite a Loja no Painel!"
+    intent: "nuvem_sopro",
+    tags: ["sopro", "nuvem", "respiração", "ar", "pulmão", "expiração", "assoprar", "moinho", "instrução sopro"],
+    response: "Soprar de forma controlada treina seus músculos da face e do diafragma. Isso ajuda na respiração correta, na dicção e até na regulação das suas emoções!",
+    action: "Sopre suavemente no microfone."
   },
+
+  // --- CIÊNCIA & PSICOMOTRICIDADE (SPSP/UNICV) ---
   {
-    tags: ["psicomotricidade", "corpo e mente", "ciência", "unicv", "spsp", "por que treinar"],
-    response: "A psicomotricidade estuda como nossa mente comanda nosso corpo. No UrbeLudo, usamos jogos para que essa conexão seja forte, alegre e cheia de autonomia para você!",
+    intent: "psicomotricidade",
+    tags: ["psicomotricidade", "corpo e mente", "ciência", "unicv", "spsp", "por que treinar", "benefício", "ajuda o corpo"],
+    response: "A psicomotricidade estuda como nossa mente comanda nosso corpo. No UrbeLudo, cada jogo é um exercício para que sua mente comande seu corpo com alegria e autonomia!",
     action: "O movimento consciente é a chave!"
   },
   {
-    tags: ["tonicidade", "músculo", "tônus", "força", "firmeza"],
+    intent: "tonicidade",
+    tags: ["tonicidade", "músculo", "tônus", "força", "firmeza", "musculatura"],
     response: "A tonicidade é o controle do seu tônus muscular. Quando você mantém o som estável ou o corpo equilibrado, está ensinando seus músculos a trabalharem com a força certa!",
     action: "Sinta a firmeza nos seus movimentos."
   },
   {
-    tags: ["esquema corporal", "consciência", "percepção", "meu corpo"],
-    response: "O esquema corporal é saber onde cada parte do seu corpo está. Ver seu progresso na tela ajuda seu cérebro a criar um 'mapa' melhor das suas capacidades físicas!",
+    intent: "esquema_corporal",
+    tags: ["esquema corporal", "consciência", "percepção", "meu corpo", "imagem", "avatar"],
+    response: "O esquema corporal é saber onde cada parte do seu corpo está. Ver seu progresso e seu avatar na tela ajuda seu cérebro a criar um 'mapa' melhor das suas capacidades!",
     action: "Você está evoluindo sua percepção!"
   },
   {
-    tags: ["não funciona", "erro", "problema", "bug", "travou", "ajuda técnica"],
+    intent: "pressao_subglotica",
+    tags: ["pressão", "pulmão", "ar", "força voz", "estabilidade", "zona verde"],
+    response: "A Zona de Estabilidade indica que sua pressão de ar está constante e saudável. Ter esse controle é fundamental para uma fala clara e para o fôlego do dia a dia!",
+    action: "Mantenha o ar fluindo devagar."
+  },
+
+  // --- RECOMPENSAS & ECONOMIA ---
+  {
+    intent: "moedas",
+    tags: ["moedas", "ludocoins", "lc", "ganhar", "comprar", "loja", "dinheiro", "prêmio", "bau", "tesouro"],
+    response: "As LudoCoins (LC) são suas moedas de mestre! Você as ganha completando desafios e pode usá-las na Loja para comprar itens incríveis para o seu Estúdio.",
+    action: "Visite a Loja no Painel!"
+  },
+
+  // --- SUPORTE TÉCNICO ---
+  {
+    intent: "tecnico_hardware",
+    tags: ["não funciona", "erro", "problema", "bug", "travou", "ajuda técnica", "microfone", "camera", "som", "calibrar"],
     response: "Puxa, vamos resolver! Verifique se deu permissão de câmera e microfone ao app. No Android, confira se o volume está alto e se você está em um lugar bem iluminado.",
     action: "Reinicie o desafio se necessário."
   },
   {
-    tags: ["quem é você", "aurahelper", "robô", "bot"],
+    intent: "quem_sou_eu",
+    tags: ["quem é você", "aurahelper", "robô", "bot", "aura", "ajudante"],
     response: "Eu sou o AuraHelper, seu guia digital de saúde e movimento! Estou aqui para explicar como cada brincadeira ajuda seu corpo a ficar mais forte e inteligente.",
     action: "Pergunte-me sobre qualquer jogo!"
   }
 ];
 
+/**
+ * Função principal que decide se usa a base fixa ou o Gemini.
+ */
 export async function askAuraHelper(input: AuraHelperInput): Promise<AuraHelperOutput> {
   const query = input.question.toLowerCase();
   
-  // MOTOR DE TRIAGEM (Intencionalidade)
-  // Busca na base de conhecimento por qualquer tag que esteja presente na pergunta
-  const foundEntry = KNOWLEDGE_BASE.find(entry => 
-    entry.tags.some(tag => query.includes(tag))
-  );
+  // MOTOR DE TRIAGEM SEMÂNTICA (Scoring system)
+  let bestMatch = null;
+  let highestScore = 0;
 
-  if (foundEntry) {
+  for (const entry of KNOWLEDGE_BASE) {
+    let currentScore = 0;
+    for (const tag of entry.tags) {
+      if (query.includes(tag)) {
+        // Atribui peso maior para frases mais completas
+        currentScore += tag.split(' ').length;
+      }
+    }
+
+    if (currentScore > highestScore) {
+      highestScore = currentScore;
+      bestMatch = entry;
+    }
+  }
+
+  // Se encontramos um match sólido (score > 0), retornamos instantaneamente
+  if (bestMatch && highestScore > 0) {
     return {
-      answer: foundEntry.response,
-      suggestedAction: foundEntry.action
+      answer: bestMatch.response,
+      suggestedAction: bestMatch.action
     };
   }
 
-  // FALLBACK PARA IA (Perguntas complexas ou fora da base)
+  // FALLBACK PARA IA (Perguntas únicas ou complexas)
   if (!API_KEY) {
     return {
       answer: "Minha percepção sensorial oscilou, mas lembre-se: cada movimento seu é uma vitória! Tente perguntar sobre um jogo específico.",
@@ -113,9 +147,9 @@ export async function askAuraHelper(input: AuraHelperInput): Promise<AuraHelperO
     Sua missão é explicar os benefícios dos jogos usando conceitos como tonicidade, praxia fina, esquema corporal e pressão subglótica, mas de forma lúdica e acessível.
 
     REGRAS:
-    - Seja encorajador e educativo.
-    - Se a pergunta for sobre um jogo, explique o benefício para o corpo.
+    - Seja encorajador, educativo e tecnológico.
     - Máximo 3 frases.
+    - Se for sobre progresso, fale de LudoCoins.
     - Retorne APENAS um JSON: {"answer": "...", "suggestedAction": "..."}
 
     Pergunta do Usuário: ${input.question}`;
@@ -128,7 +162,7 @@ export async function askAuraHelper(input: AuraHelperInput): Promise<AuraHelperO
   } catch (error) {
     console.error("Erro no AuraHelper (IA):", error);
     return {
-      answer: "Minha conexão com a Grande Aura falhou, mas não pare de se mover! Como posso ajudar você a brilhar hoje?",
+      answer: "Minha conexão com a Grande Aura está instável, mas continue se movendo! Como posso te ajudar a brilhar hoje?",
       suggestedAction: "Tente perguntar sobre o 'Elevador' ou 'Moedas'."
     };
   }
