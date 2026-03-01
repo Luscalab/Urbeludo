@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -7,17 +6,14 @@ import { PlacedItem, StudioState, StudioItem } from '@/lib/types';
 import { STUDIO_CATALOG } from '@/lib/studio-catalog';
 
 const GRID_SIZE = 40; 
-const WORLD_SIZE = 1800; // Tamanho gigante para exploração
+const WORLD_SIZE = 1800;
 
-/**
- * Hook de Gerenciamento do Estúdio (Engine Estilo Cafeland/Sims).
- * Lida com posicionamento isométrico, inventário (mochila) e persistência local.
- */
 export function useStudio() {
   const [studioState, setStudioState] = useState<StudioState>({
     unlockedItemIds: [],
     placedItems: [],
-    backgroundId: 'default',
+    wallpaperId: 'default',
+    floorId: 'default',
     worldConfig: {
       width: WORLD_SIZE,
       height: WORLD_SIZE,
@@ -46,15 +42,13 @@ export function useStudio() {
     return () => window.removeEventListener('local-data-updated', loadStudio);
   }, [loadStudio]);
 
-  const snapToGrid = (val: number) => Math.round(val / GRID_SIZE) * GRID_SIZE;
-
   const saveState = async (newState: StudioState) => {
     await LocalPersistence.saveProgress({ studioState: newState });
   };
 
   const updateItemPosition = async (instanceId: string, x: number, y: number) => {
-    const snappedX = snapToGrid(x);
-    const snappedY = snapToGrid(y);
+    const snappedX = Math.round(x / GRID_SIZE) * GRID_SIZE;
+    const snappedY = Math.round(y / GRID_SIZE) * GRID_SIZE;
 
     setStudioState(prev => {
       const updatedPlacedItems = prev.placedItems.map(item => 
@@ -66,16 +60,18 @@ export function useStudio() {
             } 
           : item
       );
-      
       const newState = { ...prev, placedItems: updatedPlacedItems };
       saveState(newState);
       return newState;
     });
   };
 
-  const updateAvatarPosition = async (x: number, y: number) => {
+  const applyTexture = async (itemId: string, category: 'Papel de Parede' | 'Piso') => {
     setStudioState(prev => {
-      const newState = { ...prev, avatar: { ...prev.avatar, lastPosition: { x, y } } };
+      const newState = { 
+        ...prev, 
+        [category === 'Papel de Parede' ? 'wallpaperId' : 'floorId']: itemId 
+      };
       saveState(newState);
       return newState;
     });
@@ -93,26 +89,28 @@ export function useStudio() {
         ...prev,
         unlockedItemIds: [...prev.unlockedItemIds, itemId]
       };
-      
       const updatedCoins = isSapient ? currentCoins : currentCoins - price;
-      LocalPersistence.saveProgress({ 
-        ludoCoins: updatedCoins,
-        studioState: newState 
-      });
-      
+      LocalPersistence.saveProgress({ ludoCoins: updatedCoins, studioState: newState });
       return newState;
     });
     return true;
   };
 
   const placeItem = async (itemId: string) => {
+    const item = STUDIO_CATALOG.find(i => i.id === itemId);
+    if (!item) return;
+
+    if (item.category === 'Papel de Parede' || item.category === 'Piso') {
+      await applyTexture(itemId, item.category);
+      return;
+    }
+
     setStudioState(prev => {
       const index = prev.unlockedItemIds.indexOf(itemId);
       if (index === -1) return prev;
 
-      // Posiciona perto do centro do mundo visível
-      const yPos = snapToGrid(1200);
-      const xPos = snapToGrid(900);
+      const yPos = Math.round(1200 / GRID_SIZE) * GRID_SIZE;
+      const xPos = Math.round(900 / GRID_SIZE) * GRID_SIZE;
       
       const newItem: PlacedItem = {
         instanceId: `inst-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
@@ -130,7 +128,6 @@ export function useStudio() {
         unlockedItemIds: newUnlocked,
         placedItems: [...prev.placedItems, newItem]
       };
-      
       saveState(newState);
       return newState;
     });
@@ -166,13 +163,8 @@ export function useStudio() {
     setStudioState(prev => {
       const updatedPlacedItems = prev.placedItems.filter(item => item.instanceId !== instanceId);
       const newState = { ...prev, placedItems: updatedPlacedItems };
-      
       const updatedCoins = isSapient ? currentCoins : currentCoins + refund;
-      LocalPersistence.saveProgress({ 
-        ludoCoins: updatedCoins,
-        studioState: newState 
-      });
-      
+      LocalPersistence.saveProgress({ ludoCoins: updatedCoins, studioState: newState });
       return newState;
     });
   };
@@ -181,10 +173,16 @@ export function useStudio() {
     studioState, 
     isLoading, 
     updateItemPosition, 
-    updateAvatarPosition,
     buyItem,
     placeItem,
     storeItem, 
-    sellItem
+    sellItem,
+    updateAvatarPosition: (x: number, y: number) => {
+      setStudioState(prev => {
+        const newState = { ...prev, avatar: { ...prev.avatar, lastPosition: { x, y } } };
+        saveState(newState);
+        return newState;
+      });
+    }
   };
 }

@@ -1,4 +1,3 @@
-
 /**
  * Categorias de missão definidas para o ecossistema UrbeLudo.
  */
@@ -12,7 +11,7 @@ export type MissionLevel = 1 | 2 | 3 | 4;
 /**
  * Definição de categorias para organização da loja e do inventário.
  */
-export type ItemCategory = 'Essencial' | 'Ativo' | 'Estético' | 'Especial';
+export type ItemCategory = 'Essencial' | 'Ativo' | 'Estético' | 'Papel de Parede' | 'Piso';
 
 /**
  * Representação de um item disponível no catálogo estático do APK.
@@ -47,12 +46,12 @@ export interface PlacedItem {
 
 /**
  * Estado completo do Estúdio para persistência no banco de dados local.
- * Segue a lógica de The Sims/Cafeland: Itens desbloqueados (mochila) vs Itens posicionados.
  */
 export interface StudioState {
-  unlockedItemIds: string[]; // Itens que o usuário comprou mas não posicionou (mochila/inventário)
-  placedItems: PlacedItem[]; // Itens atualmente no cenário
-  backgroundId: string;
+  unlockedItemIds: string[]; 
+  placedItems: PlacedItem[]; 
+  wallpaperId: string;
+  floorId: string;
   worldConfig: {
     width: number;
     height: number;
@@ -79,7 +78,7 @@ export interface UserProgress {
   avatar: {
     energy: number;
     avatarId: string;
-    unlockedItems: string[]; // Itens de vestuário (legado)
+    unlockedItems: string[]; 
     equippedItems: string[];
     studioLevel: number;
   };

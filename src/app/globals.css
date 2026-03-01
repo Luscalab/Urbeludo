@@ -1,18 +1,17 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    /* Cafeland-Inspired Vibrant Palette */
+    /* Cafeland Premium Palette */
     --background: 210 100% 98%;
     --foreground: 222 47% 11%;
     --card: 0 0% 100%;
     --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
-    --primary: 270 80% 55%; /* Vibrant Purple */
+    --primary: 262 83% 58%; /* Vibrant Purple */
     --primary-foreground: 210 40% 98%;
     --secondary: 199 89% 48%; /* Sky Blue */
     --secondary-foreground: 222 47% 11%;
@@ -24,8 +23,8 @@
     --destructive-foreground: 210 40% 98%;
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 270 80% 55%;
-    --radius: 2rem;
+    --ring: 262 83% 58%;
+    --radius: 2.5rem;
   }
 
   * {
@@ -46,27 +45,18 @@
 }
 
 @layer utilities {
-  .game-button-shadow {
-    box-shadow: 0 4px 0 0 rgba(0, 0, 0, 0.2);
-  }
-  
-  .game-button-active {
-    transform: translateY(2px);
-    box-shadow: 0 2px 0 0 rgba(0, 0, 0, 0.2);
+  .game-pill {
+    @apply bg-white/90 backdrop-blur-xl border-b-4 border-zinc-200 shadow-xl rounded-full transition-all active:border-b-0 active:translate-y-1;
   }
 
-  .bg-mesh-purple {
+  .bg-mesh-game {
     background-image: 
-      radial-gradient(at 0% 0%, hsla(270, 80%, 55%, 0.15) 0px, transparent 50%),
-      radial-gradient(at 100% 0%, hsla(199, 89%, 48%, 0.15) 0px, transparent 50%),
-      radial-gradient(at 100% 100%, hsla(322, 90%, 60%, 0.1) 0px, transparent 50%);
+      radial-gradient(at 0% 0%, hsla(262, 83%, 58%, 0.1) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, hsla(199, 89%, 48%, 0.1) 0px, transparent 50%),
+      radial-gradient(at 100% 100%, hsla(322, 90%, 60%, 0.05) 0px, transparent 50%);
   }
 
-  @keyframes bounce-subtle {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-  }
-  .animate-bounce-subtle {
-    animation: bounce-subtle 2s ease-in-out infinite;
+  .isometric-shadow {
+    filter: drop-shadow(20px 20px 10px rgba(0,0,0,0.1));
   }
 }
