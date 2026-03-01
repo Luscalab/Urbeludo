@@ -75,7 +75,10 @@ export const translations = {
         rhythm: {
           title: 'Maestro de Auras',
           desc: 'Balance o celular no ritmo da batuta mágica.',
-          goal: 'Ritmo e Freio Inibitório'
+          goal: 'Ritmo e Freio Inibitório',
+          tooEarly: 'Muito Cedo!',
+          dontShake: 'Não balance!',
+          offBeat: 'Fora de Ritmo!'
         },
         path: {
           title: 'Caminho de Luz',
@@ -124,6 +127,64 @@ export const translations = {
       step3: 'O som vai te guiar. Quando estiver afinado, você está no caminho certo.',
       step4: 'Conclua os desafios para ganhar LudoCoins e subir de nível!',
       gotIt: 'Vamos Brincar!',
+    }
+  },
+  en: {
+    common: {
+      play: 'Play',
+      gallery: 'Gallery',
+      profile: 'Profile',
+      shop: 'Shop',
+      back: 'Back',
+      next: 'Next',
+      finish: 'Finish',
+      loading: 'Loading...',
+      error: 'Error',
+      success: 'Success',
+      settings: 'Settings',
+      skip: 'Skip',
+      accessibility: 'Accessibility',
+      readPage: 'Read Page',
+      libras: 'Sign Language Assist',
+      stopAudio: 'Stop Audio'
+    },
+    playground: {
+      modes: {
+        rhythm: {
+          tooEarly: 'Too Early!',
+          dontShake: "Don't Shake!",
+          offBeat: 'Off Beat!'
+        }
+      }
+    }
+  },
+  es: {
+    common: {
+      play: 'Jugar',
+      gallery: 'Galería',
+      profile: 'Perfil',
+      shop: 'Tienda',
+      back: 'Volver',
+      next: 'Siguiente',
+      finish: 'Finalizar',
+      loading: 'Cargando...',
+      error: 'Error',
+      success: 'Éxito',
+      settings: 'Ajustes',
+      skip: 'Saltar',
+      accessibility: 'Accesibilidad',
+      readPage: 'Leer Página',
+      libras: 'Asistente de Lengua de Señas',
+      stopAudio: 'Detener Audio'
+    },
+    playground: {
+      modes: {
+        rhythm: {
+          tooEarly: '¡Muy Pronto!',
+          dontShake: '¡No agites!',
+          offBeat: '¡Fuera de Ritmo!'
+        }
+      }
     }
   }
 };

@@ -285,10 +285,12 @@ function BalanceGame({ onWin, auraColor }: any) {
 
 // --- JOGO 2: MAESTRO DE AURAS (RITMO) ---
 function RhythmGame({ onWin, auraColor }: any) {
+  const { t } = useI18n();
   const [active, setActive] = useState(false);
   const [phase, setPhase] = useState(0);
   const [hits, setHits] = useState(0);
   const [pulse, setPulse] = useState(false);
+  const [feedback, setFeedback] = useState<string | null>(null);
   
   const audioContextRef = useRef<AudioContext | null>(null);
   const canHitRef = useRef(true);
@@ -315,24 +317,35 @@ function RhythmGame({ onWin, auraColor }: any) {
     }
   }, [hits, phase, onWin, currentPhase]);
 
-  const playSound = useCallback(() => {
+  const showFeedback = (msgKey: string) => {
+    setFeedback(t(`playground.modes.rhythm.${msgKey}`));
+    setTimeout(() => setFeedback(null), 800);
+  };
+
+  const playOrchestraNote = useCallback(() => {
     if (!audioContextRef.current) return;
     const ctx = audioContextRef.current;
     if (ctx.state === 'suspended') ctx.resume();
 
     const now = ctx.currentTime;
-    const freq = 261.63 * Math.pow(2, hits / 12);
+    const baseFreq = 261.63 * Math.pow(2, hits / 12);
 
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(freq, now);
-    gain.gain.setValueAtTime(0.3, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start();
-    osc.stop(now + 1);
+    // Síntese de Cordas Orquestrais (Múltiplos Osciladores)
+    [0, 1.005, 0.995].forEach((detune, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = i === 0 ? 'triangle' : 'sine';
+      osc.frequency.setValueAtTime(baseFreq * detune, now);
+      
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.2, now + 0.1);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 1.5);
+      
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(now + 1.6);
+    });
   }, [hits]);
 
   const start = async () => {
@@ -352,9 +365,6 @@ function RhythmGame({ onWin, auraColor }: any) {
     if (!active) return;
     
     const interval = setInterval(() => {
-      // REGRA ANTI-SPAM: Verifica se o usuário já estava balançando o celular antes da luz acender
-      // Se a aceleração atual for alta (> 15) no momento exato do início do pulso, 
-      // invalidamos esta rodada para evitar trapaça por chacoalhar contínuo.
       if (currentAccelRef.current > 15) {
         wasMovingBeforePulseRef.current = true;
       } else {
@@ -363,7 +373,7 @@ function RhythmGame({ onWin, auraColor }: any) {
 
       setPulse(true);
       canHitRef.current = true;
-      setTimeout(() => setPulse(false), 150); // Janela mais curta (150ms) para exigir precisão
+      setTimeout(() => setPulse(false), 180); 
     }, (60 / currentPhase.bpm) * 1000);
 
     const handleMotion = (e: DeviceMotionEvent) => {
@@ -375,16 +385,19 @@ function RhythmGame({ onWin, auraColor }: any) {
       
       currentAccelRef.current = accel;
 
-      // Só aceita o acerto se:
-      // 1. Aceleração for alta o suficiente (> 20)
-      // 2. Estiver dentro da janela de luz (pulse)
-      // 3. Ainda não houver acerto nesta batida (canHitRef)
-      // 4. O usuário NÃO estivesse balançando antes da luz (wasMovingBeforePulseRef)
-      if (accel > 20 && pulse && canHitRef.current && !wasMovingBeforePulseRef.current) {
-        setHits(h => h + 1);
-        canHitRef.current = false; 
-        playSound();
-        vibrate(50);
+      if (accel > 20 && canHitRef.current) {
+        if (!pulse) {
+          showFeedback('tooEarly');
+          canHitRef.current = false;
+        } else if (wasMovingBeforePulseRef.current) {
+          showFeedback('dontShake');
+          canHitRef.current = false;
+        } else {
+          setHits(h => h + 1);
+          canHitRef.current = false; 
+          playOrchestraNote();
+          if (navigator.vibrate) navigator.vibrate(50);
+        }
       }
     };
 
@@ -393,7 +406,7 @@ function RhythmGame({ onWin, auraColor }: any) {
       clearInterval(interval);
       window.removeEventListener('devicemotion', handleMotion);
     };
-  }, [active, currentPhase, pulse, playSound]);
+  }, [active, currentPhase, pulse, playOrchestraNote, t]);
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-900">
@@ -408,17 +421,34 @@ function RhythmGame({ onWin, auraColor }: any) {
               <p className="text-[10px] font-black uppercase text-primary tracking-[0.4em]">{currentPhase.bpm} BPM</p>
            </div>
 
-           <motion.div 
-             animate={{ 
-               scale: pulse ? 1.3 : 1, 
-               opacity: pulse ? 1 : 0.4,
-               borderColor: pulse ? 'white' : 'rgba(255,255,255,0.1)'
-             }}
-             className="w-48 h-48 rounded-[4rem] border-8 flex items-center justify-center shadow-[0_0_80px_rgba(255,255,255,0.1)] transition-colors"
-             style={{ backgroundColor: pulse ? auraColor : 'transparent' }}
-           >
-             <Music className={cn("w-20 h-20 transition-colors", pulse ? "text-white" : "text-white/20")} />
-           </motion.div>
+           <div className="relative">
+             <motion.div 
+               animate={{ 
+                 scale: pulse ? 1.3 : 1, 
+                 opacity: pulse ? 1 : 0.4,
+                 borderColor: pulse ? 'white' : 'rgba(255,255,255,0.1)'
+               }}
+               className="w-48 h-48 rounded-[4rem] border-8 flex items-center justify-center shadow-[0_0_80px_rgba(255,255,255,0.1)] transition-colors relative z-10"
+               style={{ backgroundColor: pulse ? auraColor : 'transparent' }}
+             >
+               <Music className={cn("w-20 h-20 transition-colors", pulse ? "text-white" : "text-white/20")} />
+             </motion.div>
+
+             <AnimatePresence>
+               {feedback && (
+                 <motion.div 
+                   initial={{ opacity: 0, scale: 0.5, y: 0 }}
+                   animate={{ opacity: 1, scale: 1.2, y: -40 }}
+                   exit={{ opacity: 0, scale: 0.5 }}
+                   className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none"
+                 >
+                   <span className="bg-red-500 text-white px-6 py-2 rounded-full font-black uppercase text-[10px] shadow-2xl border-2 border-white">
+                     {feedback}
+                   </span>
+                 </motion.div>
+               )}
+             </AnimatePresence>
+           </div>
 
            <div className="w-64 space-y-4">
               <div className="flex justify-between text-[9px] font-black uppercase text-white/40 tracking-widest">
@@ -428,8 +458,8 @@ function RhythmGame({ onWin, auraColor }: any) {
               <div className="h-4 bg-white/10 rounded-full overflow-hidden border border-white/5 p-1">
                  <motion.div animate={{ width: `${(hits/currentPhase.goal)*100}%` }} className="h-full bg-primary rounded-full" />
               </div>
-              <p className="text-[8px] font-black uppercase text-white/30 tracking-widest">
-                Fique parado e mova APENAS na luz!
+              <p className="text-[8px] font-black uppercase text-white/30 tracking-widest leading-relaxed">
+                Fique parado e bata no ritmo exato da luz!
               </p>
            </div>
         </div>
