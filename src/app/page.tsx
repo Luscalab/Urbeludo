@@ -15,7 +15,9 @@ import {
   Fingerprint,
   ShieldCheck,
   Activity,
-  Cpu
+  Cpu,
+  Trophy,
+  Target
 } from 'lucide-react';
 import { useI18n } from '@/components/I18nProvider';
 import { LanguageSelector } from '@/components/LanguageSelector';
@@ -50,10 +52,7 @@ export default function Home() {
         
         <div className="flex items-center gap-3">
           <LanguageSelector />
-          <Button asChild size="lg" variant="ghost" className="rounded-2xl h-12 w-12 p-0 bg-white/50 border border-white/80 shadow-sm hidden sm:flex">
-            <Link href="/auth"><Play className="w-5 h-5 text-primary fill-primary" /></Link>
-          </Button>
-          <Button asChild className="rounded-full bg-primary font-black uppercase text-[10px] px-6 h-12 hidden sm:flex">
+          <Button asChild className="rounded-full bg-primary font-black uppercase text-[10px] px-8 h-12 shadow-lg hover:shadow-primary/20 transition-all">
             <Link href="/auth">Conectar</Link>
           </Button>
         </div>
@@ -88,16 +87,13 @@ export default function Home() {
                     <ArrowRight className="w-8 h-8 group-hover:translate-x-3 transition-transform" />
                   </Link>
                 </Button>
-                <Button asChild variant="outline" size="lg" className="h-24 rounded-[3rem] px-10 text-[14px] font-black uppercase tracking-widest border-4 border-primary/10 hover:bg-primary/5 bg-white/50 backdrop-blur-xl">
-                  <Link href="/playground">{t('home.exploreTech')}</Link>
-                </Button>
               </div>
 
               <div className="flex items-center gap-4 pt-8 opacity-60">
                 <div className="flex -space-x-3">
                   {[1, 2, 3, 4].map(i => (
                     <div key={i} className="w-10 h-10 rounded-full border-2 border-white bg-zinc-200 overflow-hidden shadow-lg">
-                      <img src={`https://picsum.photos/seed/explorer${i}/80/80`} alt="Explorer" />
+                      <Image src={`https://picsum.photos/seed/explorer${i}/80/80`} alt="Explorer" width={40} height={40} className="object-cover" />
                     </div>
                   ))}
                 </div>
@@ -117,7 +113,7 @@ export default function Home() {
                 alt="Movement Playground" 
                 fill 
                 className="object-cover group-hover:scale-105 transition-transform duration-1000 opacity-80"
-                data-ai-hint={heroImage?.imageHint || "balance movement"}
+                priority
               />
               
               {/* HUD OVERLAY ELEMENTS */}
@@ -134,18 +130,18 @@ export default function Home() {
                  </div>
               </div>
 
-              <div className="absolute bottom-10 left-10 right-10 p-10 rounded-[3.5rem] bg-white/20 backdrop-blur-3xl border border-white/30 flex flex-col sm:flex-row items-center justify-between gap-8 shadow-2xl">
+              <div className="absolute bottom-10 left-10 right-10 p-8 rounded-[3.5rem] bg-white/20 backdrop-blur-3xl border border-white/30 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-2xl">
                 <div className="flex items-center gap-6">
-                  <div className="w-20 h-20 rounded-[2.2rem] bg-accent flex items-center justify-center text-white shadow-[0_0_40px_rgba(244,63,94,0.5)] animate-bounce-slow">
-                    <ShieldCheck className="w-10 h-10" />
+                  <div className="w-16 h-16 rounded-[2rem] bg-accent flex items-center justify-center text-white shadow-[0_0_40px_rgba(244,63,94,0.5)]">
+                    <ShieldCheck className="w-8 h-8" />
                   </div>
                   <div>
-                    <div className="text-[12px] font-black uppercase text-white/60 tracking-widest mb-1">Status de Borda</div>
-                    <div className="text-2xl font-black text-white italic tracking-tighter">Processamento Local</div>
+                    <div className="text-[10px] font-black uppercase text-white/60 tracking-widest mb-0.5">Status de Borda</div>
+                    <div className="text-xl font-black text-white italic tracking-tighter">Processamento Local</div>
                   </div>
                 </div>
                 <div className="px-6 py-3 bg-white text-primary rounded-full font-black uppercase text-[10px] tracking-widest shadow-xl">
-                  {t('common.howToPlay')}
+                  Explorar Agora
                 </div>
               </div>
 
@@ -168,21 +164,21 @@ export default function Home() {
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
             <FeatureCard 
-              icon={<Waves className="w-10 h-10" />}
+              icon={<Waves />}
               title="Equilíbrio"
               description="Domine o sistema vestibular ajustando sua postura em relação ao horizonte digital."
               color="bg-blue-500"
               shadow="shadow-blue-500/20"
             />
             <FeatureCard 
-              icon={<Music className="w-10 h-10" />}
+              icon={<Music />}
               title="Ritmo"
               description="Sincronize seus batimentos e movimentos com a pulsação urbana captada pelos sensores."
               color="bg-primary"
               shadow="shadow-primary/20"
             />
             <FeatureCard 
-              icon={<Fingerprint className="w-10 h-10" />}
+              icon={<Fingerprint />}
               title="Precisão"
               description="Refine sua coordenação visomotora fina através de trilhas de luz geradas por IA."
               color="bg-accent"
@@ -237,7 +233,7 @@ export default function Home() {
            </div>
            <Button asChild size="lg" className="h-28 px-20 rounded-full bg-slate-950 text-white font-black uppercase tracking-widest text-2xl shadow-[0_40px_80px_rgba(0,0,0,0.3)] relative z-10 border-b-[12px] border-slate-800 active:border-b-0 active:translate-y-2 transition-all group">
              <Link href="/auth" className="flex items-center gap-6">
-                <span>{t('home.connectIdentity')}</span>
+                <span>Conectar Identidade</span>
                 <Play className="w-8 h-8 group-hover:scale-125 transition-transform" />
              </Link>
            </Button>
@@ -272,7 +268,7 @@ export default function Home() {
   );
 }
 
-function FeatureCard({ icon, title, description, color, shadow }: { icon: React.ReactNode, title: string, description: string, color: string, shadow: string }) {
+function FeatureCard({ icon, title, description, color, shadow }: { icon: React.ReactElement, title: string, description: string, color: string, shadow: string }) {
   return (
     <motion.div 
       whileHover={{ y: -15, scale: 1.02 }}
@@ -285,7 +281,7 @@ function FeatureCard({ icon, title, description, color, shadow }: { icon: React.
         "w-24 h-24 rounded-[2.5rem] flex items-center justify-center text-white shadow-2xl group-hover:rotate-12 transition-transform duration-500",
         color
       )}>
-        {icon}
+        {React.cloneElement(icon, { className: "w-10 h-10" })}
       </div>
       <div className="space-y-4">
         <h3 className="text-3xl font-black uppercase italic tracking-tighter leading-none text-foreground">{title}</h3>
