@@ -6,16 +6,18 @@ import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { UrbeLudoLogo } from '@/components/UrbeLudoLogo';
-import { Shield, Activity, Zap, MapPin, ArrowRight, Sparkles, Smartphone, Play } from 'lucide-react';
+import { Shield, Activity, Zap, Smartphone, Play, ArrowRight, Sparkles } from 'lucide-react';
 import { useI18n } from '@/components/I18nProvider';
 import { LanguageSelector } from '@/components/LanguageSelector';
+import { AccessibilityToolbar } from '@/components/AccessibilityToolbar';
 
 export default function Home() {
   const { t } = useI18n();
 
   return (
-    <div className="flex flex-col min-h-screen bg-background bg-mesh-purple overflow-x-hidden">
-      {/* Premium Navigation */}
+    <div className="flex flex-col min-h-screen bg-background bg-mesh-game overflow-x-hidden">
+      <AccessibilityToolbar />
+      
       <header className="px-6 h-20 flex items-center justify-between border-b border-primary/10 sticky top-0 z-50 bg-background/60 backdrop-blur-2xl">
         <div className="flex items-center gap-3">
           <motion.div 
@@ -39,7 +41,6 @@ export default function Home() {
       </header>
 
       <main className="flex-1">
-        {/* Hero 2026 Experience */}
         <section className="relative pt-12 pb-20 px-6 container mx-auto">
           <div className="flex flex-col gap-12">
             <motion.div 
@@ -101,7 +102,6 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Dynamic Features Cards */}
         <section className="py-20 px-6">
           <div className="container mx-auto space-y-12">
             <div className="text-center space-y-2">
@@ -136,24 +136,6 @@ export default function Home() {
             </div>
           </div>
         </section>
-
-        {/* CTA Section */}
-        <section className="py-20 container mx-auto px-6">
-          <div className="bg-primary rounded-[3.5rem] p-12 relative overflow-hidden shadow-2xl">
-            <div className="absolute top-0 right-0 w-full h-full bg-accent/10 blur-[60px] rounded-full translate-x-1/2 -translate-y-1/2" />
-            <div className="relative z-10 text-center space-y-8">
-              <h2 className="text-4xl font-black uppercase italic text-white tracking-tighter leading-none">
-                A Cidade é <br /> Seu Playground.
-              </h2>
-              <p className="text-white/80 max-w-[240px] mx-auto font-medium text-xs leading-relaxed">
-                {t('home.ctaDesc')}
-              </p>
-              <Button asChild size="lg" className="w-full h-16 rounded-full px-16 text-[11px] font-black uppercase tracking-widest bg-white text-primary hover:bg-white/90 shadow-xl transition-all">
-                <Link href="/auth">{t('home.connectIdentity')}</Link>
-              </Button>
-            </div>
-          </div>
-        </section>
       </main>
 
       <footer className="py-12 border-t border-primary/10 px-6 bg-white/20 text-center space-y-6">
@@ -161,11 +143,6 @@ export default function Home() {
           <UrbeLudoLogo className="w-12 h-12 text-primary" />
           <span className="text-lg font-black uppercase italic tracking-tighter">UrbeLudo</span>
           <p className="text-[8px] font-bold text-primary uppercase tracking-widest">{t('home.tagline')}</p>
-        </div>
-        <div className="flex justify-center gap-8 text-[9px] font-black uppercase tracking-widest">
-          <Link href="/terms">Privacy</Link>
-          <Link href="/community">Community</Link>
-          <Link href="https://github.com">GitHub</Link>
         </div>
         <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest opacity-50">
           © 2026 UrbeLudo. All Rights Reserved.

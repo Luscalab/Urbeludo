@@ -9,20 +9,18 @@ import { Progress } from '@/components/ui/progress';
 import { 
   Sparkles,
   Trophy,
-  AlertCircle,
-  Play,
   ArrowLeft,
   Move,
   Music,
   Fingerprint,
-  Activity,
-  Zap,
-  CheckCircle2
+  CheckCircle2,
+  Volume2
 } from 'lucide-react';
 
 import { useUser, useDoc, useMemoFirebase } from '@/firebase';
 import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { useI18n } from '@/components/I18nProvider';
+import { AccessibilityToolbar } from '@/components/AccessibilityToolbar';
 
 type GameMode = 'select' | 'balance' | 'rhythm' | 'path';
 
@@ -33,15 +31,24 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
   
   const [gameMode, setGameMode] = useState<GameMode>('select');
   const [isWin, setIsWin] = useState(false);
-  const [permissionGranted, setPermissionGranted] = useState(false);
   
   const userProgressRef = useMemoFirebase(() => user ? { id: user.uid, path: `user_progress/${user.uid}` } : null, [user]);
   const { data: profile } = useDoc(userProgressRef);
   const auraColor = profile?.dominantColor || '#9333ea';
 
+  const speak = (text: string) => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1.0;
+      window.speechSynthesis.speak(utterance);
+    }
+  };
+
   const handleWin = useCallback((reward: number = 30, type: string = 'Desafio Concluído') => {
     if (isWin) return;
     setIsWin(true);
+    speak(t('playground.winTitle'));
     
     if (userProgressRef && profile) {
       const newHistory = [{
@@ -58,11 +65,12 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
         history: newHistory
       });
     }
-  }, [isWin, userProgressRef, profile]);
+  }, [isWin, userProgressRef, profile, t]);
 
   if (isWin) {
     return (
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-[100] bg-primary/95 flex flex-col items-center justify-center text-white p-12 text-center">
+        <AccessibilityToolbar />
         <Trophy className="w-40 h-40 text-yellow-400 mb-8" />
         <h2 className="text-5xl font-black uppercase italic mb-8">{t('playground.winTitle')}</h2>
         <div className="bg-white/20 p-6 rounded-[2.5rem] mb-10">
@@ -77,7 +85,8 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
 
   if (gameMode === 'select') {
     return (
-      <div className="flex-1 bg-slate-900 p-8 flex flex-col items-center justify-center gap-8">
+      <div className="flex-1 bg-slate-900 p-8 flex flex-col items-center justify-center gap-8 relative">
+        <AccessibilityToolbar />
         <div className="text-center space-y-2">
            <h2 className="text-3xl font-black uppercase italic tracking-tighter text-white">{t('playground.selectGame')}</h2>
            <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">3 Modos de Ação Psicomotora</p>
@@ -89,21 +98,30 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
             title={t('playground.modes.balance.title')}
             desc={t('playground.modes.balance.desc')}
             color="bg-blue-500"
-            onClick={() => setGameMode('balance')}
+            onClick={() => {
+              setGameMode('balance');
+              speak(t('playground.modes.balance.title') + ". " + t('playground.modes.balance.desc'));
+            }}
           />
           <GameModeCard 
             icon={<Music className="w-8 h-8" />}
             title={t('playground.modes.rhythm.title')}
             desc={t('playground.modes.rhythm.desc')}
             color="bg-primary"
-            onClick={() => setGameMode('rhythm')}
+            onClick={() => {
+              setGameMode('rhythm');
+              speak(t('playground.modes.rhythm.title') + ". " + t('playground.modes.rhythm.desc'));
+            }}
           />
           <GameModeCard 
             icon={<Fingerprint className="w-8 h-8" />}
             title={t('playground.modes.path.title')}
             desc={t('playground.modes.path.desc')}
             color="bg-accent"
-            onClick={() => setGameMode('path')}
+            onClick={() => {
+              setGameMode('path');
+              speak(t('playground.modes.path.title') + ". " + t('playground.modes.path.desc'));
+            }}
           />
         </div>
         
@@ -114,6 +132,7 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
 
   return (
     <div className="flex-1 flex flex-col bg-slate-950 relative overflow-hidden">
+      <AccessibilityToolbar />
       <header className="absolute top-0 inset-x-0 p-6 flex items-center justify-between z-50">
         <Button variant="ghost" size="icon" onClick={() => setGameMode('select')} className="text-white/40">
           <ArrowLeft className="w-6 h-6" />
@@ -196,7 +215,7 @@ function BalanceGame({ onWin, auraColor }: any) {
   }, [tilt, active, onWin]);
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-12 bg-mesh-game relative">
+    <div className="flex-1 flex flex-col items-center justify-center p-12 bg-slate-900 relative">
       {!active ? (
         <Button onClick={requestSensors} className="h-20 px-12 rounded-full bg-primary font-black uppercase shadow-2xl">Ativar Sensores</Button>
       ) : (
@@ -235,13 +254,11 @@ function RhythmGame({ onWin, auraColor }: any) {
     }
     setActive(true);
     
-    // Loop de Ritmo (Aprox 120 BPM)
     const rhythmInterval = setInterval(() => {
       setBeat(true);
       setTimeout(() => setBeat(false), 200);
     }, 1000);
 
-    // Detecção de Aceleração
     const handleMotion = (e: any) => {
       const acc = e.accelerationIncludingGravity;
       const totalAcc = Math.abs(acc.x) + Math.abs(acc.y) + Math.abs(acc.z);
@@ -260,7 +277,6 @@ function RhythmGame({ onWin, auraColor }: any) {
   };
 
   const checkRhythm = () => {
-    // Se balançou perto do beat (simplificado para o MVP)
     setScore(s => {
       if (s >= 15) {
         onWin();
@@ -343,7 +359,6 @@ function PathGame({ onWin, auraColor }: any) {
     const touchY = e.touches[0].clientY - rect.top;
     const height = rect.height;
     
-    // Inverte a lógica para subir o caminho
     const percent = Math.min(100, Math.max(0, 100 - (touchY / height) * 100));
     
     if (percent > progress && percent < progress + 15) {
@@ -351,7 +366,6 @@ function PathGame({ onWin, auraColor }: any) {
        setProgress(percent);
        if (percent >= 98) onWin();
     } else if (percent < progress - 5) {
-       // Penalidade leve se escorregar muito
        setProgress(Math.max(0, percent));
     }
   };
@@ -369,35 +383,23 @@ function PathGame({ onWin, auraColor }: any) {
         onTouchEnd={() => setIsDragging(false)}
         className="relative w-32 h-[450px] bg-white/5 rounded-full border-4 border-white/10 overflow-hidden"
       >
-        {/* O Caminho Iluminado */}
         <div 
           className="absolute bottom-0 w-full transition-all duration-300 rounded-full opacity-40 blur-xl"
           style={{ height: `${progress}%`, backgroundColor: auraColor }}
         />
         
-        {/* A Guia Central */}
         <div className="absolute inset-x-0 h-full flex justify-center">
            <div className="w-1 h-full bg-white/10 border-dashed border-l" />
         </div>
 
-        {/* A Aura (Cursor) */}
         <motion.div 
           animate={{ bottom: `${progress}%`, scale: isDragging ? 1.2 : 1 }}
           className="absolute left-1/2 -translate-x-1/2 w-16 h-16 rounded-full border-4 border-white shadow-2xl flex items-center justify-center z-50 touch-none"
           style={{ backgroundColor: auraColor, marginBottom: '-32px' }}
         >
           <Fingerprint className="w-8 h-8 text-white/40" />
-          {isDragging && <Sparkles className="absolute -top-4 w-6 h-6 text-white animate-pulse" />}
         </motion.div>
-
-        {/* Target */}
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
-           <Zap className={`w-8 h-8 ${progress > 90 ? 'text-primary animate-bounce' : 'text-white/20'}`} />
-           <div className="w-12 h-2 rounded-full bg-white/20" />
-        </div>
       </div>
     </div>
   );
 }
-
-import Link from 'next/link';

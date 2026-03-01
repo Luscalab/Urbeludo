@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -10,38 +10,26 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { UrbeLudoLogo } from '@/components/UrbeLudoLogo';
-import { useAuth, useUser } from '@/firebase';
-import { 
-  initiateEmailSignIn, 
-  initiateEmailSignUp, 
-  initiateGoogleSignIn,
-  initiateAnonymousSignIn
-} from '@/firebase/non-blocking-login';
-import { Mail, Lock, Chrome, ArrowRight, ShieldCheck, Loader2, ArrowLeft } from 'lucide-react';
+import { Mail, Lock, Chrome, ArrowRight, ShieldCheck, ArrowLeft, UserCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useI18n } from '@/components/I18nProvider';
 import { LanguageSelector } from '@/components/LanguageSelector';
+import { AccessibilityToolbar } from '@/components/AccessibilityToolbar';
+import { LocalPersistence } from '@/lib/local-persistence';
 
 export default function AuthPage() {
-  const auth = useAuth();
-  const { user, isUserLoading } = useUser();
   const router = useRouter();
   const { toast } = useToast();
   const { t } = useI18n();
 
   const [isLogin, setIsLogin] = useState(true);
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    if (user && !isUserLoading) {
-      router.push('/playground');
-    }
-  }, [user, isUserLoading, router]);
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!termsAccepted) {
       toast({
@@ -53,39 +41,54 @@ export default function AuthPage() {
     }
 
     setIsLoading(true);
-    if (isLogin) {
-      initiateEmailSignIn(auth, email, password);
-    } else {
-      initiateEmailSignUp(auth, email, password);
-    }
+    
+    // Standalone Mock Auth
+    const uid = `URBE_${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+    await LocalPersistence.saveUserId(uid);
+    await LocalPersistence.saveProgress({
+      id: uid,
+      displayName: name || `Explorador_${uid.slice(-4)}`,
+      ludoCoins: 50,
+      psychomotorLevel: 1,
+      totalChallengesCompleted: 0,
+      currentStreak: 0,
+      hasSeenTutorial: false,
+      dominantColor: '#9333ea',
+      avatar: { avatarId: '1.png' },
+      history: []
+    });
+
+    toast({
+      title: "Sucesso!",
+      description: "Identidade Ludo conectada."
+    });
+
+    router.push('/dashboard');
   };
 
-  const handleGoogleSignIn = () => {
-    if (!termsAccepted) {
-      toast({
-        variant: 'destructive',
-        title: 'Atenção',
-        description: t('auth.termsAccept')
-      });
-      return;
-    }
-    initiateGoogleSignIn(auth);
+  const handleGuestSignIn = async () => {
+    setIsLoading(true);
+    const uid = `GUEST_${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+    await LocalPersistence.saveUserId(uid);
+    await LocalPersistence.saveProgress({
+      id: uid,
+      displayName: "Convidado",
+      ludoCoins: 50,
+      psychomotorLevel: 1,
+      totalChallengesCompleted: 0,
+      currentStreak: 0,
+      hasSeenTutorial: false,
+      dominantColor: '#3b82f6',
+      avatar: { avatarId: '1.png' },
+      history: []
+    });
+    router.push('/dashboard');
   };
-
-  const handleGuestSignIn = () => {
-    initiateAnonymousSignIn(auth);
-  };
-
-  if (isUserLoading || user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-muted/30 flex flex-col p-6">
+      <AccessibilityToolbar />
+      
       <header className="flex items-center justify-between mb-8">
         <Link href="/" className="p-2 bg-white rounded-full shadow-sm"><ArrowLeft className="w-5 h-5 text-primary" /></Link>
         <LanguageSelector />
@@ -104,6 +107,23 @@ export default function AuthPage() {
 
         <Card className="p-8 border-none rounded-[3rem] shadow-xl bg-background space-y-6">
           <form onSubmit={handleSubmit} className="space-y-4">
+            {!isLogin && (
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase text-muted-foreground px-2">{t('auth.nameLabel')}</Label>
+                <div className="relative">
+                  <UserCircle className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input 
+                    type="text" 
+                    placeholder="Seu nome lúdico" 
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="pl-12 rounded-2xl h-14 bg-muted/20 border-transparent focus:border-primary"
+                    required={!isLogin}
+                  />
+                </div>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label className="text-[10px] font-black uppercase text-muted-foreground px-2">{t('auth.emailLabel')}</Label>
               <div className="relative">
@@ -157,7 +177,7 @@ export default function AuthPage() {
             <div className="relative flex justify-center text-[8px] font-black uppercase"><span className="bg-background px-4 text-muted-foreground">Ou conecte via</span></div>
           </div>
 
-          <Button variant="outline" onClick={handleGoogleSignIn} className="w-full h-14 rounded-2xl gap-3 border-muted-foreground/20 font-bold uppercase text-[10px]">
+          <Button variant="outline" className="w-full h-14 rounded-2xl gap-3 border-muted-foreground/20 font-bold uppercase text-[10px]">
             <Chrome className="w-4 h-4 text-red-500" /> {t('auth.googleSignIn')}
           </Button>
 

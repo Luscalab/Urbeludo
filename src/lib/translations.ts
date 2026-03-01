@@ -16,6 +16,10 @@ export const translations = {
       success: 'Sucesso',
       settings: 'Configurações',
       skip: 'Pular',
+      accessibility: 'Acessibilidade',
+      readPage: 'Ler Página',
+      libras: 'Assistente de Libras',
+      stopAudio: 'Parar Áudio'
     },
     home: {
       heroTitle: 'Seu corpo é o equilíbrio',
@@ -99,6 +103,10 @@ export const translations = {
       success: 'Success',
       settings: 'Settings',
       skip: 'Skip',
+      accessibility: 'Accessibility',
+      readPage: 'Read Page',
+      libras: 'Sign Language',
+      stopAudio: 'Stop Audio'
     },
     home: {
       heroTitle: 'Your body is the balance',
