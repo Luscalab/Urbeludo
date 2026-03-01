@@ -13,11 +13,8 @@ import {
   Fingerprint,
   Zap,
   Rocket,
-  Hand,
-  Radar,
   Wind,
   ArrowUp,
-  Waves,
   ShieldCheck,
   Sparkles,
   Info,
@@ -25,14 +22,7 @@ import {
   Volume2,
   AlertTriangle,
   Lightbulb,
-  X,
   CheckCircle2,
-  Bomb,
-  Package,
-  Ghost,
-  Flame,
-  DoorOpen,
-  Gamepad2,
   BookOpen,
   Star
 } from 'lucide-react';
@@ -450,16 +440,12 @@ function BalanceGame({ onWin, auraColor }: { onWin: (reward: number, type: strin
 }
 
 function RhythmGame({ onWin, auraColor }: any) {
-  const { t } = useI18n();
   const [active, setActive] = useState(false);
   const [phase, setPhase] = useState(0);
   const [hits, setHits] = useState(0);
   const [pulse, setPulse] = useState(false);
-  const [feedback, setFeedback] = useState<string | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const canHitRef = useRef(true);
-  const currentAccelRef = useRef(0);
-  const wasMovingBeforePulseRef = useRef(false);
 
   const PHASES = [
     { name: 'Brilhante', bpm: 50, reward: 30, goal: 3 },
@@ -630,40 +616,47 @@ function BreathGame({ onWin, auraColor }: any) {
 }
 
 /**
- * --- JOGO 5: ELEVADOR DE VOZ (REFORMULADO) ---
- * Sistema de fases com recompensas e mensagens pedagógicas.
+ * --- JOGO: O ELEVADOR DE VOZ (IMERSIVO) ---
+ * Implementação fiel ao guia "O Elevador de Voz".
+ * Utiliza sistema de camadas visuais e biofeedback em tempo real.
  */
 function VoiceGame({ onWin, auraColor }: { onWin: (reward: number, name: string) => void, auraColor: string }) {
   const [active, setActive] = useState(false);
   const [phaseIdx, setPhaseIdx] = useState(0);
   const [volume, setVolume] = useState(0);
+  const [smoothedVolume, setSmoothedVolume] = useState(0);
   const [progress, setProgress] = useState(0);
   const [showTransition, setShowTransition] = useState(false);
-  const [isExploding, setIsExploding] = useState(false);
+  const [isSinging, setIsSinging] = useState(false);
+  const [chestOpen, setChestOpen] = useState(false);
+  
   const analyserRef = useRef<AnalyserNode | null>(null);
   const requestRef = useRef<number>(null);
 
   const VOICE_LEVELS = [
     { 
       name: 'Andar 1: Brisa Suave', 
-      duration: 5, 
-      range: { min: 15, max: 45 }, 
+      duration: 6, 
+      range: { min: 12, max: 40 }, 
       reward: 30, 
-      benefit: "Excelente! Você começou a controlar seu fluxo de ar de forma estável. Isso ajuda na clareza da sua fala." 
+      benefit: "Sustentação básica de sopro e voz.",
+      towerHeight: 500 
     },
     { 
       name: 'Andar 2: Eco da Montanha', 
-      duration: 8, 
-      range: { min: 25, max: 55 }, 
+      duration: 10, 
+      range: { min: 20, max: 55 }, 
       reward: 50, 
-      benefit: "Muito bem! Sustentar sons por mais tempo fortalece os músculos da sua garganta e melhora o seu fôlego." 
+      benefit: "Fortalecimento da musculatura vocal.",
+      towerHeight: 600
     },
     { 
       name: 'Andar 3: Canto do Herói', 
-      duration: 12, 
-      range: { min: 35, max: 70 }, 
+      duration: 15, 
+      range: { min: 35, max: 75 }, 
       reward: 80, 
-      benefit: "Incrível! Esse controle preciso de intensidade é fundamental para a expressividade e saúde da sua voz." 
+      benefit: "Controle preciso de intensidade e fôlego.",
+      towerHeight: 700
     }
   ];
 
@@ -677,14 +670,20 @@ function VoiceGame({ onWin, auraColor }: { onWin: (reward: number, name: string)
       const source = ctx.createMediaStreamSource(stream);
       const analyser = ctx.createAnalyser();
       analyser.fftSize = 512;
+      analyser.smoothingTimeConstant = 0.8;
       source.connect(analyser);
       analyserRef.current = analyser;
 
       const dataArray = new Uint8Array(analyser.frequencyBinCount);
       const update = () => {
-        analyser.getByteFrequencyData(dataArray);
+        if (!analyserRef.current) return;
+        analyserRef.current.getByteFrequencyData(dataArray);
         let average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+        
+        // Normalização e Filtro de Suavização (Low Pass Filter Simulado)
         setVolume(average);
+        setSmoothedVolume(prev => prev * 0.9 + average * 0.1);
+        setIsSinging(average > 10);
 
         const isInRange = average > currentLevel.range.min && average < currentLevel.range.max;
         
@@ -698,7 +697,7 @@ function VoiceGame({ onWin, auraColor }: { onWin: (reward: number, name: string)
             return next;
           });
         } else {
-          setProgress(p => Math.max(0, p - 0.5));
+          setProgress(p => Math.max(0, p - 0.4));
         }
 
         if (progress < 100) {
@@ -706,30 +705,29 @@ function VoiceGame({ onWin, auraColor }: { onWin: (reward: number, name: string)
         }
       };
       setActive(true);
+      setChestOpen(false);
       update();
     } catch (e) {
-      console.error("Microfone bloqueado", e);
+      console.error("Hardware de áudio inacessível", e);
     }
   };
 
   const handleLevelComplete = () => {
     if (requestRef.current) cancelAnimationFrame(requestRef.current);
-    setShowTransition(true);
+    setChestOpen(true);
+    setTimeout(() => setShowTransition(true), 1500);
   };
 
   const nextLevel = () => {
-    setIsExploding(true);
-    setTimeout(() => {
-      if (phaseIdx < VOICE_LEVELS.length - 1) {
-        setPhaseIdx(p => p + 1);
-        setProgress(0);
-        setShowTransition(false);
-        setIsExploding(false);
-        start();
-      } else {
-        onWin(currentLevel.reward, 'Maestro da Voz');
-      }
-    }, 1200);
+    if (phaseIdx < VOICE_LEVELS.length - 1) {
+      setPhaseIdx(p => p + 1);
+      setProgress(0);
+      setShowTransition(false);
+      setChestOpen(false);
+      start();
+    } else {
+      onWin(currentLevel.reward, 'Maestro da Voz');
+    }
   };
 
   useEffect(() => {
@@ -737,114 +735,179 @@ function VoiceGame({ onWin, auraColor }: { onWin: (reward: number, name: string)
   }, []);
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-900 relative overflow-hidden">
+    <div className="flex-1 flex flex-col items-center justify-center relative overflow-hidden bg-slate-900">
+      {/* CENÁRIO BASE (1.png) */}
+      <div className="absolute inset-0 z-0">
+        <img src="/assets/images/games/elevador/1.png" alt="Cenário" className="w-full h-full object-cover opacity-60" />
+      </div>
+
       {!active ? (
-        <div className="flex flex-col items-center gap-8 text-center">
-          <div className="w-24 h-24 rounded-[2.5rem] bg-pink-500/20 border-4 border-pink-500 flex items-center justify-center text-pink-500 mb-4 animate-pulse">
-            <Volume2 className="w-12 h-12" />
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }} 
+          animate={{ opacity: 1, scale: 1 }}
+          className="relative z-50 text-center space-y-8 p-12 bg-black/40 backdrop-blur-xl rounded-[4rem] border-4 border-white/10"
+        >
+          <div className="w-32 h-32 mx-auto bg-pink-500/20 rounded-[2.5rem] flex items-center justify-center text-pink-500 border-4 border-pink-500 shadow-2xl animate-pulse">
+            <Volume2 className="w-16 h-16" />
           </div>
-          <h3 className="text-3xl font-black uppercase italic text-white tracking-tighter">Elevador de Voz</h3>
-          <Button onClick={start} className="h-20 px-16 rounded-full bg-pink-500 text-white font-black uppercase shadow-2xl border-b-8 border-pink-700 active:border-b-0 active:translate-y-2"><Play /> Subir Agora</Button>
-        </div>
+          <div className="space-y-2">
+            <h2 className="text-4xl font-black text-white uppercase italic tracking-tighter">Elevador de Voz</h2>
+            <p className="text-[10px] font-bold text-white/60 uppercase tracking-widest max-w-xs mx-auto leading-relaxed">
+              Use sua voz para subir os andares da torre de cristal. Mantenha o tom estável para ganhar!
+            </p>
+          </div>
+          <Button onClick={start} className="h-20 px-16 rounded-full bg-pink-600 text-white font-black uppercase text-xl shadow-[0_15px_30px_rgba(219,39,119,0.4)] border-b-8 border-pink-800 active:translate-y-2 transition-all">
+            Iniciar Missão
+          </Button>
+          <div className="flex items-center gap-2 justify-center text-[8px] font-black uppercase text-white/30 tracking-widest">
+            <ShieldCheck className="w-3 h-3" /> Hardware Local & Privado
+          </div>
+        </motion.div>
       ) : (
-        <div className="relative w-full max-w-sm h-full flex flex-col items-center">
-          {/* Poço do Elevador */}
-          <div className="absolute inset-y-10 w-40 bg-slate-800/50 rounded-3xl border-x-4 border-white/5 overflow-hidden">
-             <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 2px, transparent 2px)', backgroundSize: '100% 40px' }} />
+        <div className="relative w-full max-w-lg h-full flex items-center justify-center py-20">
+          
+          {/* ARQUITETURA DA TORRE (4.png) */}
+          <div className="absolute inset-y-10 w-64 z-10">
+             <img src="/assets/images/games/elevador/4.png" alt="Torre" className="w-full h-full object-contain drop-shadow-2xl" />
              
-             {/* Target Zone */}
+             {/* Target Zone (Visualização da Faixa Segura) */}
              <motion.div 
-               animate={{ y: 200 - (phaseIdx * 10) }} 
-               className="absolute inset-x-0 h-24 bg-green-500/20 border-y-2 border-green-500/50 flex items-center justify-center"
+               animate={{ y: 200 - (phaseIdx * 20) }}
+               className="absolute inset-x-8 h-32 bg-green-500/10 border-y-2 border-green-500/40 backdrop-blur-sm flex items-center justify-center"
              >
-                <div className="text-[8px] font-black text-green-500 uppercase tracking-widest animate-pulse">Zona Segura</div>
-             </motion.div>
-
-             {/* Elevator Car */}
-             <motion.div 
-               animate={{ y: 400 - (volume * 4) }} 
-               transition={{ type: "spring", stiffness: 100 }}
-               className="absolute inset-x-4 h-16 rounded-2xl flex items-center justify-center shadow-2xl z-20"
-               style={{ backgroundColor: auraColor }}
-             >
-               <Volume2 className="w-6 h-6 text-white" />
+                <div className="text-[8px] font-black text-green-500 uppercase tracking-widest animate-pulse">Sintonizar Aqui</div>
              </motion.div>
           </div>
 
-          <div className="absolute top-20 left-4 right-4 flex flex-col gap-2">
-             <div className="flex justify-between items-end">
-                <span className="text-[10px] font-black uppercase text-pink-500">{currentLevel.name}</span>
-                <span className="text-sm font-black text-white">{Math.round(progress)}%</span>
+          {/* CABINE E HERÓI (5.png, 2.png, 3.png) */}
+          <motion.div 
+            animate={{ y: 300 - (smoothedVolume * 5.5) }} 
+            transition={{ type: "spring", stiffness: 60, damping: 20 }}
+            className="absolute w-40 h-64 z-20 flex flex-col items-center justify-center"
+          >
+             {/* Cabine (5.png) */}
+             <div className="absolute inset-0 flex items-center justify-center">
+                <img src="/assets/images/games/elevador/5.png" alt="Cabine" className="w-full h-full object-contain drop-shadow-2xl" />
              </div>
-             <div className="h-3 bg-white/10 rounded-full overflow-hidden border border-white/5">
-                <motion.div animate={{ width: `${progress}%` }} className="h-full bg-pink-500 shadow-[0_0_15px_rgba(236,72,153,0.5)]" />
+
+             {/* Robô (2.png ou 3.png) */}
+             <div className="relative z-30 w-24 h-24 mb-6">
+                <img 
+                  src={isSinging ? "/assets/images/games/elevador/3.png" : "/assets/images/games/elevador/2.png"} 
+                  alt="Herói" 
+                  className="w-full h-full object-contain" 
+                />
              </div>
+          </motion.div>
+
+          {/* BIOFEEDBACK LATERAL (6.png) */}
+          <div className="absolute right-10 bottom-40 w-12 h-64 z-30 bg-black/20 rounded-full border-2 border-white/10 overflow-hidden">
+             <motion.div 
+               animate={{ height: `${volume}%` }}
+               className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-pink-600 to-accent"
+             >
+                <img src="/assets/images/games/elevador/6.png" alt="Meter" className="w-full h-full object-cover mix-blend-overlay" />
+             </motion.div>
           </div>
 
-          <AnimatePresence>
-            {showTransition && (
-              <motion.div 
-                initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
-                animate={{ opacity: 1, backdropFilter: "blur(12px)" }}
-                className="absolute inset-0 z-50 flex flex-col items-center justify-center text-center p-10 bg-slate-900/80"
-              >
-                {!isExploding ? (
-                  <motion.div 
-                    initial={{ scale: 0.8, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    className="space-y-8"
-                  >
-                    <div className="flex justify-center">
-                      <div className="relative">
-                        <motion.div 
-                          animate={{ rotate: 360 }}
-                          transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-                          className="absolute inset-0 bg-primary/20 rounded-full blur-2xl"
-                        />
-                        <div className="w-24 h-24 rounded-[2rem] bg-white border-4 border-green-500 flex items-center justify-center text-green-500 shadow-2xl relative">
-                          <CheckCircle2 className="w-12 h-12" />
-                        </div>
-                      </div>
-                    </div>
+          {/* CAIXA DE RECOMPENSA NO TOPO (7.png ou 10.png) */}
+          <div className="absolute top-10 left-1/2 -translate-x-1/2 z-40 w-24 h-24">
+             <AnimatePresence mode="wait">
+               {!chestOpen ? (
+                 <motion.img 
+                   key="closed"
+                   initial={{ scale: 0.8 }} 
+                   animate={{ scale: 1 }} 
+                   exit={{ scale: 1.2, opacity: 0 }}
+                   src="/assets/images/games/elevador/7.png" 
+                   className="w-full h-full object-contain"
+                 />
+               ) : (
+                 <motion.div 
+                   key="open" 
+                   initial={{ y: 20, opacity: 0 }} 
+                   animate={{ y: 0, opacity: 1 }}
+                   className="relative w-full h-full"
+                 >
+                    <img src="/assets/images/games/elevador/10.png" className="w-full h-full object-contain" />
+                    {/* Moedas Saltando (8.png, 9.png) */}
+                    <motion.img 
+                      initial={{ y: 0, opacity: 1 }}
+                      animate={{ y: -60, opacity: 0 }}
+                      transition={{ duration: 1 }}
+                      src="/assets/images/games/elevador/8.png" 
+                      className="absolute top-0 left-1/2 -translate-x-1/2 w-10 h-10" 
+                    />
+                 </motion.div>
+               )}
+             </AnimatePresence>
+          </div>
 
-                    <div className="space-y-2">
-                      <h2 className="text-3xl font-black text-white uppercase italic tracking-tighter">Andar Alcançado!</h2>
-                      <div className="bg-white/10 p-4 rounded-2xl flex items-center gap-3 w-fit mx-auto border border-white/10">
-                        <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                        <span className="text-xl font-black text-white">+{currentLevel.reward} Moedas</span>
-                      </div>
-                    </div>
-
-                    <div className="bg-white/5 p-6 rounded-[2.5rem] border border-white/10 max-w-xs mx-auto">
-                       <Lightbulb className="w-6 h-6 text-yellow-500 mx-auto mb-3" />
-                       <h4 className="text-[10px] font-black uppercase text-yellow-500 tracking-widest mb-2">Evolução do Mestre</h4>
-                       <p className="text-[11px] font-medium leading-relaxed text-white/90 italic">
-                         "{currentLevel.benefit}"
-                       </p>
-                    </div>
-
-                    <Button 
-                      onClick={nextLevel}
-                      className="h-20 px-12 rounded-full bg-green-500 text-white font-black uppercase shadow-2xl flex gap-3 text-lg border-b-8 border-green-700 active:border-b-0 active:translate-y-2 transition-all w-full"
-                    >
-                      {phaseIdx === VOICE_LEVELS.length - 1 ? 'Finalizar Maestro' : 'Subir Mais'} <Rocket className="w-6 h-6" />
-                    </Button>
-                  </motion.div>
-                ) : (
-                  <motion.div 
-                    initial={{ scale: 1 }} 
-                    animate={{ scale: [1, 1.5, 0], opacity: [1, 1, 0] }}
-                    className="flex flex-col items-center"
-                  >
-                    <Rocket className="w-32 h-32 text-primary animate-bounce" />
-                    <div className="text-4xl font-black text-primary uppercase italic">IMPULSO!</div>
-                  </motion.div>
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {/* HUD DE PROGRESSO */}
+          <div className="absolute bottom-20 inset-x-10 z-50 flex flex-col gap-3">
+             <div className="flex justify-between items-end px-4">
+                <div className="flex flex-col">
+                   <span className="text-[10px] font-black text-white uppercase tracking-tighter">{currentLevel.name}</span>
+                   <span className="text-[8px] font-bold text-white/40 uppercase tracking-widest">Nível de Sincronia</span>
+                </div>
+                <div className="text-2xl font-black text-white italic">{Math.round(progress)}%</div>
+             </div>
+             <div className="h-4 bg-white/10 rounded-full border border-white/5 overflow-hidden p-1">
+                <motion.div 
+                  animate={{ width: `${progress}%` }} 
+                  className="h-full bg-pink-500 rounded-full shadow-[0_0_20px_rgba(236,72,153,0.6)]" 
+                />
+             </div>
+          </div>
         </div>
       )}
+
+      {/* DIÁLOGO DE TRANSIÇÃO PEDAGÓGICA */}
+      <AnimatePresence>
+        {showTransition && (
+          <motion.div 
+            initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
+            animate={{ opacity: 1, backdropFilter: "blur(12px)" }}
+            className="absolute inset-0 z-[100] flex items-center justify-center p-8 bg-slate-900/80"
+          >
+            <motion.div 
+              initial={{ scale: 0.8, y: 40 }}
+              animate={{ scale: 1, y: 0 }}
+              className="bg-white rounded-[4rem] p-10 max-w-sm w-full text-center space-y-8 shadow-[0_50px_100px_rgba(0,0,0,0.5)] border-8 border-pink-500/20"
+            >
+              <div className="relative mx-auto w-24 h-24">
+                <div className="absolute inset-0 bg-green-500/20 rounded-full blur-2xl animate-pulse" />
+                <div className="relative w-full h-full bg-white rounded-[2rem] border-4 border-green-500 flex items-center justify-center text-green-500">
+                  <Trophy className="w-12 h-12" />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <h3 className="text-3xl font-black uppercase italic tracking-tighter text-slate-900">Andar Superado!</h3>
+                <div className="inline-flex items-center gap-2 px-6 py-2 bg-yellow-100 rounded-full border border-yellow-200">
+                   <img src="/assets/images/games/elevador/8.png" className="w-5 h-5" />
+                   <span className="text-xl font-black text-yellow-800">+{currentLevel.reward} LC</span>
+                </div>
+              </div>
+
+              <div className="p-6 bg-slate-50 rounded-[2.5rem] border border-slate-100 space-y-3">
+                 <Lightbulb className="w-6 h-6 text-yellow-500 mx-auto" />
+                 <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Ganhos de Maestria</h4>
+                 <p className="text-[11px] font-medium leading-relaxed text-slate-600 italic">
+                   "{currentLevel.benefit}"
+                 </p>
+              </div>
+
+              <Button 
+                onClick={nextLevel}
+                className="w-full h-20 rounded-full bg-pink-600 text-white font-black uppercase shadow-2xl border-b-8 border-pink-800 active:translate-y-2 transition-all text-lg flex items-center justify-center gap-3"
+              >
+                {phaseIdx === VOICE_LEVELS.length - 1 ? 'Finalizar Maestro' : 'Subir Mais'} <Rocket className="w-6 h-6" />
+              </Button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
