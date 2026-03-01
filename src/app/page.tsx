@@ -21,7 +21,8 @@ import {
   Target,
   Orbit,
   Gamepad2,
-  Scan
+  Scan,
+  Wind
 } from 'lucide-react';
 import { useI18n } from '@/components/I18nProvider';
 import { LanguageSelector } from '@/components/LanguageSelector';
@@ -32,7 +33,7 @@ import { cn } from '@/lib/utils';
 export default function Home() {
   const { t } = useI18n();
 
-  // Imagem focada em movimento para o Hero
+  // Imagem focada em movimento consciente para o Hero
   const heroImage = PlaceHolderImages.find(img => img.id === 'play-movement');
 
   return (
@@ -50,13 +51,13 @@ export default function Home() {
           </motion.div>
           <div className="flex flex-col">
             <span className="text-3xl font-black uppercase italic tracking-tighter leading-none text-primary">UrbeLudo</span>
-            <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-[0.3em]">{t('home.tagline')}</span>
+            <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-[0.3em]">Laboratório Psicomotor 2026</span>
           </div>
         </div>
         
         <div className="flex items-center gap-3">
           <div className="hidden md:flex items-center gap-6 mr-6">
-            <Link href="/auth" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors">Tecnologia</Link>
+            <Link href="/auth" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors">Neurociência</Link>
             <Link href="/auth" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors">Segurança</Link>
             <Link href="/auth" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors">Privacidade</Link>
           </div>
@@ -68,7 +69,7 @@ export default function Home() {
       </header>
 
       <main className="flex-1">
-        {/* HERO SECTION: O SALTO PARA 2026 */}
+        {/* HERO SECTION: O SALTO PARA A PSICOMOTRICIDADE 2026 */}
         <section className="relative pt-20 pb-32 px-6 container mx-auto">
           <div className="flex flex-col lg:flex-row items-center gap-16 lg:gap-24">
             <motion.div 
@@ -78,21 +79,21 @@ export default function Home() {
               className="space-y-10 text-left lg:flex-1 relative z-10"
             >
               <div className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-black uppercase tracking-widest animate-pulse-soft">
-                <Orbit className="w-4 h-4" /> Laboratório Psicomotor 2026
+                <Orbit className="w-4 h-4" /> Evolução Biomecânica Digital
               </div>
               
               <h1 className="text-7xl lg:text-[10rem] font-black uppercase italic tracking-tighter leading-[0.8] text-foreground text-shadow-game">
-                DOMINE A <span className="text-primary block">AURA</span> DA CIDADE
+                DOMINE A <span className="text-primary block">AURA</span> DO MOVIMENTO
               </h1>
               
               <p className="text-xl text-muted-foreground leading-relaxed max-w-md font-medium">
-                Transforme cada passo em um rastro de luz digital. Use sensores de precisão e IA de borda para sincronizar seu corpo com o ambiente urbano em tempo real.
+                Sincronize seu corpo com o ambiente digital em tempo real. Transforme cada gesto em um rastro de luz consciente usando IA de borda e precisão motora.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-6">
                 <Button asChild size="lg" className="h-28 rounded-[3rem] px-14 text-[18px] font-black uppercase tracking-widest shadow-[0_25px_50px_rgba(147,51,234,0.4)] bg-primary border-b-[12px] border-primary/70 active:border-b-0 active:translate-y-2 transition-all group flex-1">
                   <Link href="/auth" className="flex items-center justify-between w-full">
-                    <span>{t('home.startJourney')}</span>
+                    <span>Iniciar Treinamento</span>
                     <ArrowRight className="w-10 h-10 group-hover:translate-x-3 transition-transform" />
                   </Link>
                 </Button>
@@ -107,8 +108,8 @@ export default function Home() {
                   ))}
                 </div>
                 <div>
-                   <span className="text-[10px] font-black uppercase tracking-widest text-primary block">Comunidade Ativa</span>
-                   <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">+500 Artistas de Movimento</span>
+                   <span className="text-[10px] font-black uppercase tracking-widest text-primary block">Rede Ativa</span>
+                   <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">+500 Mestres de Movimento</span>
                 </div>
               </div>
             </motion.div>
@@ -122,7 +123,7 @@ export default function Home() {
             >
               <Image 
                 src={heroImage?.imageUrl || "https://picsum.photos/seed/balance/1200/1600"} 
-                alt="Movement Playground" 
+                alt="Movement Mastery" 
                 fill 
                 className="object-cover group-hover:scale-105 transition-transform duration-1000 opacity-80"
                 priority
@@ -134,11 +135,11 @@ export default function Home() {
               <div className="absolute top-10 right-10 flex flex-col items-end gap-3">
                  <div className="px-5 py-2.5 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 text-white flex items-center gap-3 shadow-2xl">
                     <Activity className="w-5 h-5 text-accent animate-pulse" />
-                    <span className="text-[10px] font-black uppercase tracking-widest">Sincronia: 98.4%</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest">Sincronia Corporal: 98.4%</span>
                  </div>
                  <div className="px-5 py-2.5 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 text-white flex items-center gap-3 shadow-2xl">
                     <Zap className="w-5 h-5 text-yellow-400" />
-                    <span className="text-[10px] font-black uppercase tracking-widest">Nível 4: Aura Solar</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest">Aura: Nível Ativo</span>
                  </div>
               </div>
 
@@ -166,8 +167,8 @@ export default function Home() {
                     <Scan className="w-10 h-10" />
                   </div>
                   <div>
-                    <div className="text-[10px] font-black uppercase text-white/60 tracking-widest mb-1">Status de Borda</div>
-                    <div className="text-2xl font-black text-white italic tracking-tighter">Hardware Local Ativo</div>
+                    <div className="text-[10px] font-black uppercase text-white/60 tracking-widest mb-1">Status do Sensor</div>
+                    <div className="text-2xl font-black text-white italic tracking-tighter">Captura Biomecânica Ativa</div>
                   </div>
                 </div>
                 <Button variant="secondary" className="px-8 h-16 rounded-full font-black uppercase text-[12px] tracking-widest shadow-xl bg-white text-primary hover:bg-zinc-100">
@@ -175,7 +176,6 @@ export default function Home() {
                 </Button>
               </div>
 
-              {/* SCANNER LINE EFFECT */}
               <motion.div 
                 animate={{ top: ['0%', '100%', '0%'] }}
                 transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
@@ -191,29 +191,29 @@ export default function Home() {
              <div className="p-4 bg-white rounded-3xl shadow-xl border-4 border-primary/5 mb-4">
                 <UrbeLudoLogo className="w-16 h-16 text-primary" />
              </div>
-             <h2 className="text-6xl lg:text-8xl font-black uppercase italic tracking-tighter text-foreground leading-none">O PODER DO <span className="text-primary">MOVIMENTO</span></h2>
-             <p className="text-[12px] font-black text-muted-foreground uppercase tracking-[0.5em]">Neurociência Aplicada ao Playground Digital</p>
+             <h2 className="text-6xl lg:text-8xl font-black uppercase italic tracking-tighter text-foreground leading-none">A CIÊNCIA DO <span className="text-primary">PLAY</span></h2>
+             <p className="text-[12px] font-black text-muted-foreground uppercase tracking-[0.5em]">Neurociência Aplicada ao Desenvolvimento Psicomotor</p>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
             <FeatureCard 
               icon={<Waves />}
               title="Equilíbrio"
-              description="Ajuste sua postura e domine o sistema vestibular em relação ao horizonte digital dinâmico."
+              description="Domine o sistema vestibular em relação ao horizonte digital. Ajustes posturais milimétricos."
               color="bg-blue-500"
               shadow="shadow-blue-500/20"
             />
             <FeatureCard 
               icon={<Music />}
               title="Ritmo"
-              description="Sincronize batimentos e movimentos com a pulsação urbana captada pelos sensores biométricos."
+              description="Sincronize batimentos e movimentos com a pulsação sonora. Coordenação rítmica avançada."
               color="bg-primary"
               shadow="shadow-primary/20"
             />
             <FeatureCard 
               icon={<Fingerprint />}
               title="Precisão"
-              description="Refine sua coordenação visomotora fina através de trilhas de luz geradas por IA local."
+              description="Refine sua coordenação visomotora fina através de trilhas de luz geradas em tempo real."
               color="bg-accent"
               shadow="shadow-accent/20"
             />
@@ -227,13 +227,13 @@ export default function Home() {
               
               <div className="lg:flex-1 space-y-10 relative z-10 text-center lg:text-left">
                  <div className="inline-flex items-center gap-3 px-6 py-2.5 rounded-full bg-white/10 text-white text-[10px] font-black uppercase tracking-widest border border-white/20">
-                    <Cpu className="w-4 h-4 text-cyan-400" /> Tecnologia Determinística de Borda
+                    <Cpu className="w-4 h-4 text-cyan-400" /> Tecnologia de Borda Determinística
                  </div>
                  <h2 className="text-6xl lg:text-[9rem] font-black uppercase italic text-white tracking-tighter leading-[0.8]">
                     PRIVACIDADE <span className="text-cyan-400">TOTAL</span>
                  </h2>
                  <p className="text-white/60 text-xl font-medium leading-relaxed max-w-lg mx-auto lg:mx-0">
-                    Sua imagem nunca sai do seu dispositivo. Nossa IA de borda processa movimentos em milissegundos usando apenas o hardware local para máxima segurança.
+                    Sua imagem nunca sai do dispositivo. Nossa IA processa movimentos em milissegundos usando apenas o hardware local para máxima segurança pedagógica.
                  </p>
                  <div className="flex flex-wrap justify-center lg:justify-start gap-6 pt-4">
                     <div className="flex items-center gap-3 text-[10px] font-black uppercase text-white tracking-widest bg-white/5 px-6 py-3 rounded-2xl border border-white/10">
@@ -262,10 +262,10 @@ export default function Home() {
         {/* STATS STRIP */}
         <section className="py-20 border-y border-white/5 bg-slate-950/50">
           <div className="container mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-12 text-center">
-            <StatItem value="20ms" label="Tempo de Resposta" />
-            <StatItem value="100%" label="Privacidade Local" />
-            <StatItem value="50+" label="Desafios Psicomotores" />
-            <StatItem value="2026" label="Playground Standard" />
+            <StatItem value="20ms" label="Latência Visual" />
+            <StatItem value="100%" label="Processamento Local" />
+            <StatItem value="50+" label="Treinos Sensoriais" />
+            <StatItem value="2026" label="Ludo Standard" />
           </div>
         </section>
 
@@ -276,7 +276,7 @@ export default function Home() {
               <h2 className="text-7xl lg:text-[11rem] font-black uppercase italic tracking-tighter text-foreground leading-[0.8]">
                 PRONTO PARA <span className="text-primary">DECOLAR</span>?
               </h2>
-              <p className="text-muted-foreground text-lg font-bold uppercase tracking-[0.4em]">Crie sua Identidade Ludo e comece o treinamento gravitacional agora.</p>
+              <p className="text-muted-foreground text-lg font-bold uppercase tracking-[0.4em]">Crie sua Identidade Ludo e comece o treinamento psicomotor agora.</p>
            </div>
            <Button asChild size="lg" className="h-32 px-24 rounded-full bg-slate-950 text-white font-black uppercase tracking-widest text-3xl shadow-[0_40px_100px_rgba(0,0,0,0.4)] relative z-10 border-b-[16px] border-slate-800 active:border-b-0 active:translate-y-4 transition-all group overflow-hidden">
              <Link href="/auth" className="flex items-center gap-8">
@@ -288,7 +288,7 @@ export default function Home() {
         </section>
       </main>
 
-      {/* FOOTER: URBAN LABS 2026 */}
+      {/* FOOTER: MOVEMENT LABS 2026 */}
       <footer className="py-32 border-t border-white/10 px-6 bg-white/5 backdrop-blur-3xl text-center space-y-16">
         <div className="flex flex-col items-center gap-10">
           <div className="p-6 bg-white rounded-[3rem] shadow-2xl border-4 border-primary/5">
@@ -296,21 +296,21 @@ export default function Home() {
           </div>
           <div className="space-y-3">
             <span className="text-5xl font-black uppercase italic tracking-tighter text-primary leading-none">UrbeLudo</span>
-            <p className="text-[14px] font-black text-muted-foreground uppercase tracking-[0.5em]">O Futuro é o Movimento Consciente</p>
+            <p className="text-[14px] font-black text-muted-foreground uppercase tracking-[0.5em]">O Futuro do Movimento é Consciente</p>
           </div>
         </div>
         
         <div className="flex flex-col md:flex-row items-center justify-center gap-16 text-[11px] font-black uppercase text-muted-foreground tracking-widest opacity-60">
           <Link href="/auth" className="hover:text-primary transition-colors flex items-center gap-2"><Target className="w-4 h-4" /> Termos de Uso</Link>
-          <Link href="/auth" className="hover:text-primary transition-colors flex items-center gap-2"><ShieldCheck className="w-4 h-4" /> Política de Privacidade</Link>
+          <Link href="/auth" className="hover:text-primary transition-colors flex items-center gap-2"><ShieldCheck className="w-4 h-4" /> Privacidade</Link>
           <div className="hidden md:block w-3 h-3 rounded-full bg-primary/20" />
           <Link href="/auth" className="hover:text-primary transition-colors flex items-center gap-2"><Gamepad2 className="w-4 h-4" /> Acessibilidade</Link>
-          <Link href="/auth" className="hover:text-primary transition-colors flex items-center gap-2"><Music className="w-4 h-4" /> Suporte Urbano</Link>
+          <Link href="/auth" className="hover:text-primary transition-colors flex items-center gap-2"><Wind className="w-4 h-4" /> Respirar</Link>
         </div>
         
         <div className="space-y-4">
            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] opacity-40">
-            © 2026 UrbeLudo Labs. Todos os direitos reservados. APK Offline v2.5.0 build determinística.
+            © 2026 UrbeLudo Labs. Todos os direitos reservados. APK Offline v2.5.0 build biocinética.
            </p>
            <div className="flex justify-center gap-4 opacity-20">
               <div className="w-10 h-1 bg-muted-foreground rounded-full" />
