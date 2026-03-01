@@ -16,7 +16,8 @@ import {
   ChevronLeft,
   Star,
   Activity,
-  Volume2
+  Volume2,
+  AlertCircle
 } from 'lucide-react';
 
 import { useUser, useDoc, useMemoFirebase } from '@/firebase';
@@ -308,9 +309,9 @@ interface RhythmLevel {
 
 const RHYTHM_LEVELS: RhythmLevel[] = [
   { id: 1, name: "Adagio: Flautas de Seda", bpm: 60, soundType: 'sine', reward: 20, targetScore: 8 },
-  { id: 2, name: "Andante: Cordas d'Água", bpm: 90, soundType: 'triangle', reward: 35, targetScore: 12 },
-  { id: 3, name: "Allegro: Metais de Ouro", bpm: 120, soundType: 'sawtooth', reward: 50, targetScore: 16 },
-  { id: 4, name: "Presto: Orquestra Galáctica", bpm: 145, soundType: 'square', reward: 75, targetScore: 20 },
+  { id: 2, name: "Andante: Cordas d'Água", bpm: 85, soundType: 'triangle', reward: 35, targetScore: 12 },
+  { id: 3, name: "Allegro: Metais de Ouro", bpm: 115, soundType: 'sawtooth', reward: 50, targetScore: 16 },
+  { id: 4, name: "Presto: Orquestra Galáctica", bpm: 140, soundType: 'square', reward: 75, targetScore: 20 },
 ];
 
 function RhythmGame({ onWin, auraColor }: { onWin: (reward: number, name: string) => void, auraColor: string }) {
@@ -319,6 +320,7 @@ function RhythmGame({ onWin, auraColor }: { onWin: (reward: number, name: string
   const [beat, setBeat] = useState(false);
   const [score, setScore] = useState(0);
   const [feedback, setFeedback] = useState('');
+  const [sensorError, setSensorError] = useState(false);
   
   const lastShakeRef = useRef(0);
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -327,11 +329,10 @@ function RhythmGame({ onWin, auraColor }: { onWin: (reward: number, name: string
   const level = RHYTHM_LEVELS[currentLevelIdx];
 
   // Função Audível Robusta de Orquestra
-  const playOrchestraNote = (freqIndex: number) => {
+  const playOrchestraNote = useCallback((freqIndex: number) => {
     if (!audioCtxRef.current) return;
     const ctx = audioCtxRef.current;
     
-    // Resume o contexto se estiver suspenso (exigência mobile)
     if (ctx.state === 'suspended') {
       ctx.resume();
     }
@@ -339,19 +340,16 @@ function RhythmGame({ onWin, auraColor }: { onWin: (reward: number, name: string
     const now = ctx.currentTime;
     const freq = ORCHESTRA_SCALE[freqIndex % ORCHESTRA_SCALE.length];
 
-    // Cria um som rico de orquestra com múltiplos harmônicos
-    [0, 0.01, -0.01].forEach((detune, i) => {
+    // Síntese Polifônica Premium
+    [0, 1.01, 2.02].forEach((ratio, i) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       
       osc.type = level.soundType;
-      // Frequência fundamental e leves desafinações para efeito de chorus
-      osc.frequency.setValueAtTime(freq, now);
-      osc.detune.setValueAtTime(detune * 100, now);
+      osc.frequency.setValueAtTime(freq * (1 + ratio * 0.002), now);
       
       gain.gain.setValueAtTime(0, now);
-      // Envelope de Volume Suave (Simula um instrumento de corda/sopro)
-      gain.gain.linearRampToValueAtTime(i === 0 ? 0.3 : 0.1, now + 0.1);
+      gain.gain.linearRampToValueAtTime(i === 0 ? 0.2 : 0.05, now + 0.05);
       gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
       
       osc.connect(gain);
@@ -359,75 +357,38 @@ function RhythmGame({ onWin, auraColor }: { onWin: (reward: number, name: string
       osc.start(now);
       osc.stop(now + 1.5);
     });
-  };
+  }, [level.soundType]);
 
   const start = async () => {
+    // Inicializa Áudio via Gesto do Usuário IMEDIATO
+    const AudioContextClass = (window as any).AudioContext || (window as any).webkitAudioContext;
+    const ctx = new AudioContextClass();
+    audioCtxRef.current = ctx;
+    await ctx.resume();
+
     // Solicita permissão de acelerômetro
     if (typeof (DeviceMotionEvent as any).requestPermission === 'function') {
       try {
         const res = await (DeviceMotionEvent as any).requestPermission();
-        if (res !== 'granted') return;
+        if (res !== 'granted') {
+          setSensorError(true);
+        }
       } catch (e) {
         console.warn("Permissão de movimento negada ou erro:", e);
+        setSensorError(true);
       }
+    } else if (!(window as any).DeviceMotionEvent) {
+      setSensorError(true);
     }
 
-    // Inicializa Áudio via Gesto do Usuário
-    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-    audioCtxRef.current = ctx;
-    if (ctx.state === 'suspended') await ctx.resume();
-
-    // Som de ativação
-    const warmOsc = ctx.createOscillator();
-    const warmGain = ctx.createGain();
-    warmGain.gain.setValueAtTime(0.05, ctx.currentTime);
-    warmGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
-    warmOsc.connect(warmGain);
-    warmGain.connect(ctx.destination);
-    warmOsc.start();
-    warmOsc.stop(ctx.currentTime + 0.2);
-
     setActive(true);
+    playOrchestraNote(0); // Som de aquecimento
   };
 
-  useEffect(() => {
-    if (!active) return;
-
-    const intervalMs = (60 / level.bpm) * 1000;
-    
-    // Loop de batida visual e temporal
-    intervalRef.current = setInterval(() => {
-      setBeat(true);
-      setTimeout(() => setBeat(false), 400); // Janela de batida
-    }, intervalMs);
-
-    const handleMotion = (e: DeviceMotionEvent) => {
-      const acc = e.accelerationIncludingGravity;
-      if (!acc) return;
-      
-      // Cálculo de aceleração total (Tonicidade)
-      const totalAcc = Math.abs(acc.x || 0) + Math.abs(acc.y || 0) + Math.abs(acc.z || 0);
-      
-      // Detecção de pico de movimento com limitador (throttle)
-      const now = Date.now();
-      if (totalAcc > 22 && now - lastShakeRef.current > (60000 / level.bpm) * 0.5) {
-        lastShakeRef.current = now;
-        checkRhythm();
-      }
-    };
-
-    window.addEventListener('devicemotion', handleMotion);
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      window.removeEventListener('devicemotion', handleMotion);
-    };
-  }, [active, level]);
-
-  const checkRhythm = () => {
+  const checkRhythm = useCallback(() => {
     if (beat) {
       setScore(s => {
         const nextScore = s + 1;
-        // Toca a nota orquestral correspondente
         playOrchestraNote(nextScore);
         setFeedback('EXCELENTE!');
         
@@ -446,9 +407,54 @@ function RhythmGame({ onWin, auraColor }: { onWin: (reward: number, name: string
       });
     } else {
       setFeedback('OPS!');
+      // Pequeno som dissonante para erro
+      if (audioCtxRef.current) {
+        const osc = audioCtxRef.current.createOscillator();
+        const gain = audioCtxRef.current.createGain();
+        osc.frequency.setValueAtTime(120, audioCtxRef.current.currentTime);
+        gain.gain.setValueAtTime(0.1, audioCtxRef.current.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtxRef.current.currentTime + 0.3);
+        osc.connect(gain);
+        gain.connect(audioCtxRef.current.destination);
+        osc.start();
+        osc.stop(audioCtxRef.current.currentTime + 0.3);
+      }
     }
     setTimeout(() => setFeedback(''), 500);
-  };
+  }, [beat, level, currentLevelIdx, onWin, playOrchestraNote]);
+
+  useEffect(() => {
+    if (!active) return;
+
+    const intervalMs = (60 / level.bpm) * 1000;
+    
+    // Motor Rítmico Estável
+    intervalRef.current = setInterval(() => {
+      setBeat(true);
+      setTimeout(() => setBeat(false), 450); 
+    }, intervalMs);
+
+    const handleMotion = (e: DeviceMotionEvent) => {
+      const acc = e.accelerationIncludingGravity;
+      if (!acc) return;
+      
+      // Tonicidade: Detecção de pico dinâmico
+      const totalAcc = Math.sqrt((acc.x || 0)**2 + (acc.y || 0)**2 + (acc.z || 0)**2);
+      const now = Date.now();
+      
+      // Filtro de movimento brusco (Chicotada)
+      if (totalAcc > 20 && now - lastShakeRef.current > (60000 / level.bpm) * 0.4) {
+        lastShakeRef.current = now;
+        checkRhythm();
+      }
+    };
+
+    window.addEventListener('devicemotion', handleMotion);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      window.removeEventListener('devicemotion', handleMotion);
+    };
+  }, [active, level, checkRhythm]);
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-900 gap-12">
@@ -459,7 +465,7 @@ function RhythmGame({ onWin, auraColor }: { onWin: (reward: number, name: string
            </div>
            <div className="space-y-2">
              <h3 className="text-xl font-black uppercase italic text-white tracking-tighter">Maestro de Auras</h3>
-             <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest max-w-[240px] mx-auto">Balance o celular no ritmo da música para reger a orquestra.</p>
+             <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest max-w-[240px] mx-auto">Regente a orquestra balançando o celular no ritmo da luz!</p>
            </div>
            <Button onClick={start} className="h-20 px-16 rounded-full bg-accent text-white font-black uppercase shadow-2xl text-lg border-b-8 border-accent/70 active:translate-y-2 active:border-b-0 transition-all">Iniciar Concerto</Button>
         </div>
@@ -489,7 +495,8 @@ function RhythmGame({ onWin, auraColor }: { onWin: (reward: number, name: string
                )}
              </AnimatePresence>
              
-             <motion.div 
+             <motion.button 
+               onClick={checkRhythm} // Fallback para toque caso acelerômetro falhe
                animate={{ 
                  scale: beat ? 1.25 : 1, 
                  borderColor: beat ? 'rgba(236, 72, 153, 0.9)' : 'rgba(255, 255, 255, 0.1)',
@@ -502,7 +509,7 @@ function RhythmGame({ onWin, auraColor }: { onWin: (reward: number, name: string
                    <div className="text-5xl font-black text-white tracking-tighter">{score} <span className="text-sm opacity-30">/ {level.targetScore}</span></div>
                 </div>
                 <div className="text-[10px] font-black uppercase text-accent/60 tracking-[0.3em]">{level.bpm} BPM</div>
-             </motion.div>
+             </motion.button>
 
              <AnimatePresence>
                 {feedback && (
@@ -518,8 +525,15 @@ function RhythmGame({ onWin, auraColor }: { onWin: (reward: number, name: string
              </AnimatePresence>
           </div>
           
-          <div className="bg-white/5 p-6 rounded-[2rem] border border-white/5 text-center">
-             <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.4em]">Siga o pulso da luz com firmeza!</p>
+          <div className="bg-white/5 p-6 rounded-[2rem] border border-white/5 text-center max-w-xs">
+             {sensorError ? (
+               <div className="flex items-center gap-2 text-yellow-500 justify-center">
+                 <AlertCircle className="w-4 h-4" />
+                 <p className="text-[8px] font-black uppercase tracking-widest">Sensores bloqueados. Jogue tocando na tela!</p>
+               </div>
+             ) : (
+               <p className="text-[8px] font-black text-white/40 uppercase tracking-[0.4em]">Balance com firmeza no pulso da luz!</p>
+             )}
           </div>
         </>
       )}
@@ -584,7 +598,8 @@ function PathGame({ onWin, auraColor }: { onWin: (reward: number, name: string) 
 
   const initAudio = () => {
     if (audioCtxRef.current) return;
-    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const AudioContextClass = (window as any).AudioContext || (window as any).webkitAudioContext;
+    const ctx = new AudioContextClass();
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     
@@ -616,7 +631,7 @@ function PathGame({ onWin, auraColor }: { onWin: (reward: number, name: string) 
     
     let bestDist = Infinity;
     let bestT = 0;
-    const precision = 60; 
+    const precision = 80; 
     
     for (let i = 0; i <= precision; i++) {
       const t = i / precision;
@@ -628,10 +643,11 @@ function PathGame({ onWin, auraColor }: { onWin: (reward: number, name: string) 
       }
     }
 
-    const tolerance = 35;
+    const tolerance = 40;
     if (bestDist < tolerance) {
       setIsOffPath(false);
-      if (bestT >= progress && bestT <= progress + 0.15) {
+      // Impede saltos: só progride se estiver perto do último ponto
+      if (bestT >= progress && bestT <= progress + 0.2) {
         setProgress(bestT);
         updateAudio(true, bestT);
         if (bestT > 0.98) {
@@ -773,7 +789,7 @@ function PathGame({ onWin, auraColor }: { onWin: (reward: number, name: string) 
       </div>
 
       <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.4em] max-w-[200px] text-center leading-relaxed">
-        {t('playground.modes.path.desc')}
+        Guie o ponto pela luz sem tirar o dedo da tela.
       </p>
     </div>
   );
