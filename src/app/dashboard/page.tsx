@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -12,7 +13,8 @@ import {
   History as HistoryIcon,
   Calendar,
   Sparkles,
-  ShieldCheck
+  ShieldCheck,
+  Edit3
 } from 'lucide-react';
 import { useUser, useDoc, useMemoFirebase } from '@/firebase';
 import { Badge } from '@/components/ui/badge';
@@ -48,9 +50,9 @@ export default function DashboardPage() {
       </header>
 
       <main className="flex-1 p-8 space-y-10 container max-w-lg mx-auto">
-        {/* Aura Evolution Section */}
+        {/* Seção de Evolução de Aura */}
         <div className="flex flex-col items-center text-center space-y-6">
-           <div className="relative">
+           <div className="relative group">
              <motion.div 
                animate={{ 
                  scale: [1, 1.1, 1],
@@ -65,13 +67,10 @@ export default function DashboardPage() {
                <img src={avatarInfo.src} alt="Avatar" className="w-full h-full object-contain" />
                <div className="absolute inset-0 pointer-events-none rounded-[3.8rem] border-2 border-primary/10" />
              </div>
-             <motion.div 
-               initial={{ scale: 0 }}
-               animate={{ scale: 1 }}
-               className="absolute -bottom-2 -right-2 w-12 h-12 rounded-full bg-accent border-4 border-white flex items-center justify-center text-white shadow-lg"
-             >
-               <Sparkles className="w-5 h-5" />
-             </motion.div>
+             
+             <Link href="/profile/edit" className="absolute -bottom-2 -right-2 w-12 h-12 rounded-full bg-accent border-4 border-white flex items-center justify-center text-white shadow-lg hover:scale-110 active:scale-95 transition-all">
+               <Edit3 className="w-5 h-5" />
+             </Link>
            </div>
            
            <div className="space-y-2">
@@ -79,7 +78,9 @@ export default function DashboardPage() {
               <div className="flex flex-col items-center gap-2">
                  <div className="flex items-center gap-3">
                    <Badge variant="outline" className="text-[9px] font-black uppercase border-primary/20 text-primary px-3 py-1 rounded-full">Nível {level}</Badge>
-                   <Badge variant="outline" className="text-[9px] font-black uppercase border-accent/20 text-accent px-3 py-1 rounded-full">Mestre da Aura</Badge>
+                   <Badge variant="outline" className="text-[9px] font-black uppercase border-accent/20 text-accent px-3 py-1 rounded-full">
+                     {profile?.avatar?.accessoryType || "Explorador Iniciante"}
+                   </Badge>
                  </div>
                  <p className="text-[8px] font-black text-muted-foreground uppercase tracking-[0.3em]">{t('dashboard.evolution')}</p>
               </div>

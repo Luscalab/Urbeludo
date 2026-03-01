@@ -4,15 +4,16 @@ import fs from 'fs';
 import path from 'path';
 
 /**
- * API para listar dinamicamente todos os arquivos de imagem na pasta de avatares.
- * Isso permite que o app aceite qualquer nome de arquivo sem precisar renomear.
+ * API para listar dinamicamente todos os arquivos de imagem na pasta de avatares do estúdio.
+ * Caminho atualizado: public/studio/avatares
  */
 export async function GET() {
-  const avatarsDir = path.join(process.cwd(), 'public/assets/avatars');
+  const avatarsDir = path.join(process.cwd(), 'public/studio/avatares');
   
   try {
     if (!fs.existsSync(avatarsDir)) {
-      console.warn('Diretório de avatares não encontrado:', avatarsDir);
+      console.warn('Diretório de avatares não encontrado em:', avatarsDir);
+      // Fallback para garantir que o array não quebre se a pasta estiver vazia no build
       return NextResponse.json([]);
     }
 

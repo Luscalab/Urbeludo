@@ -1,6 +1,7 @@
+
 /**
- * Utilitário para o catálogo de avatares.
- * Como o app agora é dinâmico, este arquivo fornece o avatar inicial e utilitários de mapeamento.
+ * Utilitário para o catálogo de avatares do UrbeLudo.
+ * Centraliza o caminho dos assets localizados em public/studio/avatares.
  */
 
 export interface AvatarAsset {
@@ -9,18 +10,22 @@ export interface AvatarAsset {
   src: string;
 }
 
-// Único ponto de verdade para o avatar de segurança e inicialização
+// Ponto de verdade para o avatar inicial (fallback)
 export const FALLBACK_AVATAR = {
   id: '1.png',
-  name: 'Explorador Padrão',
-  src: '/assets/avatars/1.png'
+  name: 'Explorador Alfa',
+  src: '/studio/avatares/1.png'
 };
 
+/**
+ * Mapeia um ID de arquivo para um objeto de asset completo.
+ * @param filename Nome do arquivo na pasta public/studio/avatares
+ */
 export const getAvatarById = (filename: string) => {
   if (!filename) return FALLBACK_AVATAR;
   return {
     id: filename,
-    name: `Explorador ${filename.split('.')[0]}`,
-    src: `/assets/avatars/${filename}`
+    name: `Herói ${filename.split('.')[0]}`,
+    src: `/studio/avatares/${filename}`
   };
 };
