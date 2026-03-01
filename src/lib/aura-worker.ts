@@ -1,3 +1,4 @@
+
 /**
  * @fileOverview AuraWorker - Web Worker otimizado para o UrbeLudo.
  * Gerencia o Transformers.js em uma thread isolada para manter 60 FPS na UI.
@@ -8,10 +9,12 @@ import { pipeline, env } from '@xenova/transformers';
 // Configuração defensiva do ambiente para APK/Navegador
 try {
   if (env) {
-    // Para 100% offline, use true. Para MVP híbrido, use false.
-    env.allowLocalModels = false;
+    // Modo Híbrido: Tenta local primeiro, se falhar vai pro remoto.
+    env.allowLocalModels = true;
     env.allowRemoteModels = true; 
     env.useBrowserCache = true;
+    // Caminho para os modelos na pasta public
+    env.localModelPath = '/models/';
   }
 } catch (e) {
   self.postMessage({ type: 'log', level: 'error', message: 'Falha ao configurar Transformers env', data: e });
@@ -32,7 +35,7 @@ self.onmessage = async (event) => {
           progress_callback: (data: any) => {
             if (data.status === 'progress') {
               self.postMessage({ type: 'progress', progress: Math.round(data.progress) });
-              self.postMessage({ type: 'log', level: 'debug', message: `Carregando pesos: ${Math.round(data.progress)}%` });
+              self.postMessage({ type: 'log', level: 'debug', message: `Sincronizando Pesos: ${Math.round(data.progress)}%` });
             }
           }
         });
@@ -52,7 +55,7 @@ self.onmessage = async (event) => {
         }
         
         self.postMessage({ type: 'ready' });
-        self.postMessage({ type: 'log', level: 'info', message: 'AuraWorker STATUS: READY' });
+        self.postMessage({ type: 'log', level: 'info', message: 'AuraWorker STATUS: ONLINE' });
       } else {
         self.postMessage({ type: 'ready' });
       }
@@ -61,12 +64,13 @@ self.onmessage = async (event) => {
     if (type === 'classify' && extractor) {
       if (!text) return;
 
-      self.postMessage({ type: 'log', level: 'debug', message: `Processando intenção: "${text}"` });
+      self.postMessage({ type: 'log', level: 'debug', message: `Classificando: "${text}"` });
       const output = await extractor(text, { pooling: 'mean', normalize: true });
       const userVector = Array.from(output.data as Float32Array);
 
       let bestMatch = { id: 'fallback', score: 0 };
 
+      // Cálculo de similaridade de cosseno otimizado
       for (const intent of intentCache) {
         for (const exVector of intent.vectors) {
           let dotProduct = 0;
@@ -80,16 +84,19 @@ self.onmessage = async (event) => {
         }
       }
 
+      // Threshold ajustado para 0.4 conforme solicitado pelo Engenheiro
+      const finalIntentId = bestMatch.score >= 0.4 ? bestMatch.id : 'fallback';
+
       self.postMessage({ 
         type: 'result', 
-        intentId: bestMatch.score >= 0.4 ? bestMatch.id : 'fallback', 
+        intentId: finalIntentId, 
         score: bestMatch.score 
       });
       
       self.postMessage({ 
         type: 'log', 
         level: 'info', 
-        message: `Classificação concluída: ${bestMatch.id} (Similaridade: ${bestMatch.score.toFixed(4)})` 
+        message: `Resultado: ${finalIntentId} (Score: ${bestMatch.score.toFixed(4)})` 
       });
     }
   } catch (error: any) {

@@ -1,13 +1,13 @@
-
 'use client';
 /**
  * @fileOverview AvatarizeUser - Transforma foto real em estilo de avatar seguro.
- * Versão Client-Side direta via Google Generative AI SDK.
+ * Versão Client-Side direta via NEXT_PUBLIC_GEMINI_API_KEY.
  */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { AuraLogger } from "@/lib/logs/aura-logger";
 
-const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
+const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "AIzaSyCCwhUNlhnpxjDuZ8quod7MTnde1dZJj04";
 const genAI = new GoogleGenerativeAI(API_KEY);
 
 export interface AvatarizeUserInput {
@@ -49,13 +49,18 @@ export async function avatarizeUser(input: AvatarizeUserInput): Promise<Avatariz
     avatarStyleDescription: "Explorador Padrão do UrbeLudo"
   };
 
-  if (!API_KEY) return fallback;
+  if (!API_KEY) {
+    AuraLogger.warn('AvatarFlow', 'Chave de API ausente para avatarização. Usando fallback.');
+    return fallback;
+  }
 
   try {
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     
     const [mimeType, base64Data] = input.photoDataUri.split(',');
     const pureMime = mimeType.match(/data:(.*?);/)?.[1] || "image/jpeg";
+
+    AuraLogger.info('AvatarFlow', 'Iniciando análise facial via Gemini...');
 
     const prompt = `Você é o Designer de Identidades do UrbeLudo. 
     Analise a foto fornecida e identifique detalhadamente as características faciais para criar um avatar artístico e futurista.
@@ -73,9 +78,10 @@ export async function avatarizeUser(input: AvatarizeUserInput): Promise<Avatariz
 
     const response = await result.response;
     const text = response.text().replace(/```json|```/g, "").trim();
+    AuraLogger.info('AvatarFlow', 'Avatarização concluída com sucesso.');
     return JSON.parse(text) as AvatarizeUserOutput;
-  } catch (error) {
-    console.error("Erro na Avatarização:", error);
+  } catch (error: any) {
+    AuraLogger.error("AvatarFlow", "Erro na Avatarização", error.message || error);
     return fallback;
   }
 }

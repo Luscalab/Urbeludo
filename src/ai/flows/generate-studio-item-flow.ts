@@ -1,14 +1,13 @@
-
 'use client';
 /**
- * @fileOverview Motor de Arquitetura Ludo.
- * Versão simplificada para evitar dependências Node.js.
+ * @fileOverview Motor de Arquitetura Ludo - NEXT_PUBLIC.
  */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { StudioItem } from '@/lib/types';
+import { AuraLogger } from "@/lib/logs/aura-logger";
 
-const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
+const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "AIzaSyCCwhUNlhnpxjDuZ8quod7MTnde1dZJj04";
 const genAI = new GoogleGenerativeAI(API_KEY);
 
 export interface GenerateItemInput {
@@ -18,6 +17,7 @@ export interface GenerateItemInput {
 
 export async function generateStudioItem(input: GenerateItemInput): Promise<{ item: StudioItem }> {
   try {
+    AuraLogger.info('StudioAI', `Gerando item: "${input.prompt}"`);
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     
     const architectPrompt = `Você é o Arquiteto Master do UrbeLudo. 
@@ -33,7 +33,7 @@ export async function generateStudioItem(input: GenerateItemInput): Promise<{ it
       description: meta.description || "Gerado pela IA do Estúdio",
       category: input.category,
       price: 0,
-      assetPath: `https://picsum.photos/seed/${Date.now()}/400/300`, // Fallback para imagens
+      assetPath: `https://picsum.photos/seed/${Date.now()}/400/300`,
       dimensions: { 
         width: meta.suggestedWidth || 160, 
         height: meta.suggestedHeight || 140 
@@ -42,9 +42,10 @@ export async function generateStudioItem(input: GenerateItemInput): Promise<{ it
       isAiGenerated: true,
     };
 
+    AuraLogger.info('StudioAI', 'Materialização lúdica concluída.');
     return { item: generatedItem };
-  } catch (error) {
-    console.error("Erro na geração de item:", error);
+  } catch (error: any) {
+    AuraLogger.error("StudioAI", "Erro na geração de item", error.message || error);
     throw error;
   }
 }

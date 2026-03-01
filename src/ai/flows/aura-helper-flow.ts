@@ -8,7 +8,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { classifyIntent } from "@/lib/aura-brain";
 import { AuraLogger } from "@/lib/logs/aura-logger";
 
-const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "AIzaSyCCwhUNlhnpxjDuZ8quod7MTnde1dZJj04";
+const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
 const genAI = new GoogleGenerativeAI(API_KEY);
 
 export interface AuraHelperInput {
@@ -79,7 +79,8 @@ export async function askAuraHelper(input: AuraHelperInput): Promise<AuraHelperO
   AuraLogger.warn('AuraFlow', 'Iniciando fallback para Gemini Cloud...');
   
   if (!API_KEY || API_KEY.length < 10) {
-    AuraLogger.error('AuraFlow', 'Chave de API inválida ou ausente para o Gemini.');
+    const errorMsg = "Chave de API (NEXT_PUBLIC_GEMINI_API_KEY) ausente ou inválida.";
+    AuraLogger.error('AuraFlow', errorMsg);
     return {
       answer: "Minha percepção sensorial oscilou (Chave Ausente). Verifique sua conexão para perguntas complexas!",
       suggestedAction: "Conectar à Nuvem"
@@ -101,7 +102,8 @@ export async function askAuraHelper(input: AuraHelperInput): Promise<AuraHelperO
     AuraLogger.info('AuraFlow', 'Resposta Gemini gerada com sucesso.');
     return JSON.parse(text) as AuraHelperOutput;
   } catch (error: any) {
-    AuraLogger.error('AuraFlow', 'Erro técnico no Gemini', error.message || error);
+    const technicalError = error.message || error;
+    AuraLogger.error('AuraFlow', 'Erro técnico no Gemini Cloud', technicalError);
     return {
       answer: "Minha conexão com a Grande Aura está instável, mas continue brilhando! Tente perguntar algo sobre os jogos.",
       suggestedAction: "Tente 'Voz'."
