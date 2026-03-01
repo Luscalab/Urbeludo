@@ -19,7 +19,8 @@ import {
   Trophy,
   Coins,
   Volume2,
-  AlertCircle
+  AlertCircle,
+  Loader2
 } from 'lucide-react';
 
 import { useUser, useDoc, useMemoFirebase } from '@/firebase';
@@ -35,24 +36,29 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
   const router = useRouter();
   const searchParams = useSearchParams();
   
+  // Referências para hardware e processamento
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fogCanvasRef = useRef<HTMLCanvasElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const lastFrameRef = useRef<ImageData | null>(null);
-  const requestRef = useRef<number>(null);
+  const requestRef = useRef<number | null>(null);
   const lastBeepTimeRef = useRef<number>(0);
   const streamRef = useRef<MediaStream | null>(null);
   
+  // Estados de controle de UI
   const [mounted, setMounted] = useState(false);
   const [showGuide, setShowGuide] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isCameraReady, setIsCameraReady] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  
+  // Estados de Jogo
   const [progress, setProgress] = useState(0);
   const [grid, setGrid] = useState<boolean[]>(new Array(100).fill(false));
   const [celebrating, setCelebrating] = useState(false);
   
+  // Estados de Perfil
   const [explorerName, setExplorerName] = useState('');
   const [selectedAvatarId, setSelectedAvatarId] = useState(FALLBACK_AVATAR.id);
   const [avatarColor, setAvatarColor] = useState('#9333ea');
@@ -61,6 +67,7 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
   const userProgressRef = useMemoFirebase(() => user ? { id: user.uid, path: `user_progress/${user.uid}` } : null, [user]);
   const { data: profile } = useDoc(userProgressRef);
 
+  // 1. Efeito de Montagem para evitar erros de Hidratação
   useEffect(() => {
     setMounted(true);
     if (profile) {
@@ -77,60 +84,82 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
       }
+      if (requestRef.current) cancelAnimationFrame(requestRef.current);
     };
   }, [profile, searchParams]);
 
+  // 2. Inicialização Segura de Áudio (Padrão Web Audio)
   const initAudio = () => {
-    if (!audioContextRef.current) {
-      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-    }
-    if (audioContextRef.current.state === 'suspended') {
-      audioContextRef.current.resume();
+    try {
+      if (!audioContextRef.current) {
+        const AudioCtxClass = (window.AudioContext || (window as any).webkitAudioContext);
+        if (AudioCtxClass) {
+          audioContextRef.current = new AudioCtxClass();
+        }
+      }
+      if (audioContextRef.current?.state === 'suspended') {
+        audioContextRef.current.resume();
+      }
+    } catch (e) {
+      console.warn("Falha ao iniciar AudioContext:", e);
     }
   };
 
-  const playPleasantSymphony = (x: number, width: number, intensity: number) => {
-    if (!audioContextRef.current || intensity < 0.15) return;
+  const playSymphony = (x: number, width: number, intensity: number) => {
+    if (!audioContextRef.current || intensity < 0.2) return;
     
     const ctx = audioContextRef.current;
     const now = ctx.currentTime;
 
-    if (now - lastBeepTimeRef.current < 0.12) return;
+    // Throttle para evitar a "metralhadora" de som
+    if (now - lastBeepTimeRef.current < 0.15) return;
     lastBeepTimeRef.current = now;
 
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     
-    const freq = 180 + (x / width) * 550;
+    // Mapeia X para frequência (Grave na esquerda, Agudo na direita)
+    const freq = 150 + (x / width) * 600;
     osc.type = 'sine';
     osc.frequency.setValueAtTime(freq, now);
     
+    // Envelope de Volume (Fade Out)
     gain.gain.setValueAtTime(0, now);
-    gain.gain.linearRampToValueAtTime(0.12, now + 0.04);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+    gain.gain.linearRampToValueAtTime(0.1, now + 0.05);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
     
     osc.connect(gain);
     gain.connect(ctx.destination);
     
     osc.start(now);
-    osc.stop(now + 0.3);
+    osc.stop(now + 0.5);
   };
 
+  // 3. Inicialização da Neblina Digital (Modo de Revelação)
   const initFog = useCallback(() => {
-    const canvas = fogCanvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
+    const fogCanvas = fogCanvasRef.current;
+    if (!fogCanvas) return;
+    const ctx = fogCanvas.getContext('2d');
     if (!ctx) return;
     
+    // Limpa e preenche com a cor da Aura
     ctx.globalCompositeOperation = 'source-over';
     ctx.fillStyle = avatarColor;
-    ctx.globalAlpha = 0.88;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.globalAlpha = 1.0;
+    ctx.fillRect(0, 0, fogCanvas.width, fogCanvas.height);
     
+    // Overlay sutil para textura
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+    for(let i=0; i<10; i++) {
+       ctx.fillRect(Math.random()*fogCanvas.width, Math.random()*fogCanvas.height, 100, 100);
+    }
+
     setGrid(new Array(100).fill(false));
     setProgress(0);
+    setCelebrating(false);
   }, [avatarColor]);
 
+  // 4. Motor de Visão Computacional de Borda (Frame Differencing)
   const processFrame = useCallback(() => {
     if (!videoRef.current || !canvasRef.current || !fogCanvasRef.current || !isPlaying) return;
 
@@ -146,6 +175,7 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
       return;
     }
 
+    // Ajusta tamanho se necessário
     if (canvas.width !== video.videoWidth) {
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
@@ -154,6 +184,7 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
       initFog();
     }
 
+    // Captura o frame atual
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     const currentFrame = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
@@ -162,12 +193,13 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
       let motionSumY = 0;
       let motionCount = 0;
 
-      for (let i = 0; i < currentFrame.data.length; i += 60) { 
+      // Amostragem para performance (skip de 40px)
+      for (let i = 0; i < currentFrame.data.length; i += 160) { 
         const diff = Math.abs(currentFrame.data[i] - lastFrameRef.current.data[i]) +
                      Math.abs(currentFrame.data[i+1] - lastFrameRef.current.data[i+1]) +
                      Math.abs(currentFrame.data[i+2] - lastFrameRef.current.data[i+2]);
         
-        if (diff > 110) {
+        if (diff > 100) {
           const pixelIndex = i / 4;
           const x = pixelIndex % canvas.width;
           const y = Math.floor(pixelIndex / canvas.width);
@@ -177,26 +209,22 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
         }
       }
 
-      if (motionCount > 80) {
+      // Se houver movimento significativo
+      if (motionCount > 50) {
         const centerX = motionSumX / motionCount;
         const centerY = motionSumY / motionCount;
-        const intensity = motionCount / (canvas.width * canvas.height / 500);
+        const intensity = motionCount / (canvas.width * canvas.height / 800);
 
+        // A MÁGICA: Apaga a neblina onde há movimento
         fogCtx.globalCompositeOperation = 'destination-out';
         fogCtx.beginPath();
-        const brushSize = 50 + intensity * 120;
+        const brushSize = 40 + (intensity * 100);
         fogCtx.arc(centerX, centerY, brushSize, 0, Math.PI * 2);
         fogCtx.fill();
         
-        fogCtx.globalCompositeOperation = 'source-over';
-        fogCtx.beginPath();
-        fogCtx.arc(centerX, centerY, brushSize * 0.4, 0, Math.PI * 2);
-        fogCtx.fillStyle = avatarColor;
-        fogCtx.globalAlpha = 0.08;
-        fogCtx.fill();
+        playSymphony(centerX, canvas.width, intensity);
 
-        playPleasantSymphony(centerX, canvas.width, intensity);
-
+        // Atualiza o Grid de Vitória (10x10)
         const gx = Math.floor((centerX / canvas.width) * 10);
         const gy = Math.floor((centerY / canvas.height) * 10);
         const gridIdx = Math.max(0, Math.min(99, gy * 10 + gx));
@@ -217,7 +245,7 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
     }
     lastFrameRef.current = currentFrame;
     requestRef.current = requestAnimationFrame(processFrame);
-  }, [isPlaying, avatarColor, initFog, celebrating]);
+  }, [isPlaying, initFog, celebrating]);
 
   const startCamera = async () => {
     initAudio();
@@ -226,7 +254,7 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
 
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error("A API de câmera não é suportada neste dispositivo.");
+        throw new Error("Câmera não suportada neste dispositivo.");
       }
 
       const stream = await navigator.mediaDevices.getUserMedia({ 
@@ -247,27 +275,17 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
             setIsCameraReady(true);
             setIsPlaying(true);
           }).catch(e => {
-            setErrorMessage("Erro ao dar play no vídeo: " + e.message);
+            setErrorMessage("Erro ao iniciar espelho: " + e.message);
           });
         };
       }
     } catch (err: any) {
-      console.error("Falha Crítica na Câmera:", err);
+      console.error("Erro na Câmera:", err);
       if (err.name === 'NotAllowedError') {
-        setErrorMessage("Permissão negada. Você precisa liberar o acesso à câmera.");
-      } else if (err.name === 'NotFoundError') {
-        setErrorMessage("Nenhuma câmera foi encontrada no seu dispositivo.");
-      } else if (err.name === 'NotReadableError') {
-        setErrorMessage("A câmera já está sendo usada por outro aplicativo (feche outros apps).");
+        setErrorMessage("Permissão Negada. Libere o acesso à câmera.");
       } else {
-        setErrorMessage(`Erro no Sensor: ${err.message}`);
+        setErrorMessage(`Falha no Sensor: ${err.message}`);
       }
-      
-      toast({ 
-        variant: 'destructive', 
-        title: "Câmera negada", 
-        description: "O Espelho Mágico precisa da sua imagem para brilhar!" 
-      });
     }
   };
 
@@ -304,8 +322,9 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
   }, [isPlaying, isCameraReady, processFrame]);
 
   const handleSaveProfile = async () => {
+    initAudio(); // Ativa áudio no clique
     if (!termsAccepted || !explorerName.trim()) {
-      toast({ variant: 'destructive', title: "Atenção", description: "Complete seu perfil de herói para continuar." });
+      toast({ variant: 'destructive', title: "Atenção", description: "Complete seu perfil para entrar." });
       return;
     }
     if (userProgressRef) {
@@ -328,7 +347,7 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
       <AnimatePresence>
         {!showGuide && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="relative w-full h-full bg-black overflow-hidden z-10">
-            {/* Tag Video Blindada e Oculta */}
+            {/* Tag Video Oculta e Blindada para APK */}
             <video 
               ref={videoRef} 
               autoPlay 
@@ -337,31 +356,41 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
               className="hidden" 
             />
             
-            {/* Feedback de Carregamento/Erro */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-white p-6 text-center z-50 pointer-events-none">
-              {errorMessage && (
-                <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="p-8 bg-red-600 rounded-[3rem] shadow-2xl pointer-events-auto border-4 border-white">
+            {/* Feedback de Erro */}
+            {errorMessage && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-[100] p-8 text-center">
+                <div className="bg-red-600 p-8 rounded-[3rem] text-white shadow-2xl max-w-sm border-4 border-white">
                   <AlertCircle className="w-12 h-12 mx-auto mb-4" />
-                  <h2 className="text-xl font-black uppercase italic mb-2">Sensor Falhou</h2>
-                  <p className="text-xs font-bold opacity-90">{errorMessage}</p>
-                  <Button onClick={startCamera} className="mt-6 bg-white text-red-600 font-black rounded-full px-8 py-2">Tentar Novamente</Button>
-                </motion.div>
-              )}
-              
-              {!isCameraReady && !errorMessage && isPlaying && (
-                <div className="flex flex-col items-center gap-6">
-                   <div className="p-8 bg-primary/20 rounded-[3rem] animate-pulse">
-                      <Sparkles className="w-12 h-12 text-primary" />
-                   </div>
-                   <p className="text-[10px] font-black uppercase tracking-[0.4em] italic text-primary">Ativando Espelho Mágico...</p>
+                  <h2 className="text-xl font-black uppercase mb-2">Sensor Falhou</h2>
+                  <p className="text-xs font-bold mb-6">{errorMessage}</p>
+                  <Button onClick={startCamera} className="w-full bg-white text-red-600 font-black rounded-full">Tentar Novamente</Button>
                 </div>
-              )}
+              </div>
+            )}
+            
+            {/* Loader Inicial */}
+            {!isCameraReady && !errorMessage && isPlaying && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black z-50">
+                 <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
+                 <p className="text-[10px] font-black uppercase tracking-[0.4em] text-primary">Iniciando Espelho Mágico...</p>
+              </div>
+            )}
+
+            {/* Camada 1: Câmera (Onde o movimento é detectado) */}
+            <canvas ref={canvasRef} className="absolute inset-0 w-full h-full object-cover scale-x-[-1] opacity-0" />
+            
+            {/* Camada 2: O Vídeo Real revelado */}
+            <div className="absolute inset-0 w-full h-full">
+               <video 
+                 autoPlay 
+                 playsInline 
+                 muted 
+                 className="w-full h-full object-cover scale-x-[-1]"
+                 ref={(el) => { if(el && videoRef.current) el.srcObject = videoRef.current.srcObject; }}
+               />
             </div>
 
-            {/* Camada de Processamento (Oculta) */}
-            <canvas ref={canvasRef} className="hidden" />
-            
-            {/* Camada de Revelação: A Neblina Digital */}
+            {/* Camada 3: A Neblina da Aura que será apagada */}
             <canvas 
               ref={fogCanvasRef} 
               className={cn(
@@ -370,47 +399,45 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
               )} 
             />
             
-            {/* HUD de Jogo */}
-            <div className="absolute inset-0 z-30 pointer-events-none p-8 flex flex-col justify-between">
-               <div className="flex flex-col gap-6">
-                  <div className="flex justify-between items-center">
-                    <div className="bg-black/60 backdrop-blur-xl px-6 py-3 rounded-[1.5rem] border border-white/20 text-white flex items-center gap-3 shadow-2xl">
-                      <Sparkles className="w-5 h-5 text-primary animate-pulse" />
-                      <span className="text-xs font-black uppercase tracking-widest italic">O Traço Vivo: Revelação</span>
-                    </div>
-                    <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl flex items-center gap-3 border border-white/20 shadow-xl">
-                       <Volume2 className="w-5 h-5 text-white" />
-                       <div className="h-2 w-32 bg-white/20 rounded-full overflow-hidden">
-                          <motion.div 
-                            className="h-full bg-primary"
-                            animate={{ width: isPlaying ? '100%' : '0%' }}
-                            transition={{ duration: 1 }}
-                          />
-                       </div>
-                    </div>
+            {/* HUD de Jogo Superior */}
+            <div className="absolute top-0 inset-x-0 z-30 p-8 pointer-events-none flex flex-col gap-6">
+               <div className="flex justify-between items-center">
+                  <div className="bg-black/60 backdrop-blur-xl px-6 py-3 rounded-[1.5rem] border border-white/20 text-white flex items-center gap-3 shadow-2xl">
+                    <Sparkles className="w-5 h-5 text-primary animate-pulse" />
+                    <span className="text-[10px] font-black uppercase tracking-widest italic">Limpa-Vidros Mágico</span>
                   </div>
-                  
-                  <div className="space-y-3 max-w-sm">
-                    <div className="flex justify-between text-[9px] font-black uppercase text-white tracking-widest px-1 drop-shadow-md">
-                      <span>Progresso da Arte</span>
-                      <span>{Math.floor(progress)}%</span>
-                    </div>
-                    <Progress value={progress} className="h-4 bg-white/10 border border-white/20 shadow-2xl" />
+                  <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl flex items-center gap-3 border border-white/20 shadow-xl">
+                     <Volume2 className="w-5 h-5 text-white" />
+                     <div className="h-1.5 w-24 bg-white/20 rounded-full overflow-hidden">
+                        <motion.div 
+                          className="h-full bg-primary"
+                          animate={{ width: isPlaying ? '100%' : '0%' }}
+                        />
+                     </div>
                   </div>
                </div>
+               
+               <div className="space-y-2">
+                 <div className="flex justify-between text-[10px] font-black uppercase text-white drop-shadow-lg px-2">
+                    <span>Revelação</span>
+                    <span>{Math.floor(progress)}%</span>
+                 </div>
+                 <Progress value={progress} className="h-4 bg-white/20 border border-white/10 shadow-2xl" />
+               </div>
+            </div>
 
-               <div className="flex justify-center items-end gap-6 pointer-events-auto pb-10">
-                  {!isPlaying && !celebrating && !errorMessage && (
-                    <Button onClick={startCamera} className="h-32 w-32 rounded-full bg-primary shadow-[0_0_80px_rgba(147,51,234,0.6)] border-4 border-white active:scale-90 transition-all group">
-                       <PlayIcon className="w-14 h-14 fill-current group-hover:scale-110 transition-transform" />
-                    </Button>
-                  )}
-                  {isPlaying && isCameraReady && (
-                    <Button onClick={() => initFog()} variant="secondary" className="h-20 w-20 rounded-full bg-white/20 backdrop-blur-xl border-4 border-white/20 hover:bg-white/40 shadow-2xl">
-                       <Eraser className="w-8 h-8 text-white" />
-                    </Button>
-                  )}
-               </div>
+            {/* HUD de Controles Inferiores */}
+            <div className="absolute bottom-12 inset-x-0 z-30 pointer-events-auto flex justify-center gap-6">
+               {!isPlaying && !celebrating && isCameraReady && (
+                 <Button onClick={() => setIsPlaying(true)} className="h-24 w-24 rounded-full bg-primary shadow-2xl border-4 border-white active:scale-95 group">
+                    <PlayIcon className="w-10 h-10 fill-current group-hover:scale-110 transition-transform" />
+                 </Button>
+               )}
+               {isPlaying && (
+                 <Button onClick={() => initFog()} variant="secondary" className="h-16 w-16 rounded-full bg-white/20 backdrop-blur-xl border-2 border-white/40 shadow-2xl text-white">
+                    <Eraser className="w-6 h-6" />
+                 </Button>
+               )}
             </div>
           </motion.div>
         )}
@@ -423,7 +450,7 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
             <div className="space-y-8 bg-muted/20 p-8 rounded-[3.5rem] border border-primary/5 shadow-inner">
               <div className="space-y-3">
                 <Label className="text-[11px] font-black uppercase text-primary/40 tracking-[0.4em] px-4">Codinome UrbeLudo</Label>
-                <Input value={explorerName} onChange={(e) => setExplorerName(e.target.value)} className="rounded-3xl h-16 bg-white border-none shadow-xl text-lg font-bold px-8 focus:ring-4 ring-primary/10 transition-all" />
+                <Input value={explorerName} onChange={(e) => setExplorerName(e.target.value)} className="rounded-3xl h-16 bg-white border-none shadow-xl text-lg font-bold px-8 focus:ring-4 ring-primary/10" />
               </div>
               <div className="space-y-4">
                 <Label className="text-[11px] font-black uppercase text-primary/40 tracking-[0.4em] px-4">Cor da sua Aura</Label>
@@ -433,8 +460,8 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
                       key={c} 
                       onClick={() => setAvatarColor(c)} 
                       className={cn(
-                        "aspect-square rounded-2xl border-4 transition-all hover:scale-105", 
-                        avatarColor === c ? "border-primary scale-115 shadow-2xl z-10" : "border-transparent opacity-40"
+                        "aspect-square rounded-2xl border-4 transition-all", 
+                        avatarColor === c ? "border-primary scale-110 shadow-lg" : "border-transparent opacity-40"
                       )} 
                       style={{ backgroundColor: c }} 
                     />
@@ -443,8 +470,8 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
               </div>
               <div className="flex items-center space-x-5 bg-white/60 p-6 rounded-[2.5rem] shadow-sm">
                 <Checkbox id="terms" checked={termsAccepted} onCheckedChange={(v) => setTermsAccepted(!!v)} className="w-8 h-8 rounded-xl border-2 border-primary" />
-                <label htmlFor="terms" className="text-[10px] font-bold text-muted-foreground leading-tight select-none">
-                  Aceito que meus movimentos transformem o mundo em música e cores.
+                <label htmlFor="terms" className="text-[10px] font-bold text-muted-foreground leading-tight">
+                  Aceito transformar meus movimentos em sinfonia e cores.
                 </label>
               </div>
             </div>
@@ -453,47 +480,42 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
               disabled={!termsAccepted} 
               className="w-full h-24 rounded-[3.5rem] font-black uppercase bg-primary shadow-2xl flex justify-between px-14 border-b-8 border-primary/80 active:border-b-0 active:translate-y-2 transition-all group"
             >
-              <span className="text-xl tracking-widest italic">Entrar no Espelho</span>
+              <span className="text-xl tracking-widest italic">Brincar Agora</span>
               <ChevronRight className="w-8 h-8 group-hover:translate-x-2 transition-transform" />
             </Button>
           </div>
-        ) : !isPlaying && !celebrating && !errorMessage && (
-          <div className="max-w-lg mx-auto py-16 space-y-10 text-center animate-in fade-in zoom-in-95">
+        ) : !isPlaying && !celebrating && (
+          <div className="max-w-lg mx-auto py-20 text-center space-y-12">
              <div className="bg-primary/5 p-12 rounded-[4rem] border-4 border-dashed border-primary/20 space-y-8 shadow-2xl">
-                <div className="w-24 h-24 bg-primary/10 rounded-[2.5rem] flex items-center justify-center mx-auto shadow-inner">
+                <div className="w-24 h-24 bg-primary/20 rounded-[2.5rem] flex items-center justify-center mx-auto shadow-inner">
                    <Zap className="w-12 h-12 text-primary animate-pulse" />
                 </div>
-                <h4 className="text-3xl font-black uppercase italic tracking-tighter text-foreground">Prepare sua Aura</h4>
-                <p className="text-sm font-bold text-muted-foreground uppercase leading-relaxed max-w-[280px] mx-auto opacity-70">
-                  Mova o corpo para limpar a neblina. Quanto mais energia, mais intensa será a sua sinfonia!
+                <h4 className="text-3xl font-black uppercase italic tracking-tighter">O Espelho está pronto</h4>
+                <p className="text-xs font-bold text-muted-foreground uppercase leading-relaxed max-w-[280px] mx-auto opacity-70">
+                  Mova seu corpo para apagar a neblina e revelar a imagem. Cuidado: o som reage a você!
                 </p>
                 <div className="pt-6">
-                   <Button onClick={startCamera} className="rounded-full px-16 h-16 font-black uppercase tracking-[0.2em] bg-primary text-sm shadow-xl hover:scale-105 transition-transform">Brincar Agora</Button>
+                   <Button onClick={startCamera} className="rounded-full px-16 h-16 font-black uppercase bg-primary shadow-xl">Ativar Sensor</Button>
                 </div>
              </div>
           </div>
         )}
       </div>
 
+      {/* Celebração de Vitória */}
       <AnimatePresence>
         {celebrating && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[250] bg-primary/95 backdrop-blur-[60px] flex flex-col items-center justify-center text-white p-12 text-center">
             <motion.div 
               initial={{ scale: 0, rotate: -180 }}
               animate={{ scale: 1, rotate: 0 }}
-              transition={{ type: 'spring', damping: 12, stiffness: 100 }}
-              className="relative"
+              className="relative mb-12"
             >
-              <Trophy className="w-56 h-56 mb-12 text-yellow-400 drop-shadow-[0_0_70px_rgba(250,204,21,0.6)]" />
-              <motion.div 
-                animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.6, 0.3] }}
-                transition={{ repeat: Infinity, duration: 2 }}
-                className="absolute inset-0 bg-yellow-400/20 blur-[80px] rounded-full -z-10"
-              />
+              <Trophy className="w-56 h-56 text-yellow-400 drop-shadow-[0_0_50px_rgba(250,204,21,0.5)]" />
             </motion.div>
             
-            <h2 className="text-7xl font-black uppercase italic tracking-tighter leading-none mb-6 text-white">FANTÁSTICO!</h2>
-            <p className="text-lg font-bold uppercase tracking-[0.3em] opacity-80 mb-16 italic">Sua sinfonia motora foi revelada.</p>
+            <h2 className="text-6xl font-black uppercase italic tracking-tighter leading-none mb-6">BRILHANTE!</h2>
+            <p className="text-lg font-bold uppercase tracking-[0.3em] opacity-80 mb-16 italic">Você revelou o seu traço vivo.</p>
             
             <div className="flex flex-col gap-6 w-full max-w-sm">
               <div className="bg-white/20 p-8 rounded-[3rem] flex items-center justify-center gap-6 border-2 border-white/20 shadow-2xl">
@@ -501,7 +523,7 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
                  <span className="text-5xl font-black">+50 LC</span>
               </div>
               <Button onClick={() => router.push('/dashboard')} size="lg" className="h-24 rounded-[3rem] bg-white text-primary font-black uppercase tracking-[0.3em] text-xl border-b-8 border-zinc-200 active:border-b-0 active:translate-y-2 transition-all shadow-2xl">
-                Coletar e Perfil
+                Coletar Pontos
               </Button>
             </div>
           </motion.div>
