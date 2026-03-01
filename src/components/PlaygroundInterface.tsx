@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -89,7 +88,6 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
   const handleModeSelect = (mode: GameMode) => {
     setPendingMode(mode);
     setShowTutorial(true);
-    // Se acessibilidade estiver habilitada (ou por padrão para crianças), lê o tutorial
     const tutorialText = t(`playground.modes.${mode}.info`);
     speak(tutorialText);
   };
@@ -189,18 +187,19 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
           <DialogContent className="max-w-md rounded-[3rem] border-8 border-primary/20 bg-slate-900 text-white p-10 overflow-hidden">
             <div className="absolute inset-0 bg-mesh-game opacity-20 pointer-events-none" />
             <div className="relative space-y-8 text-center">
-               <div className="flex justify-center">
-                  <div className="w-24 h-24 rounded-[2rem] bg-white/10 border-4 border-primary flex items-center justify-center text-primary shadow-2xl animate-pulse">
-                     <BookOpen className="w-12 h-12" />
+               <DialogHeader>
+                  <div className="flex justify-center mb-6">
+                    <div className="w-24 h-24 rounded-[2rem] bg-white/10 border-4 border-primary flex items-center justify-center text-primary shadow-2xl animate-pulse">
+                      <BookOpen className="w-12 h-12" />
+                    </div>
                   </div>
-               </div>
-               <div className="space-y-4">
-                  <h2 className="text-3xl font-black uppercase italic tracking-tighter">Preparar Missão!</h2>
-                  <p className="text-sm font-bold text-white/70 uppercase leading-relaxed">
+                  <DialogTitle className="text-3xl font-black uppercase italic tracking-tighter text-white">Preparar Missão!</DialogTitle>
+                  <DialogDescription className="text-sm font-bold text-white/70 uppercase leading-relaxed mt-4">
                     {pendingMode ? t(`playground.modes.${pendingMode}.info`) : ''}
-                  </p>
-               </div>
-               <DialogFooter className="flex flex-col gap-3">
+                  </DialogDescription>
+               </DialogHeader>
+               
+               <DialogFooter className="flex flex-col gap-3 mt-8">
                   <Button onClick={startPendingGame} className="w-full h-20 rounded-full bg-primary text-white font-black uppercase text-lg border-b-8 border-primary/70 active:border-b-0 active:translate-y-2 transition-all shadow-xl">
                     Entendi! Vamos Lá
                   </Button>
@@ -216,7 +215,7 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
         <Dialog open={!!activeInfoMode} onOpenChange={() => setActiveInfoMode(null)}>
           <DialogContent className="max-w-md rounded-[3rem] border-4 border-white/20 bg-slate-900 text-white p-8 overflow-hidden">
             <div className="absolute inset-0 bg-mesh-game opacity-20 pointer-events-none" />
-            {activeInfoMode && (
+            {activeInfoMode ? (
               <div className="relative space-y-6">
                 <DialogHeader>
                   <div className="flex items-center gap-4 mb-2">
@@ -248,6 +247,12 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
                   {t('common.close')}
                 </Button>
               </div>
+            ) : (
+              /* Titulo Invisível para Acessibilidade quando não há modo ativo (evita erro de montagem) */
+              <DialogHeader className="sr-only">
+                <DialogTitle>Informações do Jogo</DialogTitle>
+                <DialogDescription>Detalhes sobre os modos de jogo psicomotores.</DialogDescription>
+              </DialogHeader>
             )}
           </DialogContent>
         </Dialog>
@@ -337,7 +342,7 @@ function BalanceGame({ onWin, auraColor }: { onWin: (reward: number, type: strin
     audioContextRef.current = new AC();
     if (audioContextRef.current?.state === 'suspended') await audioContextRef.current.resume();
     
-    // Configura som ambiente de feedback
+    // Configura som ambiente de feedback harmônico
     const ctx = audioContextRef.current;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
@@ -369,7 +374,6 @@ function BalanceGame({ onWin, auraColor }: { onWin: (reward: number, type: strin
     if (!active || showPhaseTransition || !gainRef.current || !oscRef.current) return;
     const dist = Math.sqrt(Math.pow(tilt.x - targetPos.x, 2) + Math.pow(tilt.y - targetPos.y, 2));
     
-    // Feedback sonoro: mais alto e mais agudo quanto mais perto do centro
     const proximity = Math.max(0, 1 - (dist / 60));
     gainRef.current.gain.setTargetAtTime(proximity * 0.1, audioContextRef.current!.currentTime, 0.1);
     oscRef.current.frequency.setTargetAtTime(220 + (proximity * 220), audioContextRef.current!.currentTime, 0.1);
@@ -377,8 +381,8 @@ function BalanceGame({ onWin, auraColor }: { onWin: (reward: number, type: strin
     const isInside = dist < currentPhase.threshold;
 
     const timer = setInterval(() => {
-      if (isInside) setProgress(prev => Math.min(100, prev + 3.0)); // Mais rápido para ganhar
-      else setProgress(prev => Math.max(0, prev - 1.0)); // Mais devagar para perder
+      if (isInside) setProgress(prev => Math.min(100, prev + 3.0)); 
+      else setProgress(prev => Math.max(0, prev - 1.0)); 
     }, 100);
     return () => clearInterval(timer);
   }, [active, showPhaseTransition, tilt, targetPos, currentPhase.threshold]);
@@ -489,17 +493,16 @@ function RhythmGame({ onWin, auraColor }: any) {
     const now = ctx.currentTime;
     const baseFreq = 261.63 * Math.pow(2, hits / 12);
 
-    // Orquestra: Som de sino/piano rico
     const osc1 = ctx.createOscillator();
     const osc2 = ctx.createOscillator();
     const gain = ctx.createGain();
 
     osc1.type = 'sine';
     osc2.type = 'triangle';
-    osc2.detune.setValueAtTime(5, now); // Leve desafinação para "cor"
+    osc2.detune.setValueAtTime(5, now); 
 
     osc1.frequency.setValueAtTime(baseFreq, now);
-    osc2.frequency.setValueAtTime(baseFreq * 2, now); // Oitava acima
+    osc2.frequency.setValueAtTime(baseFreq * 2, now); 
 
     gain.gain.setValueAtTime(0, now);
     gain.gain.linearRampToValueAtTime(0.2, now + 0.05);
@@ -528,7 +531,7 @@ function RhythmGame({ onWin, auraColor }: any) {
     const interval = setInterval(() => {
       wasMovingBeforePulseRef.current = currentAccelRef.current > 12;
       setPulse(true); canHitRef.current = true;
-      setTimeout(() => setPulse(false), 250); // Janela de acerto maior
+      setTimeout(() => setPulse(false), 250); 
     }, (60 / currentPhase.bpm) * 1000);
 
     const handleMotion = (e: DeviceMotionEvent) => {
@@ -676,7 +679,7 @@ function VoiceGame({ onWin, auraColor }: { onWin: (reward: number, name: string)
 
   const VOICE_LEVELS = Array.from({ length: 20 }, (_, i) => ({
     name: `Andar ${i + 1}`,
-    duration: 3 + (i * 0.4), // Ajustado para ser mais fácil no início
+    duration: 3 + (i * 0.4), 
     range: { min: 20 - (i * 0.4), max: 60 + (i * 0.4) }, 
     targetFloor: 40 + (i * 2),
     reward: 50 + (i * 5),
