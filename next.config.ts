@@ -3,7 +3,7 @@ import type {NextConfig} from 'next';
 import path from 'path';
 
 const nextConfig: NextConfig = {
-  output: 'export', // Habilita exportação estática para APK Offline
+  output: 'export', // OBRIGATÓRIO para gerar arquivos estáticos para o APK (Capacitor)
   distDir: 'out',
   typescript: {
     ignoreBuildErrors: true,
@@ -12,7 +12,7 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   images: {
-    unoptimized: true, // Necessário para output: export e para garantir carregamento estático offline
+    unoptimized: true, // Vital para garantir que as imagens .png carreguem offline sem servidor de otimização
   },
   transpilePackages: [
     '@tensorflow-models/pose-detection',

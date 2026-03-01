@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -183,7 +184,7 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
                   </div>
                   <DialogTitle className="text-3xl font-black uppercase italic tracking-tighter text-white">Preparar Missão!</DialogTitle>
                   <DialogDescription className="text-sm font-bold text-white/70 uppercase leading-relaxed mt-4">
-                    {pendingMode ? t(`playground.modes.${pendingMode}.info`) : ''}
+                    {pendingMode ? t(`playground.modes.${pendingMode}.info`) : 'Iniciando treinamento sensorial...'}
                   </DialogDescription>
                </DialogHeader>
                
@@ -579,12 +580,12 @@ function BreathGame({ onWin, auraColor }: any) {
       setActive(true); update();
     } catch (e: any) {
       console.error("Hardware de áudio bloqueado ou não encontrado:", e);
-      if (e.name === 'NotFoundError' || e.message === 'BROWSER_UNSUPPORTED') {
-        setError("Microfone não encontrado. Verifique se ele está conectado corretamente.");
+      if (e.name === 'NotFoundError' || e.message === 'Requested device not found') {
+        setError("Microfone não encontrado. Verifique se ele está conectado ou se o navegador tem permissão.");
       } else if (e.name === 'NotAllowedError') {
-        setError("Acesso ao microfone negado. Por favor, permita o acesso para brincar.");
+        setError("Acesso ao microfone negado. Por favor, ative as permissões nas configurações do navegador.");
       } else {
-        setError("Não foi possível acessar o microfone agora.");
+        setError("Erro ao acessar áudio: " + e.message);
       }
       setActive(false);
     }
@@ -635,12 +636,11 @@ function VoiceGame({ onWin, auraColor }: { onWin: (reward: number, name: string)
   // Mapeamento de Ativos Estáticos (Relativos para compatibilidade Cloud Proxy/APK)
   const getPath = (file: string) => `assets/images/games/elevador/${file}`;
 
-  // Log de depuração para verificar caminhos de imagem no ambiente Studio
   useEffect(() => {
     if (active) {
-      console.log("--- URBELUDO IMAGE DEBUG ---");
+      console.log("[UrbeLudo] VoiceGame Active - Path Check:");
       for (let i = 1; i <= 10; i++) {
-        console.log(`Layer ${i}.png URL:`, getPath(`${i}.png`));
+        console.log(`- Layer ${i}: assets/images/games/elevador/${i}.png`);
       }
     }
   }, [active]);
@@ -701,12 +701,12 @@ function VoiceGame({ onWin, auraColor }: { onWin: (reward: number, name: string)
       update();
     } catch (e: any) {
       console.error("Hardware de áudio bloqueado ou não encontrado:", e);
-      if (e.name === 'NotFoundError' || e.message === 'BROWSER_UNSUPPORTED') {
-        setError("Microfone não encontrado. Verifique a conexão.");
+      if (e.name === 'NotFoundError' || e.message === 'Requested device not found') {
+        setError("Microfone não encontrado. Verifique se ele está conectado ou se o navegador tem permissão.");
       } else if (e.name === 'NotAllowedError') {
-        setError("Acesso ao microfone negado.");
+        setError("Acesso ao microfone negado. Por favor, ative as permissões nas configurações do navegador.");
       } else {
-        setError("Erro ao acessar áudio.");
+        setError("Erro ao acessar áudio: " + e.message);
       }
       setActive(false);
     }
