@@ -16,6 +16,7 @@ import { usePathname } from 'next/navigation';
 import { askAuraHelper } from '@/ai/flows/aura-helper-flow';
 import { initAuraBrain } from '@/lib/aura-brain';
 import { cn } from '@/lib/utils';
+import { SUGESTOES_AURA } from '@/lib/aura-suggestions';
 
 interface Message {
   role: 'user' | 'bot';
@@ -48,19 +49,17 @@ export function FloatingAuraBot() {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [messages, isLoading]);
 
-  const handleSend = async () => {
-    if (!inputValue.trim() || isLoading) return;
+  const processMessage = async (text: string) => {
+    if (!text.trim() || isLoading) return;
 
-    const userMessage = inputValue.trim();
-    setMessages(prev => [...prev, { role: 'user', text: userMessage }]);
-    setInputValue('');
+    setMessages(prev => [...prev, { role: 'user', text }]);
     setIsLoading(true);
 
     try {
       const response = await askAuraHelper({
-        question: userMessage,
+        question: text,
         context: `Tela: ${pathname}`
       });
       
@@ -69,6 +68,14 @@ export function FloatingAuraBot() {
       setMessages(prev => [...prev, { role: 'bot', text: "Minha percepção falhou. Pode repetir?" }]);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleSend = () => {
+    const text = inputValue.trim();
+    if (text) {
+      processMessage(text);
+      setInputValue('');
     }
   };
 
@@ -100,7 +107,7 @@ export function FloatingAuraBot() {
               initial={{ opacity: 0, y: -20, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -20, scale: 0.95 }}
-              className="pointer-events-auto mt-4 w-full bg-white rounded-[2.5rem] shadow-[0_40px_80px_rgba(0,0,0,0.15)] border-4 border-primary/5 flex flex-col overflow-hidden max-h-[450px]"
+              className="pointer-events-auto mt-4 w-full bg-white rounded-[2.5rem] shadow-[0_40px_80px_rgba(0,0,0,0.15)] border-4 border-primary/5 flex flex-col overflow-hidden max-h-[500px]"
             >
               <div className="p-6 bg-primary/5 border-b flex items-center gap-4">
                 <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-white shadow-lg">
@@ -117,7 +124,7 @@ export function FloatingAuraBot() {
               </div>
 
               <ScrollArea className="flex-1 p-6" ref={scrollRef}>
-                <div className="space-y-4">
+                <div className="space-y-4 pb-4">
                   {messages.map((msg, idx) => (
                     <motion.div
                       key={idx}
@@ -146,6 +153,23 @@ export function FloatingAuraBot() {
                   )}
                 </div>
               </ScrollArea>
+
+              {/* Quick Replies Section */}
+              <div className="px-6 py-2 border-t bg-slate-50/30">
+                <div className="flex gap-2 overflow-x-auto no-scrollbar py-2">
+                  {SUGESTOES_AURA.map((sug) => (
+                    <button
+                      key={sug.id}
+                      onClick={() => processMessage(sug.label)}
+                      disabled={isLoading || isInitializing}
+                      className="whitespace-nowrap px-4 py-2 rounded-full bg-white border border-primary/10 text-primary text-[9px] font-black uppercase shadow-sm hover:bg-primary/5 active:scale-95 transition-all flex items-center gap-2"
+                    >
+                      <span>{sug.icon}</span>
+                      <span>{sug.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
 
               <div className="p-4 border-t bg-slate-50/50">
                 <div className="relative">
