@@ -41,7 +41,7 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 type GameMode = 'select' | 'balance' | 'rhythm' | 'path' | 'jump' | 'twister' | 'radar' | 'breath' | 'voice';
 
-// Mapeamento direto para a pasta public/games/elevador/ sem barra inicial para caminhos relativos
+// Mapeamento direto para a pasta public/games/elevador/ (Caminhos Relativos para APK)
 const VOICE_ASSETS = {
   fundo: "games/elevador/1.png",
   roboParado: "games/elevador/2.png",
@@ -657,7 +657,7 @@ function VoiceGame({ onWin, auraColor, ludoCoins }: { onWin: (reward: number, na
       const source = ctx.createMediaStreamSource(stream);
       const analyser = ctx.createAnalyser();
       analyser.fftSize = 512;
-      analyser.smoothingTimeConstant = 0.8; // Suavização nativa da API
+      analyser.smoothingTimeConstant = 0.8; 
       source.connect(analyser);
       analyserRef.current = analyser;
 
@@ -666,18 +666,22 @@ function VoiceGame({ onWin, auraColor, ludoCoins }: { onWin: (reward: number, na
         if (!analyserRef.current) return;
         analyserRef.current.getByteFrequencyData(dataArray);
         
-        // Cálculo do volume médio
-        let average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+        // Cálculo de RMS para suavidade biomecânica
+        let sumSquares = 0;
+        for (let i = 0; i < dataArray.length; i++) {
+          const val = (dataArray[i] / 128.0) - 1.0;
+          sumSquares += val * val;
+        }
+        const rms = Math.sqrt(sumSquares / dataArray.length) * 100;
         
         // Normalização Biomecânica: y = h_torre * ((V_atual - V_min) / (V_max - V_min))
-        // No contexto de UI, usamos um range dinâmico para suavizar a subida
-        const normalized = Math.max(0, Math.min(100, (average / 128) * 100));
+        const normalized = Math.max(0, Math.min(100, rms * 1.5)); // Sensibilidade ajustada
         
-        setVolume(average);
-        setSmoothedVolume(prev => prev * 0.85 + normalized * 0.15);
-        setIsSinging(average > 10);
+        setVolume(rms);
+        setSmoothedVolume(prev => prev * 0.8 + normalized * 0.2); // Interpolação elástica
+        setIsSinging(rms > 2);
 
-        const isInRange = average > currentLevel.range.min && average < currentLevel.range.max;
+        const isInRange = rms > currentLevel.range.min / 4 && rms < currentLevel.range.max / 2;
         
         if (isInRange) {
           setProgress(p => {
@@ -713,7 +717,6 @@ function VoiceGame({ onWin, auraColor, ludoCoins }: { onWin: (reward: number, na
   const handleLevelComplete = () => {
     if (requestRef.current) cancelAnimationFrame(requestRef.current);
     setChestOpen(true);
-    // Persistência local imediata do prêmio (Capacitor Preferences via updateDocumentNonBlocking)
     setTimeout(() => setShowTransition(true), 1500);
   };
 
@@ -781,7 +784,7 @@ function VoiceGame({ onWin, auraColor, ludoCoins }: { onWin: (reward: number, na
               <img src={VOICE_ASSETS.medidor} alt="Volume" className="w-full h-auto" />
               <div 
                 className="absolute bottom-[12%] left-1/2 -translate-x-1/2 w-3 bg-cyan-400 shadow-[0_0_15px_cyan] transition-all duration-100 rounded-full"
-                style={{ height: `${volume * 0.7}%` }}
+                style={{ height: `${volume * 1.5}%` }}
               />
             </div>
           </div>
@@ -790,15 +793,15 @@ function VoiceGame({ onWin, auraColor, ludoCoins }: { onWin: (reward: number, na
           <div className="absolute left-1/2 bottom-0 -translate-x-1/2 h-[85%] z-10 flex items-center justify-center">
              <img src={VOICE_ASSETS.torre} alt="" className="h-full w-auto object-contain filter drop-shadow-[0_0_30px_rgba(255,255,255,0.1)]" />
              
-             {/* Zona de Estabilidade (Baseada no Range da Fase) */}
+             {/* Zona de Estabilidade */}
              <motion.div 
-               animate={{ y: 150 - (currentLevel.range.min * 2) }}
+               animate={{ y: 150 - (currentLevel.range.min * 1.5) }}
                className="absolute inset-x-8 h-24 bg-green-500/10 border-y-2 border-green-500/30 backdrop-blur-sm flex items-center justify-center rounded-2xl"
              >
                 <div className="text-[7px] font-black text-green-500/50 uppercase tracking-[0.4em] animate-pulse">Zona de Estabilidade</div>
              </motion.div>
 
-             {/* 5, 2, 3. CABINE + ROBÔ (Posição Normalizada) */}
+             {/* CABINE + ROBÔ */}
              <motion.div 
                animate={{ bottom: `${15 + (smoothedVolume * 0.65)}%` }} 
                transition={{ type: "spring", stiffness: 60, damping: 20 }}
@@ -812,7 +815,7 @@ function VoiceGame({ onWin, auraColor, ludoCoins }: { onWin: (reward: number, na
                 />
              </motion.div>
 
-             {/* 7, 10, 8. RECOMPENSA NO TOPO */}
+             {/* RECOMPENSA NO TOPO */}
              <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40 w-24 h-24">
                 <AnimatePresence mode="wait">
                   {!chestOpen ? (
@@ -820,7 +823,7 @@ function VoiceGame({ onWin, auraColor, ludoCoins }: { onWin: (reward: number, na
                       key="closed"
                       initial={{ scale: 0.9 }} animate={{ scale: 1 }} 
                       src={VOICE_ASSETS.caixaFechada} 
-                      className="w-full h-full object-contain filter drop-shadow-2xl"
+                      className="w-full h-auto object-contain filter drop-shadow-2xl"
                     />
                   ) : (
                     <motion.div 
@@ -828,7 +831,7 @@ function VoiceGame({ onWin, auraColor, ludoCoins }: { onWin: (reward: number, na
                       initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
                       className="relative w-full h-full"
                     >
-                       <img src={VOICE_ASSETS.caixaAberta} className="w-full h-full object-contain" />
+                       <img src={VOICE_ASSETS.caixaAberta} className="w-full h-auto object-contain" />
                        <motion.img 
                          initial={{ y: 0, opacity: 1 }} animate={{ y: -80, opacity: 0 }}
                          transition={{ duration: 1.5 }}
@@ -841,7 +844,7 @@ function VoiceGame({ onWin, auraColor, ludoCoins }: { onWin: (reward: number, na
              </div>
           </div>
 
-          {/* 9. PLACAR E PROGRESSO */}
+          {/* PLACAR E PROGRESSO */}
           <div className="absolute bottom-10 inset-x-12 z-50 flex flex-col gap-4">
              <div className="flex justify-between items-center bg-black/60 backdrop-blur-xl p-4 rounded-[2rem] border border-white/10">
                 <div className="flex items-center gap-3">
