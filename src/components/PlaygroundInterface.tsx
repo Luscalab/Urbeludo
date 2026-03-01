@@ -32,7 +32,9 @@ import {
   Package,
   Ghost,
   Flame,
-  DoorOpen
+  DoorOpen,
+  Gamepad2,
+  BookOpen
 } from 'lucide-react';
 
 import { useUser, useDoc, useMemoFirebase } from '@/firebase';
@@ -47,6 +49,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter
 } from '@/components/ui/dialog';
 
 type GameMode = 'select' | 'balance' | 'rhythm' | 'path' | 'jump' | 'twister' | 'radar' | 'breath' | 'voice' | 'pitch';
@@ -60,6 +63,8 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
   const [isWin, setIsWin] = useState(false);
   const [rewardAmount, setRewardAmount] = useState(0);
   const [activeInfoMode, setActiveInfoMode] = useState<GameMode | null>(null);
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [pendingMode, setPendingMode] = useState<GameMode | null>(null);
   
   const userProgressRef = useMemoFirebase(() => user ? { id: user.uid, path: `user_progress/${user.uid}` } : null, [user]);
   const { data: profile } = useDoc(userProgressRef);
@@ -75,17 +80,34 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 1.0;
+      utterance.rate = 0.95;
+      utterance.pitch = 1.1;
       window.speechSynthesis.speak(utterance);
     }
   }, []);
+
+  const handleModeSelect = (mode: GameMode) => {
+    setPendingMode(mode);
+    setShowTutorial(true);
+    // Se acessibilidade estiver habilitada (ou por padrão para crianças), lê o tutorial
+    const tutorialText = t(`playground.modes.${mode}.info`);
+    speak(tutorialText);
+  };
+
+  const startPendingGame = () => {
+    if (pendingMode) {
+      setGameMode(pendingMode);
+      setShowTutorial(false);
+      setPendingMode(null);
+    }
+  };
 
   const handleWin = useCallback((reward: number = 30, type: string = 'Desafio Concluído') => {
     if (isWin) return;
     setIsWin(true);
     setRewardAmount(reward);
     vibrate([100, 50, 100]);
-    speak(t('playground.winTitle'));
+    speak("Parabéns! Sua aura está brilhando!");
     
     if (userProgressRef && profile) {
       const history = profile.history || [];
@@ -104,7 +126,7 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
         psychomotorLevel: Math.floor((profile.totalChallengesCompleted + 1) / 5) + 1
       });
     }
-  }, [isWin, userProgressRef, profile, t, speak]);
+  }, [isWin, userProgressRef, profile, speak]);
 
   if (isWin) {
     return (
@@ -146,22 +168,51 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
         </div>
 
         <div className="grid gap-4 w-full max-w-sm pb-10">
-          <GameModeCard icon={<Move />} mode="balance" title={t('playground.modes.balance.title')} desc={t('playground.modes.balance.desc')} goal={t('playground.modes.balance.goal')} color="bg-blue-500" onClick={() => setGameMode('balance')} onInfo={() => setActiveInfoMode('balance')} />
-          <GameModeCard icon={<Music />} mode="rhythm" title={t('playground.modes.rhythm.title')} desc={t('playground.modes.rhythm.desc')} goal={t('playground.modes.rhythm.goal')} color="bg-primary" onClick={() => setGameMode('rhythm')} onInfo={() => setActiveInfoMode('rhythm')} />
-          <GameModeCard icon={<Fingerprint />} mode="path" title={t('playground.modes.path.title')} desc={t('playground.modes.path.desc')} goal={t('playground.modes.path.goal')} color="bg-accent" onClick={() => setGameMode('path')} onInfo={() => setActiveInfoMode('path')} />
+          <GameModeCard icon={<Move />} mode="balance" title={t('playground.modes.balance.title')} desc={t('playground.modes.balance.desc')} goal={t('playground.modes.balance.goal')} color="bg-blue-500" onClick={() => handleModeSelect('balance')} onInfo={() => setActiveInfoMode('balance')} />
+          <GameModeCard icon={<Music />} mode="rhythm" title={t('playground.modes.rhythm.title')} desc={t('playground.modes.rhythm.desc')} goal={t('playground.modes.rhythm.goal')} color="bg-primary" onClick={() => handleModeSelect('rhythm')} onInfo={() => setActiveInfoMode('rhythm')} />
+          <GameModeCard icon={<Fingerprint />} mode="path" title={t('playground.modes.path.title')} desc={t('playground.modes.path.desc')} goal={t('playground.modes.path.goal')} color="bg-accent" onClick={() => handleModeSelect('path')} onInfo={() => setActiveInfoMode('path')} />
           
           <div className="w-full border-t border-white/10 pt-4 mt-2">
             <p className="text-[8px] font-black text-white/30 uppercase tracking-[0.4em] mb-4 text-center">Fonoaudiologia e Respiração</p>
           </div>
 
-          <GameModeCard icon={<Wind />} mode="breath" title={t('playground.modes.breath.title')} desc={t('playground.modes.breath.desc')} goal={t('playground.modes.breath.goal')} color="bg-teal-500" onClick={() => setGameMode('breath')} onInfo={() => setActiveInfoMode('breath')} />
-          <GameModeCard icon={<Volume2 />} mode="voice" title={t('playground.modes.voice.title')} desc={t('playground.modes.voice.desc')} goal={t('playground.modes.voice.goal')} color="bg-pink-500" onClick={() => setGameMode('voice')} onInfo={() => setActiveInfoMode('voice')} />
+          <GameModeCard icon={<Wind />} mode="breath" title={t('playground.modes.breath.title')} desc={t('playground.modes.breath.desc')} goal={t('playground.modes.breath.goal')} color="bg-teal-500" onClick={() => handleModeSelect('breath')} onInfo={() => setActiveInfoMode('breath')} />
+          <GameModeCard icon={<Volume2 />} mode="voice" title={t('playground.modes.voice.title')} desc={t('playground.modes.voice.desc')} goal={t('playground.modes.voice.goal')} color="bg-pink-500" onClick={() => handleModeSelect('voice')} onInfo={() => setActiveInfoMode('voice')} />
         </div>
         
         <Link href="/dashboard" className="text-[10px] font-black uppercase text-white/40 hover:text-white transition-colors tracking-widest mt-auto pb-4 flex items-center gap-2">
           <ArrowLeft className="w-4 h-4" /> {t('common.back')}
         </Link>
 
+        {/* Tutorial Dialog */}
+        <Dialog open={showTutorial} onOpenChange={setShowTutorial}>
+          <DialogContent className="max-w-md rounded-[3rem] border-8 border-primary/20 bg-slate-900 text-white p-10 overflow-hidden">
+            <div className="absolute inset-0 bg-mesh-game opacity-20 pointer-events-none" />
+            <div className="relative space-y-8 text-center">
+               <div className="flex justify-center">
+                  <div className="w-24 h-24 rounded-[2rem] bg-white/10 border-4 border-primary flex items-center justify-center text-primary shadow-2xl animate-pulse">
+                     <BookOpen className="w-12 h-12" />
+                  </div>
+               </div>
+               <div className="space-y-4">
+                  <h2 className="text-3xl font-black uppercase italic tracking-tighter">Preparar Missão!</h2>
+                  <p className="text-sm font-bold text-white/70 uppercase leading-relaxed">
+                    {pendingMode ? t(`playground.modes.${pendingMode}.info`) : ''}
+                  </p>
+               </div>
+               <DialogFooter className="flex flex-col gap-3">
+                  <Button onClick={startPendingGame} className="w-full h-20 rounded-full bg-primary text-white font-black uppercase text-lg border-b-8 border-primary/70 active:border-b-0 active:translate-y-2 transition-all shadow-xl">
+                    Entendi! Vamos Lá
+                  </Button>
+                  <Button variant="ghost" onClick={() => setShowTutorial(false)} className="text-[10px] font-black uppercase text-white/40 hover:text-white">
+                    Talvez Depois
+                  </Button>
+               </DialogFooter>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Info Dialog */}
         <Dialog open={!!activeInfoMode} onOpenChange={() => setActiveInfoMode(null)}>
           <DialogContent className="max-w-md rounded-[3rem] border-4 border-white/20 bg-slate-900 text-white p-8 overflow-hidden">
             <div className="absolute inset-0 bg-mesh-game opacity-20 pointer-events-none" />
@@ -189,15 +240,6 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
                     <div className="space-y-1">
                       <h4 className="text-[10px] font-black uppercase text-yellow-500 tracking-widest">{t('common.safety')}</h4>
                       <p className="text-[9px] font-medium leading-relaxed opacity-80">{t(`playground.modes.${activeInfoMode}.warning`)}</p>
-                    </div>
-                  </div>
-                  <div className="p-5 bg-white/5 rounded-[2rem] border border-white/10 flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center text-green-500 shrink-0">
-                       <Lightbulb className="w-5 h-5" />
-                    </div>
-                    <div className="space-y-1">
-                      <h4 className="text-[10px] font-black uppercase text-green-500 tracking-widest">Dica de Adaptação</h4>
-                      <p className="text-[9px] font-medium leading-relaxed opacity-80">{t(`playground.modes.${activeInfoMode}.tip`)}</p>
                     </div>
                   </div>
                 </div>
@@ -268,7 +310,7 @@ function GameModeCard({ icon, title, desc, goal, color, onClick, onInfo }: any) 
   );
 }
 
-// --- JOGO 1: EQUILIBRISTA (20 FASES) ---
+// --- JOGO 1: EQUILIBRISTA (Ajustado para crianças) ---
 function BalanceGame({ onWin, auraColor }: { onWin: (reward: number, type: string) => void, auraColor: string }) {
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const [progress, setProgress] = useState(0);
@@ -276,33 +318,38 @@ function BalanceGame({ onWin, auraColor }: { onWin: (reward: number, type: strin
   const [phaseIdx, setPhaseIdx] = useState(0);
   const [targetPos, setTargetPos] = useState({ x: 0, y: 0 });
   const [showPhaseTransition, setShowPhaseTransition] = useState(false);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const oscRef = useRef<OscillatorNode | null>(null);
+  const gainRef = useRef<GainNode | null>(null);
 
   const BALANCE_PHASES = [
-    { name: 'Base Estável', threshold: 15, targetSize: 80, ballSize: 60, reward: 20, moveFrequency: 0, benefit: "Estabilidade básica e calibração sensorial." },
-    { name: 'Centro de Gravidade', threshold: 14, targetSize: 75, ballSize: 55, reward: 25, moveFrequency: 0, benefit: "Trabalhando o tônus muscular central." },
-    { name: 'Atenção Inicial', threshold: 13, targetSize: 70, ballSize: 50, reward: 30, moveFrequency: 6000, benefit: "Início do rastreio ocular dinâmico." },
-    { name: 'Equilíbrio Fluido', threshold: 12, targetSize: 65, ballSize: 45, reward: 35, moveFrequency: 5500, benefit: "Coordenação entre visão e movimento." },
-    { name: 'Vento Suave', threshold: 11, targetSize: 60, ballSize: 40, reward: 40, moveFrequency: 5000, benefit: "Ajustes posturais rápidos." },
-    { name: 'Órbita de Luz', threshold: 10, targetSize: 55, ballSize: 38, reward: 45, moveFrequency: 4500, benefit: "Propriocepção em movimento." },
-    { name: 'Foco Magnético', threshold: 9, targetSize: 50, ballSize: 36, reward: 50, moveFrequency: 4000, benefit: "Atenção seletiva e foco." },
-    { name: 'Micro-Pulso', threshold: 8, targetSize: 45, ballSize: 34, reward: 55, moveFrequency: 3500, benefit: "Controle motor fino e precisão." },
-    { name: 'Maré de Plasma', threshold: 7.5, targetSize: 42, ballSize: 32, reward: 60, moveFrequency: 3000, benefit: "Sincronia visomotora avançada." },
-    { name: 'Núcleo Ativo', threshold: 7, targetSize: 40, ballSize: 30, reward: 65, moveFrequency: 2800, benefit: "Estabilidade sob pressão rítmica." },
-    { name: 'Aura Dançante', threshold: 6.5, targetSize: 38, ballSize: 28, reward: 70, moveFrequency: 2500, benefit: "Flexibilidade cognitiva e motora." },
-    { name: 'Zona de Calma', threshold: 6, targetSize: 35, ballSize: 26, reward: 75, moveFrequency: 2200, benefit: "Autorregulação emocional e física." },
-    { name: 'Resiliência', threshold: 5.5, targetSize: 32, ballSize: 24, reward: 80, moveFrequency: 2000, benefit: "Superação de desafios espaciais." },
-    { name: 'Reflexo Puro', threshold: 5, targetSize: 30, ballSize: 22, reward: 85, moveFrequency: 1800, benefit: "Velocidade de processamento neural." },
-    { name: 'Estrela de Cristal', threshold: 4.5, targetSize: 28, ballSize: 20, reward: 90, moveFrequency: 1600, benefit: "Maestria no sistema vestibular." },
-    { name: 'Silêncio Motor', threshold: 4, targetSize: 25, ballSize: 18, reward: 95, moveFrequency: 1400, benefit: "Concentração absoluta sem ruído muscular." },
-    { name: 'Equilíbrio Quântico', threshold: 3.5, targetSize: 22, ballSize: 16, reward: 100, moveFrequency: 1200, benefit: "Precisão em escala microscópica." },
-    { name: 'Ponto Zero', threshold: 3, targetSize: 20, ballSize: 14, reward: 110, moveFrequency: 1000, benefit: "Unidade entre corpo e tecnologia." },
-    { name: 'Vácuo Estelar', threshold: 2.5, targetSize: 18, ballSize: 12, reward: 120, moveFrequency: 800, benefit: "O auge da consciência corporal." },
-    { name: 'Mestre da Aura', threshold: 2, targetSize: 15, ballSize: 10, reward: 150, moveFrequency: 600, benefit: "Parabéns! Você alcançou o equilíbrio perfeito." }
+    { name: 'Ninho de Luz', threshold: 35, targetSize: 95, ballSize: 70, reward: 20, moveFrequency: 0, benefit: "Calibração inicial: sinta seu corpo no espaço." },
+    { name: 'Pulo do Gato', threshold: 30, targetSize: 85, ballSize: 65, reward: 25, moveFrequency: 0, benefit: "Estabilidade básica." },
+    { name: 'Equilíbrio na Árvore', threshold: 25, targetSize: 75, ballSize: 60, reward: 30, moveFrequency: 7000, benefit: "Atenção em movimento suave." },
+    { name: 'Vento de Verão', threshold: 22, targetSize: 70, ballSize: 55, reward: 35, moveFrequency: 6000, benefit: "Ajustes posturais guiados." },
+    { name: 'Ponte de Cristal', threshold: 20, targetSize: 65, ballSize: 50, reward: 40, moveFrequency: 5500, benefit: "Foco e precisão visomotora." }
   ];
 
   const currentPhase = BALANCE_PHASES[phaseIdx];
 
   const start = async () => {
+    const AC = (window as any).AudioContext || (window as any).webkitAudioContext;
+    audioContextRef.current = new AC();
+    if (audioContextRef.current?.state === 'suspended') await audioContextRef.current.resume();
+    
+    // Configura som ambiente de feedback
+    const ctx = audioContextRef.current;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(220, ctx.currentTime);
+    gain.gain.setValueAtTime(0, ctx.currentTime);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    oscRef.current = osc;
+    gainRef.current = gain;
+
     if (typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
       const res = await (DeviceOrientationEvent as any).requestPermission();
       if (res === 'granted') setActive(true);
@@ -319,25 +366,19 @@ function BalanceGame({ onWin, auraColor }: { onWin: (reward: number, type: strin
   }, [active, showPhaseTransition]);
 
   useEffect(() => {
-    if (!active || showPhaseTransition || currentPhase.moveFrequency === 0) {
-      setTargetPos({ x: 0, y: 0 });
-      return;
-    }
-    const moveTarget = () => {
-      setTargetPos({ x: (Math.random() * 50) - 25, y: (Math.random() * 50) - 25 });
-    };
-    const interval = setInterval(moveTarget, currentPhase.moveFrequency);
-    return () => clearInterval(interval);
-  }, [active, showPhaseTransition, currentPhase.moveFrequency]);
-
-  useEffect(() => {
-    if (!active || showPhaseTransition) return;
+    if (!active || showPhaseTransition || !gainRef.current || !oscRef.current) return;
     const dist = Math.sqrt(Math.pow(tilt.x - targetPos.x, 2) + Math.pow(tilt.y - targetPos.y, 2));
+    
+    // Feedback sonoro: mais alto e mais agudo quanto mais perto do centro
+    const proximity = Math.max(0, 1 - (dist / 60));
+    gainRef.current.gain.setTargetAtTime(proximity * 0.1, audioContextRef.current!.currentTime, 0.1);
+    oscRef.current.frequency.setTargetAtTime(220 + (proximity * 220), audioContextRef.current!.currentTime, 0.1);
+
     const isInside = dist < currentPhase.threshold;
 
     const timer = setInterval(() => {
-      if (isInside) setProgress(prev => Math.min(100, prev + 2.5));
-      else setProgress(prev => Math.max(0, prev - 1.5));
+      if (isInside) setProgress(prev => Math.min(100, prev + 3.0)); // Mais rápido para ganhar
+      else setProgress(prev => Math.max(0, prev - 1.0)); // Mais devagar para perder
     }, 100);
     return () => clearInterval(timer);
   }, [active, showPhaseTransition, tilt, targetPos, currentPhase.threshold]);
@@ -347,7 +388,13 @@ function BalanceGame({ onWin, auraColor }: { onWin: (reward: number, type: strin
       if (phaseIdx < BALANCE_PHASES.length - 1) {
         setShowPhaseTransition(true);
         setProgress(0);
-      } else onWin(currentPhase.reward, 'Mestre do Equilíbrio');
+      } else {
+        if (oscRef.current) {
+          oscRef.current.stop();
+          oscRef.current = null;
+        }
+        onWin(currentPhase.reward, 'Mestre do Equilíbrio');
+      }
     }
   }, [progress, phaseIdx, onWin, currentPhase.reward, BALANCE_PHASES.length]);
 
@@ -357,7 +404,7 @@ function BalanceGame({ onWin, auraColor }: { onWin: (reward: number, type: strin
         <div className="flex flex-col items-center gap-8 text-center max-w-xs">
           <div className="w-24 h-24 rounded-[2rem] bg-blue-500/20 border-4 border-blue-500 flex items-center justify-center text-blue-500 mb-4 animate-pulse"><Move className="w-12 h-12" /></div>
           <h3 className="text-3xl font-black uppercase italic text-white tracking-tighter">Equilibrista</h3>
-          <Button onClick={start} className="h-20 px-16 rounded-full bg-primary text-white font-black uppercase shadow-2xl flex gap-3 text-lg border-b-8 border-primary/70 active:border-b-0 active:translate-y-2"><Play /> Iniciar</Button>
+          <Button onClick={start} className="h-20 px-16 rounded-full bg-primary text-white font-black uppercase shadow-2xl flex gap-3 text-lg border-b-8 border-primary/70 active:border-b-0 active:translate-y-2"><Play /> Começar Missão</Button>
         </div>
       ) : (
         <>
@@ -386,13 +433,13 @@ function BalanceGame({ onWin, auraColor }: { onWin: (reward: number, type: strin
             {showPhaseTransition && (
               <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} className="absolute inset-0 z-[110] bg-slate-900/95 backdrop-blur-xl flex flex-col items-center justify-center text-center p-8">
                 <div className="p-6 bg-green-500/20 rounded-[3rem] border-4 border-green-500 text-green-500 mb-8"><CheckCircle2 className="w-16 h-16" /></div>
-                <h2 className="text-4xl font-black uppercase italic text-white mb-2">Excelente!</h2>
+                <h2 className="text-4xl font-black uppercase italic text-white mb-2">Incrível!</h2>
                 <div className="bg-white/5 p-8 rounded-[2.5rem] border border-white/10 max-w-xs mb-10">
                    <Lightbulb className="w-8 h-8 text-yellow-500 mx-auto mb-4" />
-                   <h4 className="text-[10px] font-black uppercase text-yellow-500 tracking-widest mb-2">Pilar Pedagógico</h4>
+                   <h4 className="text-[10px] font-black uppercase text-yellow-500 tracking-widest mb-2">Aprendizado</h4>
                    <p className="text-[11px] font-medium leading-relaxed text-white/90">{currentPhase.benefit}</p>
                 </div>
-                <Button onClick={() => { setPhaseIdx(prev => prev + 1); setShowPhaseTransition(false); }} className="h-16 px-12 rounded-full bg-primary text-white font-black uppercase shadow-2xl flex gap-3 text-lg border-b-4 border-primary/70 active:border-b-0 active:translate-y-1">Próximo Desafio <ArrowUp className="w-5 h-5 rotate-90" /></Button>
+                <Button onClick={() => { setPhaseIdx(prev => prev + 1); setShowPhaseTransition(false); }} className="h-16 px-12 rounded-full bg-primary text-white font-black uppercase shadow-2xl flex gap-3 text-lg border-b-4 border-primary/70 active:border-b-0 active:translate-y-1">Próxima Fase <ArrowUp className="w-5 h-5 rotate-90" /></Button>
               </motion.div>
             )}
           </AnimatePresence>
@@ -402,7 +449,7 @@ function BalanceGame({ onWin, auraColor }: { onWin: (reward: number, type: strin
   );
 }
 
-// --- JOGO 2: MAESTRO ---
+// --- JOGO 2: MAESTRO (Áudio Orquestral) ---
 function RhythmGame({ onWin, auraColor }: any) {
   const { t } = useI18n();
   const [active, setActive] = useState(false);
@@ -416,10 +463,10 @@ function RhythmGame({ onWin, auraColor }: any) {
   const wasMovingBeforePulseRef = useRef(false);
 
   const PHASES = [
-    { name: 'Adagio', bpm: 60, reward: 30, goal: 5 },
-    { name: 'Andante', bpm: 90, reward: 45, goal: 8 },
-    { name: 'Allegro', bpm: 120, reward: 60, goal: 10 },
-    { name: 'Presto', bpm: 145, reward: 80, goal: 12 }
+    { name: 'Brilhante', bpm: 55, reward: 30, goal: 4 },
+    { name: 'Harmônico', bpm: 75, reward: 45, goal: 6 },
+    { name: 'Vibrante', bpm: 95, reward: 60, goal: 8 },
+    { name: 'Maestro', bpm: 115, reward: 80, goal: 10 }
   ];
   const currentPhase = PHASES[phase] || PHASES[0];
 
@@ -441,14 +488,29 @@ function RhythmGame({ onWin, auraColor }: any) {
     if (ctx.state === 'suspended') ctx.resume();
     const now = ctx.currentTime;
     const baseFreq = 261.63 * Math.pow(2, hits / 12);
-    const osc = ctx.createOscillator();
+
+    // Orquestra: Som de sino/piano rico
+    const osc1 = ctx.createOscillator();
+    const osc2 = ctx.createOscillator();
     const gain = ctx.createGain();
-    osc.frequency.setValueAtTime(baseFreq, now);
+
+    osc1.type = 'sine';
+    osc2.type = 'triangle';
+    osc2.detune.setValueAtTime(5, now); // Leve desafinação para "cor"
+
+    osc1.frequency.setValueAtTime(baseFreq, now);
+    osc2.frequency.setValueAtTime(baseFreq * 2, now); // Oitava acima
+
     gain.gain.setValueAtTime(0, now);
-    gain.gain.linearRampToValueAtTime(0.2, now + 0.1);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 1.0);
-    osc.connect(gain); gain.connect(ctx.destination);
-    osc.start(); osc.stop(now + 1.1);
+    gain.gain.linearRampToValueAtTime(0.2, now + 0.05);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+
+    osc1.connect(gain);
+    osc2.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc1.start(); osc1.stop(now + 1.3);
+    osc2.start(); osc2.stop(now + 1.3);
   }, [hits]);
 
   const start = async () => {
@@ -464,15 +526,15 @@ function RhythmGame({ onWin, auraColor }: any) {
   useEffect(() => {
     if (!active) return;
     const interval = setInterval(() => {
-      wasMovingBeforePulseRef.current = currentAccelRef.current > 15;
+      wasMovingBeforePulseRef.current = currentAccelRef.current > 12;
       setPulse(true); canHitRef.current = true;
-      setTimeout(() => setPulse(false), 180); 
+      setTimeout(() => setPulse(false), 250); // Janela de acerto maior
     }, (60 / currentPhase.bpm) * 1000);
 
     const handleMotion = (e: DeviceMotionEvent) => {
       const accel = Math.sqrt((e.accelerationIncludingGravity?.x || 0) ** 2 + (e.accelerationIncludingGravity?.y || 0) ** 2 + (e.accelerationIncludingGravity?.z || 0) ** 2);
       currentAccelRef.current = accel;
-      if (accel > 20 && canHitRef.current) {
+      if (accel > 18 && canHitRef.current) {
         if (!pulse) showFeedback('tooEarly');
         else if (wasMovingBeforePulseRef.current) showFeedback('dontShake');
         else { setHits(h => h + 1); canHitRef.current = false; playNote(); }
@@ -485,7 +547,7 @@ function RhythmGame({ onWin, auraColor }: any) {
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-900">
       {!active ? (
-        <Button onClick={start} className="h-24 px-12 rounded-[2.5rem] bg-primary text-white font-black uppercase shadow-2xl flex gap-4 text-xl"><Music className="w-8 h-8" /> Iniciar</Button>
+        <Button onClick={start} className="h-24 px-12 rounded-[2.5rem] bg-primary text-white font-black uppercase shadow-2xl flex gap-4 text-xl"><Music className="w-8 h-8" /> Iniciar Concerto</Button>
       ) : (
         <div className="flex flex-col items-center gap-12 text-center">
            <h3 className="text-5xl font-black uppercase italic text-white tracking-tighter">{currentPhase.name}</h3>
@@ -493,7 +555,7 @@ function RhythmGame({ onWin, auraColor }: any) {
              <Music className={cn("w-20 h-20", pulse ? "text-white" : "text-white/20")} />
            </motion.div>
            <div className="w-64 space-y-4">
-              <div className="flex justify-between text-[9px] font-black uppercase text-white/40"><span>Sincronia</span><span>{hits}/{currentPhase.goal}</span></div>
+              <div className="flex justify-between text-[9px] font-black uppercase text-white/40"><span>Harmonia</span><span>{hits}/{currentPhase.goal}</span></div>
               <div className="h-4 bg-white/10 rounded-full overflow-hidden border border-white/5 p-1"><motion.div animate={{ width: `${(hits/currentPhase.goal)*100}%` }} className="h-full bg-primary rounded-full" /></div>
            </div>
            <AnimatePresence>{feedback && (<motion.div initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1.2 }} exit={{ opacity: 0 }} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"><span className="bg-red-500 text-white px-6 py-2 rounded-full font-black uppercase text-[10px]">{feedback}</span></motion.div>)}</AnimatePresence>
@@ -538,7 +600,7 @@ function PathGame({ onWin, auraColor }: any) {
       const dist = Math.sqrt((p.x - x) ** 2 + (p.y - y) ** 2);
       if (dist < bestDist) { bestDist = dist; bestProg = i / 100; }
     }
-    if (bestDist < 40 && bestProg > progress - 0.05) setProgress(Math.max(progress, bestProg));
+    if (bestDist < 50 && bestProg > progress - 0.08) setProgress(Math.max(progress, bestProg));
   };
 
   const currentPoint = pathRef.current ? pathRef.current.getPointAtLength(progress * pathRef.current.getTotalLength()) : { x: 50, y: 450 };
@@ -575,7 +637,7 @@ function BreathGame({ onWin, auraColor }: any) {
       const update = () => {
         analyser.getByteFrequencyData(data);
         let average = data.reduce((a, b) => a + b) / data.length;
-        if (average > 30) { rotationRef.current += average / 5; setLevel(prev => Math.min(100, prev + 0.5)); }
+        if (average > 25) { rotationRef.current += average / 4; setLevel(prev => Math.min(100, prev + 0.6)); }
         else setLevel(prev => Math.max(0, prev - 0.2));
         const wheel = document.getElementById('sopro-wheel');
         if (wheel) wheel.style.transform = `rotate(${rotationRef.current}deg)`;
@@ -590,7 +652,7 @@ function BreathGame({ onWin, auraColor }: any) {
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-8 bg-slate-900">
       {!active ? (
-        <Button onClick={start} className="h-20 px-12 rounded-full bg-teal-500 text-white font-black uppercase text-lg">Ativar Microfone</Button>
+        <Button onClick={start} className="h-20 px-12 rounded-full bg-teal-500 text-white font-black uppercase text-lg">Ativar Sopro</Button>
       ) : (
         <div className="space-y-12 flex flex-col items-center">
           <div id="sopro-wheel" className="w-48 h-48 flex items-center justify-center"><Wind className="w-40 h-40 text-white" /></div>
@@ -601,7 +663,7 @@ function BreathGame({ onWin, auraColor }: any) {
   );
 }
 
-// --- JOGO 5: ELEVADOR DE VOZ (20 NÍVEIS) ---
+// --- JOGO 5: ELEVADOR DE VOZ ---
 function VoiceGame({ onWin, auraColor }: { onWin: (reward: number, name: string) => void, auraColor: string }) {
   const [active, setActive] = useState(false);
   const [phaseIdx, setPhaseIdx] = useState(0);
@@ -614,9 +676,9 @@ function VoiceGame({ onWin, auraColor }: { onWin: (reward: number, name: string)
 
   const VOICE_LEVELS = Array.from({ length: 20 }, (_, i) => ({
     name: `Andar ${i + 1}`,
-    duration: 4 + (i * 0.5), // Nível 1: 4s, Nível 20: 13.5s
-    range: { min: 25 - (i * 0.5), max: 55 + (i * 0.5) }, // A zona fica mais "sensível" mas o range de volume muda
-    targetFloor: 40 + (i * 2), // O elevador precisa subir andares mais altos
+    duration: 3 + (i * 0.4), // Ajustado para ser mais fácil no início
+    range: { min: 20 - (i * 0.4), max: 60 + (i * 0.4) }, 
+    targetFloor: 40 + (i * 2),
     reward: 50 + (i * 5),
     benefit: i === 0 ? "Controle inicial de fôlego e fluxo vocal." : `Sustentação avançada no nível ${i + 1}.`
   }));
@@ -640,13 +702,12 @@ function VoiceGame({ onWin, auraColor }: { onWin: (reward: number, name: string)
         let average = dataArray.reduce((a, b) => a + b) / dataArray.length;
         setVolume(average);
 
-        // Se o volume estiver no "andar" correto
         const isInRange = average > currentLevel.range.min && average < currentLevel.range.max;
         
         if (isInRange) {
           setProgress(p => Math.min(100, p + (100 / (currentLevel.duration * 60))));
         } else {
-          setProgress(p => Math.max(0, p - 0.5));
+          setProgress(p => Math.max(0, p - 0.4));
         }
 
         if (progress < 99) {
@@ -694,16 +755,13 @@ function VoiceGame({ onWin, auraColor }: { onWin: (reward: number, name: string)
             <Volume2 className="w-12 h-12" />
           </div>
           <h3 className="text-3xl font-black uppercase italic text-white tracking-tighter">Elevador de Voz</h3>
-          <p className="text-[10px] font-black text-white/40 uppercase tracking-widest max-w-xs">Use sua voz para subir. Mantenha o tom estável para coletar suprimentos e fugir!</p>
-          <Button onClick={start} className="h-20 px-16 rounded-full bg-pink-500 text-white font-black uppercase shadow-2xl border-b-8 border-pink-700 active:border-b-0 active:translate-y-2"><Play /> Iniciar</Button>
+          <Button onClick={start} className="h-20 px-16 rounded-full bg-pink-500 text-white font-black uppercase shadow-2xl border-b-8 border-pink-700 active:border-b-0 active:translate-y-2"><Play /> Subir Agora</Button>
         </div>
       ) : (
         <div className="relative w-full max-w-sm h-full flex flex-col items-center">
-          {/* Poço do Elevador */}
           <div className="absolute inset-y-10 w-40 bg-slate-800/50 rounded-3xl border-x-4 border-white/5 overflow-hidden">
              <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 2px, transparent 2px)', backgroundSize: '100% 40px' }} />
              
-             {/* Zona Alvo (O Andar) */}
              <motion.div 
                animate={{ y: 200 - (phaseIdx * 5) }} 
                className="absolute inset-x-0 h-24 bg-green-500/20 border-y-2 border-green-500/50 flex items-center justify-center"
@@ -711,7 +769,6 @@ function VoiceGame({ onWin, auraColor }: { onWin: (reward: number, name: string)
                 <div className="text-[8px] font-black text-green-500 uppercase tracking-widest animate-pulse">Zona Segura</div>
              </motion.div>
 
-             {/* Elevador (Aura) */}
              <motion.div 
                animate={{ y: 400 - (volume * 4) }} 
                transition={{ type: "spring", stiffness: 100 }}
@@ -722,7 +779,6 @@ function VoiceGame({ onWin, auraColor }: { onWin: (reward: number, name: string)
              </motion.div>
           </div>
 
-          {/* Progress Bar do Andar */}
           <div className="absolute top-20 left-4 right-4 flex flex-col gap-2">
              <div className="flex justify-between items-end">
                 <span className="text-[10px] font-black uppercase text-pink-500">{currentLevel.name}</span>
@@ -732,15 +788,6 @@ function VoiceGame({ onWin, auraColor }: { onWin: (reward: number, name: string)
                 <motion.div animate={{ width: `${progress}%` }} className="h-full bg-pink-500" />
              </div>
           </div>
-
-          {/* Fantasmas Inimigos */}
-          <motion.div 
-            animate={{ y: [0, 20, 0], x: [0, -10, 0] }}
-            transition={{ duration: 4, repeat: Infinity }}
-            className="absolute bottom-20 right-10 opacity-20"
-          >
-            <Ghost className="w-12 h-12 text-blue-400" />
-          </motion.div>
 
           <AnimatePresence>
             {showTransition && (
@@ -758,13 +805,12 @@ function VoiceGame({ onWin, auraColor }: { onWin: (reward: number, name: string)
                     >
                       <Package className="w-20 h-20 text-pink-500" />
                     </motion.div>
-                    <h2 className="text-3xl font-black text-white uppercase italic italic mb-2">Suprimento Coletado!</h2>
-                    <p className="text-[10px] font-bold text-white/50 uppercase tracking-widest mb-10">{currentLevel.benefit}</p>
+                    <h2 className="text-3xl font-black text-white uppercase italic italic mb-2">Piso Alcançado!</h2>
                     <Button 
                       onClick={nextLevel}
                       className="h-16 px-12 rounded-full bg-green-500 text-white font-black uppercase shadow-2xl flex gap-3 text-lg border-b-8 border-green-700 active:border-b-0 active:translate-y-2"
                     >
-                      Fugir para o {phaseIdx + 2}º Andar <Rocket className="w-6 h-6" />
+                      Próximo Andar <Rocket className="w-6 h-6" />
                     </Button>
                   </>
                 ) : (

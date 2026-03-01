@@ -1,3 +1,4 @@
+
 export type Language = 'pt' | 'en' | 'es';
 
 export const translations = {
@@ -51,14 +52,34 @@ export const translations = {
         balance: {
           title: 'Equilibrista de Auras',
           goal: 'Estabilidade Biomecânica',
+          info: 'Mova o celular com carinho para manter a bolha de luz dentro do círculo! É como carregar uma colher com um ovo sem deixar cair.',
+          warning: 'Fique em um lugar plano e seguro. Peça ajuda a um adulto se for subir em algo!',
         },
         rhythm: {
           title: 'Maestro de Fluxo',
           goal: 'Coordenação Rítmica',
+          info: 'Ouça o som da aura e balance o celular no ritmo da música! Quando a tela brilhar, é sua hora de tocar seu instrumento mágico.',
+          warning: 'Cuidado para não soltar o celular durante os movimentos rápidos!',
+          tooEarly: 'Calma, Mestre! No ritmo...',
+          dontShake: 'Movimento Suave, por favor!'
         },
         path: {
           title: 'Caminho de Luz',
           goal: 'Precisão Visomotora',
+          info: 'Use seu dedo para seguir as trilhas de luz na tela. Tente não sair do caminho para ganhar mais pontos!',
+          warning: 'Mantenha os olhos na tela com atenção.',
+        },
+        breath: {
+          title: 'Nuvem de Sopro',
+          goal: 'Controle Respiratório',
+          info: 'Sopre suavemente no microfone para girar o moinho de vento e criar uma névoa mágica.',
+          warning: 'Não precisa soprar muito forte, a aura é sensível!',
+        },
+        voice: {
+          title: 'Elevador de Voz',
+          goal: 'Controle Vocal',
+          info: 'Cante ou faça um som contínuo para manter o elevador subindo! Se o som parar, o elevador desce.',
+          warning: 'Cuidado para não forçar as cordas vocais.',
         }
       }
     },
@@ -109,14 +130,12 @@ export const translations = {
         balance: {
           title: 'Aura Balancer',
           goal: 'Biomechanical Stability',
+          info: 'Gently tilt your phone to keep the bubble inside the ring!',
         },
         rhythm: {
           title: 'Flow Maestro',
           goal: 'Rhythmic Coordination',
-        },
-        path: {
-          title: 'Path of Light',
-          goal: 'Visuomotor Precision',
+          info: 'Move to the beat of the music!',
         }
       }
     }
@@ -145,7 +164,7 @@ export const translations = {
     },
     home: {
       tagline: 'Maestro del Movimiento - Psicomotricidad 2026',
-      startJourney: 'Explorar Ahora',
+      startJourney: 'Explorar Agora',
       exploreTech: 'Ver Laboratorios',
       connectIdentity: 'Conectar Identidad',
     }
