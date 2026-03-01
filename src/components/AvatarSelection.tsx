@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback } from "react";
@@ -10,7 +9,8 @@ import {
   ChevronLeft, 
   ChevronRight,
   FolderOpen,
-  Sparkles
+  Sparkles,
+  RefreshCw
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -20,8 +20,8 @@ interface AvatarSelectionProps {
 }
 
 /**
- * Seletor de Identidade Totalmente Dinâmico.
- * Varre a pasta 'public/assets/avatars' e aceita qualquer imagem lá colocada.
+ * Seletor de Identidade Dinâmico.
+ * Exibe qualquer arquivo de imagem encontrado em 'public/assets/avatars'.
  */
 export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionProps) {
   const [avatars, setAvatars] = useState<string[]>([]);
@@ -39,10 +39,13 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
       
       if (files && files.length > 0) {
         setAvatars(files);
-        // Sincroniza o índice com o avatar inicial se fornecido
+        
+        // Se temos um avatar inicial, tentamos encontrá-lo na lista
         if (initialAvatarId) {
           const idx = files.indexOf(initialAvatarId);
-          if (idx !== -1) setCurrentIndex(idx);
+          if (idx !== -1) {
+            setCurrentIndex(idx);
+          }
         }
       }
     } catch (error) {
@@ -66,6 +69,7 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
     setCurrentIndex((prev) => (prev - 1 + avatars.length) % avatars.length);
   };
 
+  // Notifica o componente pai sempre que o avatar selecionado muda
   useEffect(() => {
     if (avatars.length > 0) {
       onSelect(avatars[currentIndex]);
@@ -84,11 +88,14 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
     return (
       <div className="w-full h-[400px] flex flex-col items-center justify-center bg-background rounded-[3rem] border-4 border-dashed border-primary/10 p-10 text-center">
         <FolderOpen className="w-16 h-16 text-primary/20 mb-4" />
-        <h3 className="text-xl font-black uppercase text-foreground/40 mb-2">Sem Heróis na Pasta</h3>
-        <p className="text-[10px] font-bold text-muted-foreground uppercase max-w-xs mx-auto">
-          Adicione arquivos PNG em: <br/> 
+        <h3 className="text-xl font-black uppercase text-foreground/40 mb-2">Pasta de Heróis Vazia</h3>
+        <p className="text-[10px] font-bold text-muted-foreground uppercase max-w-xs mx-auto mb-6">
+          Adicione suas fotos PNG ou JPG em: <br/> 
           <span className="text-primary font-mono select-all">public/assets/avatars</span>
         </p>
+        <button onClick={fetchAvatars} className="flex items-center gap-2 text-[10px] font-black uppercase text-primary border-b border-primary">
+          <RefreshCw className="w-3 h-3" /> Tentar Novamente
+        </button>
       </div>
     );
   }
@@ -101,10 +108,10 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
       <div className="flex flex-col items-center text-center space-y-2">
         <div className="flex items-center gap-2 bg-primary/10 px-3 py-1 rounded-full">
           <Sparkles className="w-3 h-3 text-primary" />
-          <span className="text-[8px] font-black uppercase text-primary">Detecção Dinâmica</span>
+          <span className="text-[8px] font-black uppercase text-primary">Câmara de Identidade</span>
         </div>
         <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">
-          Herói {currentIndex + 1} de {avatars.length}
+          {currentAvatar} ({currentIndex + 1}/{avatars.length})
         </p>
       </div>
       
@@ -115,14 +122,16 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
           className="absolute w-64 h-64 bg-primary/10 rounded-full blur-3xl -z-10"
         />
 
-        <div className="absolute inset-x-0 flex justify-between items-center z-50">
-          <button onClick={handlePrev} className="bg-white p-4 rounded-full shadow-xl active:scale-90 transition-all">
-            <ChevronLeft className="w-6 h-6 text-primary" />
-          </button>
-          <button onClick={handleNext} className="bg-white p-4 rounded-full shadow-xl active:scale-90 transition-all">
-            <ChevronRight className="w-6 h-6 text-primary" />
-          </button>
-        </div>
+        {avatars.length > 1 && (
+          <div className="absolute inset-x-0 flex justify-between items-center z-50 px-2 sm:px-10">
+            <button onClick={handlePrev} className="bg-white p-4 rounded-full shadow-xl active:scale-90 transition-all border border-muted">
+              <ChevronLeft className="w-6 h-6 text-primary" />
+            </button>
+            <button onClick={handleNext} className="bg-white p-4 rounded-full shadow-xl active:scale-90 transition-all border border-muted">
+              <ChevronRight className="w-6 h-6 text-primary" />
+            </button>
+          </div>
+        )}
 
         <div className="relative w-64 h-80 z-10">
           <AnimatePresence mode="wait">
@@ -131,26 +140,29 @@ export function AvatarSelection({ initialAvatarId, onSelect }: AvatarSelectionPr
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              className="w-full h-full rounded-[3rem] bg-white shadow-2xl flex items-center justify-center p-8 overflow-hidden"
+              className="w-full h-full rounded-[3rem] bg-white shadow-2xl flex items-center justify-center p-8 overflow-hidden border-2 border-primary/5"
             >
               {loadError[currentAvatar] ? (
-                <AlertCircle className="w-12 h-12 text-red-500 opacity-20" />
+                <div className="flex flex-col items-center gap-2 opacity-20">
+                  <AlertCircle className="w-12 h-12 text-red-500" />
+                  <span className="text-[8px] font-black uppercase">Erro de Arquivo</span>
+                </div>
               ) : (
                 <img 
                   src={avatarPath} 
                   onLoad={() => setLoadedImages(prev => ({ ...prev, [currentAvatar]: true }))}
                   onError={() => setLoadError(prev => ({ ...prev, [currentAvatar]: true }))}
                   className={cn(
-                    "w-full h-full object-contain drop-shadow-xl transition-all duration-500",
-                    loadedImages[currentAvatar] ? "opacity-100" : "opacity-0"
+                    "w-full h-full object-contain drop-shadow-2xl transition-all duration-500",
+                    loadedImages[currentAvatar] ? "opacity-100 scale-100" : "opacity-0 scale-90"
                   )} 
                   alt={`Herói ${currentAvatar}`}
                 />
               )}
               
               <div className="absolute bottom-4 inset-x-4">
-                 <div className="bg-primary/90 text-white rounded-xl py-2 text-center text-[10px] font-black uppercase">
-                    {currentAvatar.split('.')[0]}
+                 <div className="bg-primary/90 text-white rounded-xl py-2 text-center text-[8px] font-black uppercase truncate px-2">
+                    {currentAvatar.split('.')[0].replace(/[-_]/g, ' ')}
                  </div>
               </div>
             </motion.div>

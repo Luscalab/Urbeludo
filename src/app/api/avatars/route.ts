@@ -1,4 +1,3 @@
-
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
@@ -8,34 +7,28 @@ import path from 'path';
  * Caminho absoluto: public/assets/avatars
  */
 export async function GET() {
-  // O diretório 'public' é a raiz para assets estáticos no Next.js
   const avatarsDir = path.join(process.cwd(), 'public/assets/avatars');
   
   try {
-    // Verifica se o diretório existe
+    // Garante que o diretório existe
     if (!fs.existsSync(avatarsDir)) {
-      console.warn('Diretório de avatares não encontrado, criando em:', avatarsDir);
-      try {
-        fs.mkdirSync(avatarsDir, { recursive: true });
-      } catch (e) {
-        console.error('Falha ao criar diretório de avatares:', e);
-      }
+      fs.mkdirSync(avatarsDir, { recursive: true });
       return NextResponse.json([]);
     }
 
     const files = fs.readdirSync(avatarsDir);
     
-    // Filtra arquivos de imagem válidos, ignorando arquivos ocultos de sistema
+    // Filtra arquivos de imagem válidos (qualquer extensão de imagem comum)
     const images = files.filter(file => 
-      !file.startsWith('.') && /\.(png|jpe?g|svg|webp)$/i.test(file)
+      !file.startsWith('.') && /\.(png|jpe?g|svg|webp|avif|bmp|gif)$/i.test(file)
     );
     
-    // Ordenação natural
+    // Ordenação natural para manter consistência no seletor
     images.sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
     
     return NextResponse.json(images);
   } catch (error) {
-    console.error('Erro crítico na varredura de avatares:', error);
+    console.error('Erro na varredura de avatares:', error);
     return NextResponse.json([]);
   }
 }

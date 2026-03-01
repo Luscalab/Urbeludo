@@ -1,4 +1,3 @@
-
 /**
  * Utilitário para o catálogo de avatares dinâmico do UrbeLudo.
  * Localização física: public/assets/avatars
@@ -15,10 +14,11 @@ export const FALLBACK_AVATAR_SRC = "https://picsum.photos/seed/ludo/400/400";
 
 /**
  * Constrói o objeto de asset para qualquer imagem dentro de /assets/avatars/
- * @param filename O nome do arquivo (ex: "meu_heroi.png")
+ * @param filename O nome do arquivo real na pasta public/assets/avatars
  */
 export const getAvatarById = (filename: string | null | undefined): AvatarAsset => {
-  if (!filename || filename === 'placeholder.png') {
+  // Se não houver nome de arquivo, retorna o placeholder
+  if (!filename || filename === 'placeholder.png' || filename === '') {
     return {
       id: 'placeholder',
       name: 'Explorador',
@@ -26,7 +26,8 @@ export const getAvatarById = (filename: string | null | undefined): AvatarAsset 
     };
   }
 
-  // O Next.js serve arquivos de 'public' na raiz do servidor
+  // O Next.js serve arquivos de 'public' na raiz do servidor. 
+  // Caminho final: /assets/avatars/nome_da_foto.png
   return {
     id: filename,
     name: filename.split('.')[0].replace(/[-_]/g, ' '),

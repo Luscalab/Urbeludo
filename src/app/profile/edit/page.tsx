@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -35,16 +34,16 @@ export default function EditProfilePage() {
   const userProgressRef = useMemoFirebase(() => user ? { id: user.uid, path: `user_progress/${user.uid}` } : null, [user]);
   const { data: profile, isLoading } = useDoc(userProgressRef);
 
-  const [selectedAvatarId, setSelectedAvatarId] = useState('');
+  const [selectedAvatarId, setSelectedAvatarId] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState('');
   const [isAvatarizing, setIsAvatarizing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Sincroniza o estado local quando os dados do perfil são carregados
+  // Sincroniza o estado local apenas na primeira carga do perfil
   useEffect(() => {
     if (profile) {
-      if (!selectedAvatarId) setSelectedAvatarId(profile.avatar?.avatarId || '');
-      if (!displayName) setDisplayName(profile.displayName || '');
+      if (selectedAvatarId === null) setSelectedAvatarId(profile.avatar?.avatarId || '');
+      if (displayName === '') setDisplayName(profile.displayName || '');
     }
   }, [profile, selectedAvatarId, displayName]);
 
@@ -55,13 +54,13 @@ export default function EditProfilePage() {
       displayName: displayName || profile?.displayName,
       avatar: {
         ...profile?.avatar,
-        avatarId: selectedAvatarId
+        avatarId: selectedAvatarId || profile?.avatar?.avatarId
       }
     });
 
     toast({
       title: "Identidade Atualizada!",
-      description: "Suas mudanças foram salvas no hardware local."
+      description: "Suas mudanças foram salvas localmente."
     });
     router.push('/dashboard');
   };
@@ -124,12 +123,12 @@ export default function EditProfilePage() {
         </Link>
         <div className="flex items-center gap-2">
           <UrbeLudoLogo className="w-6 h-6 text-primary" />
-          <span className="text-sm font-black uppercase italic tracking-tighter">Customizar Herói</span>
+          <span className="text-sm font-black uppercase italic tracking-tighter">Identidade do Herói</span>
         </div>
         <Button 
           onClick={handleSave}
           size="sm" 
-          className="rounded-full bg-primary font-black uppercase text-[10px] px-6"
+          className="rounded-full bg-primary font-black uppercase text-[10px] px-6 h-10"
         >
           Salvar
         </Button>
@@ -138,20 +137,20 @@ export default function EditProfilePage() {
       <main className="flex-1 space-y-12 py-8 overflow-x-hidden">
         <section className="container max-w-lg mx-auto">
           <AvatarSelection 
-            initialAvatarId={selectedAvatarId} 
-            onSelect={setSelectedAvatarId} 
+            initialAvatarId={selectedAvatarId || undefined} 
+            onSelect={(id) => setSelectedAvatarId(id)} 
           />
         </section>
 
         <section className="container max-w-lg mx-auto px-6 space-y-8">
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-[10px] font-black uppercase text-muted-foreground tracking-widest px-2">
-              <UserCircle className="w-3 h-3 text-primary" /> Nome Lúdico
+              <UserCircle className="w-3 h-3 text-primary" /> Nome do Explorador
             </div>
             <Input 
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
-              placeholder="Ex: Explorador das Nuvens"
+              placeholder="Ex: Mestre do Vácuo"
               className="h-16 rounded-[1.5rem] border-4 border-primary/5 bg-muted/20 px-6 font-bold focus:border-primary transition-all"
             />
           </div>
@@ -164,7 +163,7 @@ export default function EditProfilePage() {
              <div className="space-y-2 relative z-10">
                 <h3 className="text-xl font-black uppercase italic tracking-tighter text-foreground">Sincronia de Aura</h3>
                 <p className="text-[10px] font-bold text-muted-foreground uppercase leading-relaxed">
-                  Use a IA de Borda para definir as cores e traços da sua identidade ludo a partir de uma foto.
+                  Defina as cores e traços da sua identidade a partir de uma foto real com IA.
                 </p>
              </div>
 
@@ -184,7 +183,7 @@ export default function EditProfilePage() {
                 {isAvatarizing ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin" /> 
-                    Analisando...
+                    Mapeando...
                   </>
                 ) : (
                   <>
@@ -196,7 +195,7 @@ export default function EditProfilePage() {
 
              <div className="flex items-center gap-3 px-4 py-2 bg-primary/5 rounded-2xl">
                 <ShieldCheck className="w-4 h-4 text-primary" />
-                <span className="text-[8px] font-black uppercase text-primary/60 tracking-widest">
+                <span className="text-[8px] font-black uppercase text-primary/60 tracking-widest leading-tight">
                   Processamento 100% Local: Nenhuma imagem sai do APK.
                 </span>
              </div>
