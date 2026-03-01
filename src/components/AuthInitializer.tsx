@@ -24,7 +24,6 @@ export function AuthInitializer({ children }: { children: React.ReactNode }) {
         uid = `URBE_${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
         await LocalPersistence.saveUserId(uid);
         
-        // Dados iniciais simplificados para o conceito de "O Traço Vivo"
         const initialData = {
           id: uid,
           displayName: `Explorador_${uid.slice(-4)}`,
@@ -49,6 +48,7 @@ export function AuthInitializer({ children }: { children: React.ReactNode }) {
   }, []);
 
   // Renderiza o loader de forma consistente no servidor e na primeira montagem do cliente
+  // O texto agora é fixo para evitar Hydration Mismatch
   if (!mounted || !isReady) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
