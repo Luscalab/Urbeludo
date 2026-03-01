@@ -12,18 +12,8 @@ import {
   Music,
   Fingerprint,
   Zap,
-  Rocket,
   Wind,
-  ShieldCheck,
-  Sparkles,
-  Info,
   Volume2,
-  AlertTriangle,
-  CheckCircle2,
-  BookOpen,
-  Cpu,
-  BrainCircuit,
-  UserCheck,
   Loader2
 } from 'lucide-react';
 
@@ -38,11 +28,8 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
-  DialogFooter
+  DialogDescription
 } from '@/components/ui/dialog';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { generateAuraBotReport, AuraBotReport } from '@/lib/gemini';
 import { saveToSheets } from '@/lib/sheets';
 
 type GameMode = 'select' | 'balance' | 'rhythm' | 'path' | 'breath' | 'voice';
@@ -171,7 +158,7 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
             <DialogHeader>
               <DialogTitle className="text-3xl font-black uppercase italic text-white text-center">Preparar Missão!</DialogTitle>
               <DialogDescription className="text-sm font-bold text-white/70 uppercase text-center mt-4">
-                {pendingMode ? t(`playground.modes.${pendingMode}.info`) : ''}
+                {pendingMode ? t(`playground.modes.${pendingMode}.info`) : t('playground.selectGame')}
               </DialogDescription>
             </DialogHeader>
             <Button onClick={() => { setGameMode(pendingMode!); setShowTutorial(false); }} className="w-full h-20 rounded-full bg-primary text-white font-black uppercase text-lg border-b-8 border-primary/70 active:translate-y-2 transition-all">Iniciar Desafio</Button>
@@ -195,15 +182,18 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
       <AnimatePresence mode="wait">
         {gameMode === 'balance' && <BalanceGame key="balance" onWin={handleWin} auraColor={auraColor} />}
         {gameMode === 'voice' && <VoiceGame key="voice" onWin={handleWin} auraColor={auraColor} ludoCoins={profile?.ludoCoins || 0} userName={profile?.displayName || "Explorador"} />}
-        {/* Outros modos omitidos para brevidade, mas mantidos no código original */}
       </AnimatePresence>
     </div>
   );
 }
 
-// Sub-componentes do Playground...
 function BalanceGame({ onWin, auraColor }: any) {
-  return <div className="flex-1 flex flex-col items-center justify-center text-white">Modo Equilíbrio Ativo</div>;
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center text-white space-y-4">
+      <Move className="w-20 h-20 text-blue-500 animate-pulse" />
+      <p className="text-[10px] font-black uppercase tracking-widest">Equilíbrio Ativo</p>
+    </div>
+  );
 }
 
 function VoiceGame({ onWin, auraColor, ludoCoins, userName }: any) {
@@ -217,7 +207,15 @@ function VoiceGame({ onWin, auraColor, ludoCoins, userName }: any) {
         if (p >= 100) {
           if (!chestOpen) {
             setChestOpen(true);
-            saveToSheets({ paciente: userName, volume: Math.round(volume), sustentacao: 10, tentativas: 1, feedback: "Aura Forte!", relatorio: "Estabilidade fonatória ok.", fase: "Andar 1" });
+            saveToSheets({ 
+              paciente: userName, 
+              volume: Math.round(volume), 
+              sustentacao: 10, 
+              tentativas: 1, 
+              feedback: "Aura Forte!", 
+              relatorio: "Estabilidade fonatória ok.", 
+              fase: "Andar 1" 
+            });
             setTimeout(() => onWin(50, 'Maestro da Voz'), 2000);
           }
           return 100;
