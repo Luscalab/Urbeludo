@@ -3,6 +3,7 @@
 /**
  * @fileOverview AuraBrain - Motor de Inteligência de Borda para Classificação de Intenções.
  * Implementa carregamento dinâmico e tracking de progresso para o APK.
+ * Versão ultra-resiliente para evitar erros de inicialização no Turbopack.
  */
 
 export interface IntentAnchor {
@@ -11,14 +12,14 @@ export interface IntentAnchor {
 }
 
 const INTENCOES: IntentAnchor[] = [
-  { id: 'jogar_elevador', examples: ["como jogar o elevador", "instruções do jogo de voz", "como subir o baú", "ajuda no elevador"] },
-  { id: 'zona_estabilidade', examples: ["o que é zona de estabilidade", "área verde na tela", "para que serve o círculo verde"] },
-  { id: 'clinico_psico', examples: ["o que é psicomotricidade", "por que esse jogo ajuda", "relação com o corpo e mente", "base cientifica"] },
-  { id: 'tonicidade', examples: ["o que é tonicidade", "controle dos músculos", "treino de pregas vocais", "tônus muscular"] },
-  { id: 'moedas', examples: ["para que servem as ludocoins", "onde vejo minhas moedas", "como ganhar dinheiro no jogo"] },
-  { id: 'tecnico_ajuda', examples: ["não funciona", "bug no microfone", "sem som", "o elevador não sobe", "ajuda técnica"] },
-  { id: 'praxia_fina', examples: ["o que é praxia fina", "coordenação das mãos", "seguindo o caminho de luz"] },
-  { id: 'esquema_corporal', examples: ["esquema corporal", "consciência do corpo", "meu avatar e progresso"] }
+  { id: 'jogar_elevador', examples: ["como jogar o elevador", "instruções do jogo de voz", "como subir o baú", "ajuda no elevador", "como funciona o jogo"] },
+  { id: 'zona_estabilidade', examples: ["o que é zona de estabilidade", "área verde na tela", "para que serve o círculo verde", "manter som constante"] },
+  { id: 'clinico_psico', examples: ["o que é psicomotricidade", "por que esse jogo ajuda", "relação com o corpo e mente", "base cientifica", "como o elevador ajuda minha voz", "benefícios do exercício"] },
+  { id: 'tonicidade', examples: ["o que é tonicidade", "controle dos músculos", "treino de pregas vocais", "tônus muscular", "firmeza na voz"] },
+  { id: 'moedas', examples: ["para que servem as ludocoins", "onde vejo minhas moedas", "como ganhar dinheiro no jogo", "recompensas"] },
+  { id: 'tecnico_ajuda', examples: ["não funciona", "bug no microfone", "sem som", "o elevador não sobe", "ajuda técnica", "permissão de áudio"] },
+  { id: 'praxia_fina', examples: ["o que é praxia fina", "coordenação das mãos", "seguindo o caminho de luz", "movimentos pequenos"] },
+  { id: 'esquema_corporal', examples: ["esquema corporal", "consciência do corpo", "meu avatar e progresso", "percepção de si"] }
 ];
 
 let extractor: any = null;
@@ -26,18 +27,22 @@ let anchorEmbeddings: Record<string, number[][]> = {};
 
 /**
  * Inicializa o modelo de extração de características com callback de progresso.
+ * Utiliza abordagem defensiva para evitar TypeError em propriedades do 'env'.
  */
 export const initAuraBrain = async (onProgress?: (p: number) => void) => {
   if (typeof window === 'undefined') return;
   
   if (!extractor) {
     try {
-      const { pipeline, env } = await import('@xenova/transformers');
+      const transformers = await import('@xenova/transformers');
       
-      env.allowLocalModels = false;
-      env.useBrowserCache = true;
+      // Configuração segura do ambiente para APK/Browser
+      if (transformers.env) {
+        transformers.env.allowLocalModels = false;
+        transformers.env.useBrowserCache = true;
+      }
 
-      extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', {
+      extractor = await transformers.pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', {
         progress_callback: (data: any) => {
           if (data.status === 'progress' && onProgress) {
             onProgress(Math.round(data.progress));
