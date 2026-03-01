@@ -12,9 +12,9 @@ import {
   Music,
   Fingerprint,
   Zap,
-  Volume2,
-  Hand,
-  X
+  ChevronRight,
+  ChevronLeft,
+  Star
 } from 'lucide-react';
 
 import { useUser, useDoc, useMemoFirebase } from '@/firebase';
@@ -25,7 +25,7 @@ import { UrbeLudoLogo } from '@/components/UrbeLudoLogo';
 
 type GameMode = 'select' | 'balance' | 'rhythm' | 'path';
 
-// Escala Orquestral (Pentatônica Maior para soar sempre harmônico)
+// Escala Orquestral (Pentatônica Maior)
 const ORCHESTRA_SCALE = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25];
 
 export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean }) {
@@ -170,7 +170,7 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
       <AnimatePresence mode="wait">
         {gameMode === 'balance' && <BalanceGame key="balance" onWin={() => handleWin(50, 'Mestre do Equilíbrio')} auraColor={auraColor} />}
         {gameMode === 'rhythm' && <RhythmGame key="rhythm" onWin={() => handleWin(50, 'Maestro de Auras')} auraColor={auraColor} />}
-        {gameMode === 'path' && <PathGame key="path" onWin={() => handleWin(50, 'Caminho de Luz')} auraColor={auraColor} />}
+        {gameMode === 'path' && <PathGame key="path" onWin={(reward, name) => handleWin(reward, name)} auraColor={auraColor} />}
       </AnimatePresence>
     </div>
   );
@@ -302,23 +302,20 @@ function RhythmGame({ onWin, auraColor }: any) {
   const lastShakeRef = useRef(0);
   const audioCtxRef = useRef<AudioContext | null>(null);
 
-  // Inicializa a Orquestra Digital
   const playOrchestraNote = (freqIndex: number) => {
     if (!audioCtxRef.current) return;
     const ctx = audioCtxRef.current;
     const now = ctx.currentTime;
     const freq = ORCHESTRA_SCALE[freqIndex % ORCHESTRA_SCALE.length];
 
-    // Criamos 3 osciladores desafinados para simular cordas (strings)
     const oscillators = [0, 5, -5].map(detune => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       
-      osc.type = 'triangle'; // Onda rica para cordas
+      osc.type = 'triangle';
       osc.frequency.setValueAtTime(freq, now);
       osc.detune.setValueAtTime(detune, now);
       
-      // Envelope suave (Calmo e Orquestral)
       gain.gain.setValueAtTime(0, now);
       gain.gain.linearRampToValueAtTime(0.2, now + 0.1);
       gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
@@ -376,7 +373,7 @@ function RhythmGame({ onWin, auraColor }: any) {
   const checkRhythm = (onTime: boolean) => {
     if (onTime) {
       setScore(s => {
-        playOrchestraNote(s); // Toca a nota da melodia baseada no acerto
+        playOrchestraNote(s);
         if (s >= 11) {
           onWin();
           return 12;
@@ -456,68 +453,265 @@ function RhythmGame({ onWin, auraColor }: any) {
   );
 }
 
-// --- JOGO 3: CAMINHO ---
-function PathGame({ onWin, auraColor }: any) {
-  const [progress, setProgress] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
+// --- JOGO 3: CAMINHO DE LUZ (REMODELADO COM FASES) ---
+
+interface PathLevel {
+  id: number;
+  name: string;
+  path: string; // SVG path data
+  reward: number;
+  difficulty: 'easy' | 'medium' | 'hard' | 'expert';
+}
+
+const PATH_LEVELS: PathLevel[] = [
+  {
+    id: 1,
+    name: "O Voo do Beija-Flor",
+    path: "M 100 450 L 100 50",
+    reward: 20,
+    difficulty: 'easy'
+  },
+  {
+    id: 2,
+    name: "O Deslize da Serpente",
+    path: "M 100 450 C 200 350, 0 150, 100 50",
+    reward: 35,
+    difficulty: 'medium'
+  },
+  {
+    id: 3,
+    name: "Montanhas de Cristal",
+    path: "M 50 450 L 150 350 L 50 250 L 150 150 L 100 50",
+    reward: 50,
+    difficulty: 'hard'
+  },
+  {
+    id: 4,
+    name: "O Portal do Zen",
+    path: "M 100 450 C 300 450, 300 50, 100 50 C -100 50, -100 450, 100 450 L 100 250",
+    reward: 70,
+    difficulty: 'expert'
+  }
+];
+
+function PathGame({ onWin, auraColor }: { onWin: (reward: number, name: string) => void, auraColor: string }) {
+  const [currentLevelIdx, setCurrentLevelIdx] = useState(0);
+  const [progress, setProgress] = useState(0); // 0 to 1
+  const [isOffPath, setIsOffPath] = useState(false);
+  const [isStarted, setIsStarted] = useState(false);
+  
+  const svgRef = useRef<SVGSVGElement>(null);
+  const pathRef = useRef<SVGPathElement>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const oscillatorRef = useRef<OscillatorNode | null>(null);
+  const gainRef = useRef<GainNode | null>(null);
+
+  const level = PATH_LEVELS[currentLevelIdx];
+
+  const initAudio = () => {
+    if (audioCtxRef.current) return;
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    
+    osc.type = 'sine';
+    gain.gain.setValueAtTime(0, ctx.currentTime);
+    
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    
+    audioCtxRef.current = ctx;
+    oscillatorRef.current = osc;
+    gainRef.current = gain;
+  };
 
   const handleTouch = (e: React.TouchEvent) => {
-    if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    const touchY = e.touches[0].clientY - rect.top;
-    const height = rect.height;
+    if (!isStarted) {
+      initAudio();
+      setIsStarted(true);
+    }
+
+    if (!pathRef.current || !svgRef.current) return;
     
-    const rawPercent = 100 - (touchY / height) * 100;
-    const percent = Math.min(100, Math.max(0, rawPercent));
+    const rect = svgRef.current.getBoundingClientRect();
+    const touchX = (e.touches[0].clientX - rect.left) * (200 / rect.width);
+    const touchY = (e.touches[0].clientY - rect.top) * (500 / rect.height);
     
-    if (percent > progress && percent < progress + 15) {
-       setIsDragging(true);
-       setProgress(percent);
-       if (percent >= 98) onWin();
-    } else if (percent < progress - 5) {
-       setProgress(Math.max(0, percent));
+    const pathLength = pathRef.current.getTotalLength();
+    
+    // Find nearest point on path
+    let bestDist = Infinity;
+    let bestT = 0;
+    const precision = 50; // Points to check
+    
+    for (let i = 0; i <= precision; i++) {
+      const t = i / precision;
+      const point = pathRef.current.getPointAtLength(t * pathLength);
+      const dist = Math.sqrt((point.x - touchX)**2 + (point.y - touchY)**2);
+      if (dist < bestDist) {
+        bestDist = dist;
+        bestT = t;
+      }
+    }
+
+    // Interaction rules
+    const tolerance = 40;
+    if (bestDist < tolerance) {
+      setIsOffPath(false);
+      // Only advance if touching near the current progress
+      if (bestT >= progress && bestT <= progress + 0.15) {
+        setProgress(bestT);
+        updateAudio(true, bestT);
+        if (bestT > 0.98) {
+          stopAudio();
+          onWin(level.reward, `Mestre de ${level.name}`);
+        }
+      }
+    } else {
+      setIsOffPath(true);
+      updateAudio(false, progress);
     }
   };
 
+  const updateAudio = (onPath: boolean, t: number) => {
+    if (!oscillatorRef.current || !gainRef.current || !audioCtxRef.current) return;
+    const now = audioCtxRef.current.currentTime;
+    
+    const freq = onPath ? 300 + t * 400 : 150;
+    const volume = onPath ? 0.15 : 0.05;
+    
+    oscillatorRef.current.frequency.setTargetAtTime(freq, now, 0.1);
+    gainRef.current.gain.setTargetAtTime(volume, now, 0.1);
+  };
+
+  const stopAudio = () => {
+    if (gainRef.current && audioCtxRef.current) {
+      gainRef.current.gain.setTargetAtTime(0, audioCtxRef.current.currentTime, 0.1);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (oscillatorRef.current) oscillatorRef.current.stop();
+      if (audioCtxRef.current) audioCtxRef.current.close();
+    };
+  }, []);
+
+  const pointOnPath = pathRef.current ? pathRef.current.getPointAtLength(progress * pathRef.current.getTotalLength()) : { x: 100, y: 450 };
+
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-12 bg-black gap-12">
-      <div className="text-center space-y-2">
-         <h2 className="text-2xl font-black uppercase italic text-white tracking-tighter">Caminho de Luz</h2>
-         <p className="text-[9px] font-black text-white/40 uppercase tracking-[0.3em]">Arraste com Precisão</p>
+    <div className="flex-1 flex flex-col items-center justify-center p-6 bg-black gap-8">
+      <div className="flex flex-col items-center gap-2 text-center">
+        <div className="flex items-center gap-4">
+           <Button 
+             variant="ghost" 
+             size="icon" 
+             disabled={currentLevelIdx === 0}
+             onClick={() => { setCurrentLevelIdx(v => v - 1); setProgress(0); stopAudio(); }}
+             className="text-white/40"
+           >
+             <ChevronLeft className="w-8 h-8" />
+           </Button>
+           <h2 className="text-2xl font-black uppercase italic text-white tracking-tighter">{level.name}</h2>
+           <Button 
+             variant="ghost" 
+             size="icon" 
+             disabled={currentLevelIdx === PATH_LEVELS.length - 1}
+             onClick={() => { setCurrentLevelIdx(v => v + 1); setProgress(0); stopAudio(); }}
+             className="text-white/40"
+           >
+             <ChevronRight className="w-8 h-8" />
+           </Button>
+        </div>
+        <div className="flex items-center gap-2">
+           <Star className={`w-4 h-4 ${level.id >= 1 ? 'text-yellow-400 fill-current' : 'text-white/20'}`} />
+           <Star className={`w-4 h-4 ${level.id >= 2 ? 'text-yellow-400 fill-current' : 'text-white/20'}`} />
+           <Star className={`w-4 h-4 ${level.id >= 3 ? 'text-yellow-400 fill-current' : 'text-white/20'}`} />
+           <Star className={`w-4 h-4 ${level.id >= 4 ? 'text-yellow-400 fill-current' : 'text-white/20'}`} />
+        </div>
       </div>
 
-      <div 
-        ref={containerRef}
-        onTouchMove={handleTouch}
-        onTouchEnd={() => setIsDragging(false)}
-        className="relative w-40 h-[500px] bg-white/5 rounded-full border-4 border-white/10 overflow-hidden shadow-inner"
-      >
-        <div 
-          className="absolute bottom-0 w-full transition-all duration-300 rounded-full opacity-30 blur-2xl"
-          style={{ height: `${progress}%`, backgroundColor: auraColor }}
-        />
-        
-        <div className="absolute inset-x-0 h-full flex justify-center">
-           <div className="w-1.5 h-full bg-white/5 border-dashed border-l-2 border-white/10" />
-        </div>
-
-        <motion.div 
-          animate={{ 
-            bottom: `${progress}%`, 
-            scale: isDragging ? 1.3 : 1,
-            boxShadow: isDragging ? `0 0 50px ${auraColor}` : `0 10px 30px rgba(0,0,0,0.5)`
-          }}
-          className="absolute left-1/2 -translate-x-1/2 w-20 h-20 rounded-full border-4 border-white flex items-center justify-center z-50 touch-none cursor-pointer"
-          style={{ backgroundColor: auraColor, marginBottom: '-40px' }}
+      <div className="relative w-full max-w-[320px] aspect-[2/5] bg-white/5 rounded-[3rem] border-4 border-white/10 overflow-hidden">
+        <svg 
+          ref={svgRef}
+          viewBox="0 0 200 500" 
+          className="w-full h-full touch-none"
+          onTouchMove={handleTouch}
+          onTouchEnd={() => { setIsOffPath(false); stopAudio(); }}
         >
-          <Fingerprint className="w-10 h-10 text-white/40" />
-        </motion.div>
+          {/* Base Path */}
+          <path 
+            ref={pathRef}
+            d={level.path}
+            fill="none"
+            stroke="rgba(255,255,255,0.1)"
+            strokeWidth="40"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          
+          {/* Active Path Background */}
+          <path 
+            d={level.path}
+            fill="none"
+            stroke={auraColor}
+            strokeWidth="40"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            opacity="0.1"
+          />
 
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 text-white/20">
-           <Trophy className="w-8 h-8" />
+          {/* User Progress Stroke */}
+          <path 
+            d={level.path}
+            fill="none"
+            stroke={auraColor}
+            strokeWidth="10"
+            strokeDasharray="1 10"
+            strokeLinecap="round"
+            opacity="0.5"
+          />
+
+          {/* Current Aura Marker */}
+          <motion.circle 
+            cx={pointOnPath.x}
+            cy={pointOnPath.y}
+            r={isOffPath ? 15 : 25}
+            fill={isOffPath ? '#ef4444' : auraColor}
+            initial={false}
+            animate={{ 
+              r: isOffPath ? 15 : 25,
+              opacity: isOffPath ? 0.5 : 1
+            }}
+            className="drop-shadow-[0_0_20px_rgba(147,51,234,0.8)]"
+          />
+          
+          {/* Goal Marker */}
+          <circle cx="100" cy="50" r="15" fill="none" stroke="white" strokeWidth="2" strokeDasharray="4 4" className="animate-pulse" />
+        </svg>
+
+        <AnimatePresence>
+          {isOffPath && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-red-500/10 pointer-events-none flex items-center justify-center"
+            >
+              <div className="text-[10px] font-black uppercase text-red-500 tracking-[0.5em] animate-bounce">Volte ao Caminho</div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <div className="absolute top-4 right-4 bg-white/10 px-3 py-1 rounded-full text-[8px] font-black uppercase text-white/60 tracking-widest">
+           {Math.round(progress * 100)}%
         </div>
       </div>
+
+      <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.4em] max-w-[200px] text-center leading-relaxed">
+        {t('playground.modes.path.desc')}
+      </p>
     </div>
   );
 }
