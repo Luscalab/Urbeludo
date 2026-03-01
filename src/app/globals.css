@@ -4,20 +4,19 @@
 
 @layer base {
   :root {
-    /* Cafeland Premium Palette */
     --background: 210 100% 98%;
     --foreground: 222 47% 11%;
     --card: 0 0% 100%;
     --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
-    --primary: 262 83% 58%; /* Vibrant Purple */
+    --primary: 262 83% 58%; 
     --primary-foreground: 210 40% 98%;
-    --secondary: 199 89% 48%; /* Sky Blue */
+    --secondary: 199 89% 48%; 
     --secondary-foreground: 222 47% 11%;
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 322 90% 60%; /* Hot Pink */
+    --accent: 322 90% 60%; 
     --accent-foreground: 222 47% 11%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
@@ -56,7 +55,20 @@
       radial-gradient(at 100% 100%, hsla(322, 90%, 60%, 0.05) 0px, transparent 50%);
   }
 
-  .isometric-shadow {
-    filter: drop-shadow(20px 20px 10px rgba(0,0,0,0.1));
+  .animate-pulse-soft {
+    animation: pulse-soft 3s infinite ease-in-out;
+  }
+
+  @keyframes pulse-soft {
+    0%, 100% { opacity: 0.8; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.05); }
+  }
+
+  .aura-glow {
+    filter: drop-shadow(0 0 15px currentColor);
+  }
+
+  .glass-card {
+    @apply bg-white/60 backdrop-blur-lg border border-white/40 shadow-xl;
   }
 }

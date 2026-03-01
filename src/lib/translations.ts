@@ -40,6 +40,7 @@ export const translations = {
       ctaTitle: 'A gravidade é seu playground.',
       ctaDesc: 'Domine seus movimentos e conquiste a estabilidade.',
       connectIdentity: 'Criar Perfil',
+      offlineSeal: 'Soberania de Dados: Processamento 100% Local',
     },
     auth: {
       title: 'UrbeLudo',
@@ -57,52 +58,65 @@ export const translations = {
       edgeAi: 'Sensores Locais: Processamento em tempo real no hardware',
       nameLabel: 'Nome do Herói',
       termsTitle: 'Compromisso de Ludicidade',
+      privacyWarning: 'Voz e Movimento NUNCA saem deste aparelho.',
     },
     playground: {
       selectGame: 'Escolha seu Desafio',
-      waitingStart: 'Inicie o Desafio',
-      centering: 'Centralizando...',
-      stabilizing: 'Estabilizando Aura',
+      workingOn: 'Trabalhando:',
+      startChallenge: 'Iniciar Agora',
       winTitle: 'Desafio Concluído!',
       collectCoins: 'Coletar Moedas',
       modes: {
         balance: {
           title: 'Equilibrista de Auras',
-          desc: 'Mantenha a esfera no centro usando a gravidade.'
+          desc: 'Mantenha a esfera no centro usando a gravidade.',
+          goal: 'Sistema Vestibular e Tônus Muscular'
         },
         rhythm: {
           title: 'Maestro de Auras',
-          desc: 'Balance o celular no ritmo da batuta mágica.'
+          desc: 'Balance o celular no ritmo da batuta mágica.',
+          goal: 'Ritmo e Freio Inibitório'
         },
         path: {
           title: 'Caminho de Luz',
-          desc: 'Guie a Aura pelo labirinto sem tirar o dedo.'
+          desc: 'Guie a Aura pelo labirinto sem tirar o dedo.',
+          goal: 'Coordenação Visomotora e Escrita'
         },
         jump: {
           title: 'O Pulo do Gigante',
-          desc: 'Dê o maior pulo que conseguir para decolar sua Aura!'
+          desc: 'Dê o maior pulo para decolar sua Aura!',
+          goal: 'Motricidade Global e Impulsão'
         },
         twister: {
           title: 'Twister de Auras',
-          desc: 'Segure todos os pontos na tela ao mesmo tempo.'
+          desc: 'Segure todos os pontos na tela ao mesmo tempo.',
+          goal: 'Dissociação Digital e Lateralidade'
         },
         radar: {
           title: 'O Radar Cego',
-          desc: 'Siga o som e aponte para encontrar a Aura escondida.'
+          desc: 'Siga o som para encontrar a Aura escondida.',
+          goal: 'Percepção Espacial e Auditiva'
         },
         breath: {
           title: 'O Sopro Mágico',
-          desc: 'Sopre no microfone para girar o cata-vento!'
+          desc: 'Sopre no microfone para girar o cata-vento!',
+          goal: 'Controle Respiratório e Fonoaudiologia'
         },
         voice: {
           title: 'O Elevador de Voz',
-          desc: 'Controle o elevador com o volume da sua voz.'
+          desc: 'Controle o elevador com o volume da sua voz.',
+          goal: 'Intensidade e Sustentação Vocal'
         },
         pitch: {
           title: 'Montanha Russa Sonora',
-          desc: 'Sons agudos sobem, sons graves descem!'
+          desc: 'Sons agudos sobem, sons graves descem!',
+          goal: 'Modulação de Frequência Vocal'
         }
       }
+    },
+    dashboard: {
+      auraPower: 'Poder da Aura',
+      evolution: 'Sua Aura está evoluindo...',
     },
     tutorial: {
       step1: 'Bem-vindo, {name}! Segure o celular com as duas mãos. Você é o Mestre da Aura!',
@@ -110,91 +124,6 @@ export const translations = {
       step3: 'O som vai te guiar. Quando estiver afinado, você está no caminho certo.',
       step4: 'Conclua os desafios para ganhar LudoCoins e subir de nível!',
       gotIt: 'Vamos Brincar!',
-    }
-  },
-  en: {
-    common: {
-      play: 'Play',
-      gallery: 'Gallery',
-      profile: 'Profile',
-      shop: 'Shop',
-      back: 'Back',
-      next: 'Next',
-      finish: 'Finish',
-      loading: 'Loading...',
-      error: 'Error',
-      success: 'Success',
-      settings: 'Settings',
-      skip: 'Skip',
-      accessibility: 'Accessibility',
-      readPage: 'Read Page',
-      libras: 'Sign Language',
-      stopAudio: 'Stop Audio'
-    },
-    home: {
-      heroTitle: 'Your body is the balance',
-      heroSubtitle: 'Use your phone\'s sensors to master your Digital Aura. The 2026 precision playground in your pocket.',
-      tagline: 'Aura Master - Rhythm and Balance',
-      startJourney: 'Enter Challenge',
-      exploreTech: 'See Science',
-      activePlayers: 'Active Players',
-      coreEngine: 'Vestibular Engine',
-      whyUrbeLudo: 'What is Aura Master?',
-      privacyTitle: 'Total Privacy',
-      privacyDesc: '100% local sensors. No images or sounds are sent online.',
-      psychomotorTitle: 'Body and Mind',
-      psychomotorDesc: 'Stimulates vestibular system, proprioception, and fine motor skills.',
-      aiTitle: 'Orientation Symphony',
-      aiDesc: 'Sound reacts to every millimeter of your movement.',
-      mobileTitle: 'Offline and Safe',
-      mobileDesc: 'Works anywhere, no camera or internet needed.',
-      ctaTitle: 'Gravity is your playground.',
-      ctaDesc: 'Master your movements and conquer stability.',
-      connectIdentity: 'Create Profile',
-    },
-    playground: {
-      selectGame: 'Choose your Challenge',
-      waitingStart: 'Start Challenge',
-      winTitle: 'Challenge Complete!',
-      collectCoins: 'Collect Coins',
-      modes: {
-        balance: {
-          title: 'Aura Balancer',
-          desc: 'Keep the sphere centered using gravity.'
-        },
-        rhythm: {
-          title: 'Aura Maestro',
-          desc: 'Shake the phone to the rhythm of the magic baton.'
-        },
-        path: {
-          title: 'Path of Light',
-          desc: 'Guide the Aura through the maze without lifting your finger.'
-        },
-        jump: {
-          title: 'The Giant\'s Jump',
-          desc: 'Jump as high as you can to launch your Aura!'
-        },
-        twister: {
-          title: 'Aura Twister',
-          desc: 'Hold all points on the screen at the same time.'
-        },
-        radar: {
-          title: 'The Blind Radar',
-          desc: 'Follow the sound and point to find the hidden Aura.'
-        },
-        breath: {
-          title: 'Magic Breath',
-          desc: 'Blow into the microphone to spin the windmill!'
-        },
-        voice: {
-          title: 'Voice Elevator',
-          desc: 'Control the elevator with your voice volume.'
-        },
-        pitch: {
-          title: 'Sound Rollercoaster',
-          desc: 'High sounds go up, low sounds go down!'
-        }
-      }
     }
   }
 };
