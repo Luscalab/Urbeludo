@@ -41,21 +41,21 @@ export function FloatingAuraBot() {
   const [isLoading, setIsLoading] = useState(false);
   const [clickCount, setClickCount] = useState(0);
   
-  const scrollRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const isSapient = profile?.email === 'sapientcontato@gmail.com';
 
-  // Função para rolar até o fim
+  // Função robusta de Scroll Automático
   const scrollToBottom = useCallback(() => {
     if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
   }, []);
 
-  // Rola sempre que mensagens mudam ou o bot carrega
+  // Dispara o scroll sempre que a lista de mensagens mudar ou o estado de loading alterar
   useEffect(() => {
     if (isOpen) {
-      setTimeout(scrollToBottom, 100);
+      const timer = setTimeout(scrollToBottom, 100);
+      return () => clearTimeout(timer);
     }
   }, [messages, isLoading, isOpen, scrollToBottom]);
 
@@ -63,6 +63,7 @@ export function FloatingAuraBot() {
     const trimmed = text.trim();
     if (!trimmed || isLoading) return;
 
+    // Adiciona mensagem do usuário
     setMessages(prev => [...prev, { role: 'user', text: trimmed }]);
     setIsLoading(true);
 
@@ -74,7 +75,7 @@ export function FloatingAuraBot() {
       
       setMessages(prev => [...prev, { role: 'bot', text: response.answer }]);
     } catch (error) {
-      AuraLogger.error('AuraBot', 'Erro ao processar', error);
+      AuraLogger.error('AuraBot', 'Erro ao processar mensagem', error);
       setMessages(prev => [...prev, { role: 'bot', text: "Minha sincronia oscilou. Vamos tentar novamente?" }]);
     } finally {
       setIsLoading(false);
@@ -144,7 +145,7 @@ export function FloatingAuraBot() {
                   )}
                 </div>
 
-                <ScrollArea className="flex-1 p-6" ref={scrollRef}>
+                <ScrollArea className="flex-1 p-6">
                   <div className="space-y-4 pb-4">
                     {messages.map((msg, idx) => (
                       <div key={idx} className={cn("flex flex-col max-w-[85%]", msg.role === 'bot' ? "items-start" : "items-end ml-auto")}>
@@ -161,7 +162,7 @@ export function FloatingAuraBot() {
                       </div>
                     )}
                     
-                    {/* Marcador para scroll automático */}
+                    {/* Elemento de referência para o Scroll Automático */}
                     <div ref={messagesEndRef} className="h-1 w-full" />
                   </div>
                 </ScrollArea>
