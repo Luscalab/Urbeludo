@@ -36,13 +36,13 @@ export function FloatingAuraBot() {
   const [isLogViewerOpen, setIsLogViewerOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'bot', text: 'Olá, Explorador! Sou o AuraHelper. Como posso ajudar no seu treino hoje?' }
+    { role: 'bot', text: 'Olá! Sou o AuraHelper. Estou pronto para te guiar no seu treino de hoje!' }
   ]);
   const [isLoading, setIsLoading] = useState(false);
   const [clickCount, setClickCount] = useState(0);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const isSapient = profile?.email === 'sapientcontato@gmail.com';
+  const isSapient = profile?.email === 'sapientcontato@gmail.com' || profile?.displayName?.toLowerCase() === 'sapient';
 
   const scrollToBottom = useCallback(() => {
     if (messagesEndRef.current) {
@@ -67,13 +67,13 @@ export function FloatingAuraBot() {
     try {
       const response = await askAuraHelper({
         question: trimmed,
-        context: `Local: ${pathname}`
+        context: `Navegando em: ${pathname}`
       });
       
       setMessages(prev => [...prev, { role: 'bot', text: response.answer }]);
     } catch (error) {
-      AuraLogger.error('AuraBot', 'Erro no processamento', error);
-      setMessages(prev => [...prev, { role: 'bot', text: "Minha sincronia oscilou. Vamos tentar novamente?" }]);
+      AuraLogger.error('AuraBot', 'Erro ao processar mensagem', error);
+      setMessages(prev => [...prev, { role: 'bot', text: "Senti uma interferência na Aura. Pode repetir a pergunta?" }]);
     } finally {
       setIsLoading(false);
     }
@@ -115,7 +115,7 @@ export function FloatingAuraBot() {
           >
             {isOpen ? <ChevronDown className="w-4 h-4" /> : <BrainCircuit className="w-5 h-5 animate-pulse" />}
             <span className="text-[10px] font-black uppercase tracking-widest">
-              {isOpen ? 'Fechar' : 'AuraHelper'}
+              {isOpen ? 'Fechar Aura' : 'AuraHelper'}
             </span>
           </motion.button>
 
@@ -125,15 +125,15 @@ export function FloatingAuraBot() {
                 initial={{ opacity: 0, y: -20, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -20, scale: 0.95 }}
-                className="pointer-events-auto mt-4 w-full bg-white rounded-[2.5rem] shadow-2xl border-4 border-primary/5 flex flex-col overflow-hidden max-h-[520px]"
+                className="pointer-events-auto mt-4 w-full bg-white rounded-[2.5rem] shadow-2xl border-4 border-primary/5 flex flex-col overflow-hidden max-h-[550px]"
               >
                 <div className="p-6 bg-primary/5 border-b flex items-center gap-4">
                   <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-white shadow-lg">
                     <Sparkles className="w-6 h-6" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-sm font-black uppercase italic tracking-tighter text-slate-900">Guia Sensorial</h3>
-                    <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">IA Híbrida Direta</p>
+                    <h3 className="text-sm font-black uppercase italic tracking-tighter text-slate-900">Guia de Movimento</h3>
+                    <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">IA de Borda Híbrida Ativa</p>
                   </div>
                   {isSapient && (
                     <button onClick={() => setIsLogViewerOpen(true)} className="p-2.5 hover:bg-slate-100 rounded-xl text-slate-400">

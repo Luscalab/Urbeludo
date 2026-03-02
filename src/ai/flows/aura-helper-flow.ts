@@ -1,15 +1,15 @@
 'use client';
 /**
- * @fileOverview AuraHelper - Fluxo de Resposta com Filtro Semântico de Borda.
- * Otimizado para evitar erros de 404 no Gemini e garantir estabilidade no APK.
+ * @fileOverview AuraHelper - Fluxo de Resposta Otimizado para APK.
+ * Triagem de Borda (Determinístico) + Fallback Gemini 1.5 Flash.
  */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { AuraLogger } from "@/lib/logs/aura-logger";
 import { STATIC_AURA_RESPONSES } from "@/lib/static-responses";
 
-const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "AIzaSyCCwhUNlhnpxjDuZ8quod7MTnde1dZJj04";
-const genAI = new GoogleGenerativeAI(API_KEY);
+const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
+const genAI = API_KEY ? new GoogleGenerativeAI(API_KEY) : null;
 
 export interface AuraHelperInput {
   question: string;
@@ -23,16 +23,16 @@ export interface AuraHelperOutput {
 
 /**
  * Processa a pergunta do usuário. 
- * Tenta primeiro o Filtro Semântico de Borda e depois o Gemini 1.5 Flash.
+ * Implementa Filtro de Borda para latência zero e Gemini para complexidade.
  */
 export async function askAuraHelper(input: AuraHelperInput): Promise<AuraHelperOutput> {
   const query = input.question.trim().toLowerCase();
-  AuraLogger.info('AuraFlow', `Triagem Semântica: "${query}"`);
+  AuraLogger.info('AuraFlow', `Iniciando triagem: "${query}"`);
   
-  // 1. FILTRO SEMÂNTICO DE BORDA (DETERMINÍSTICO)
+  // 1. FILTRO DE BORDA (RESPOSTAS ESTÁTICAS)
   for (const item of STATIC_AURA_RESPONSES) {
     if (item.keywords.some(kw => query.includes(kw))) {
-      AuraLogger.info('AuraFlow', 'Resposta de Borda encontrada.');
+      AuraLogger.info('AuraFlow', 'Resposta de Borda encontrada (Latência Zero).');
       return {
         answer: item.answer,
         suggestedAction: item.suggestedAction
@@ -40,11 +40,17 @@ export async function askAuraHelper(input: AuraHelperInput): Promise<AuraHelperO
     }
   }
 
-  // 2. FALLBACK PARA GEMINI (QUANDO É COMPLEXO)
+  // 2. VERIFICAÇÃO DE API KEY
+  if (!genAI) {
+    AuraLogger.warn('AuraFlow', 'NEXT_PUBLIC_GEMINI_API_KEY não configurada.');
+    return {
+      answer: "Ops! Minha conexão com o servidor de inteligência está em manutenção. Verifique as configurações da API Key no seu ambiente.",
+      suggestedAction: "Configurar API"
+    };
+  }
+
+  // 3. FALLBACK PARA GEMINI CLOUD (PARA COMPLEXIDADE)
   try {
-    AuraLogger.info('AuraFlow', 'Consultando Gemini Cloud...');
-    
-    // Usamos o identificador de modelo estável
     const model = genAI.getGenerativeModel({ 
       model: "gemini-1.5-flash",
       generationConfig: {
@@ -57,28 +63,25 @@ export async function askAuraHelper(input: AuraHelperInput): Promise<AuraHelperO
       
       Diretrizes:
       - Resposta em Português (Brasil).
-      - Máximo 2 frases curtas.
-      - Tom encorajador e amigável.
+      - Tom encorajador, amigável e focado em psicomotricidade.
+      - Se o usuário parecer cansado ou com dificuldades no 'Elevador de Voz', sugira a 'Nuvem de Sopro'.
       
       Pergunta: "${query}"
-      Contexto: "${input.context || 'Exploração'}"
+      Contexto Atual: "${input.context || 'Exploração Livre'}"
       
       Retorne APENAS um JSON: {"answer": "...", "suggestedAction": "..."}`;
 
     const result = await model.generateContent(prompt);
-    const responseText = result.response.text();
+    const text = result.response.text().replace(/```json|```/g, "").trim();
     
-    // Limpeza de segurança para o JSON (remove blocos de código se houver)
-    const cleanJson = responseText.replace(/```json|```/g, "").trim();
-    return JSON.parse(cleanJson) as AuraHelperOutput;
+    return JSON.parse(text) as AuraHelperOutput;
     
   } catch (error: any) {
-    // Log detalhado para depuração sem travar a UI
-    AuraLogger.error('AuraFlow', 'Falha no fallback Cloud', error.message || error);
+    AuraLogger.error('AuraFlow', 'Erro no fallback Gemini', error.message || error);
     
     return {
-      answer: "Minha conexão com a Grande Aura oscilou. Vamos focar no seu movimento agora?",
-      suggestedAction: "Ir para Treino"
+      answer: "Minha sincronia com a nuvem oscilou. Vamos focar no seu movimento agora? Tente me perguntar sobre 'como jogar' ou 'moedas'!",
+      suggestedAction: "Ver Sugestões"
     };
   }
 }
