@@ -66,32 +66,45 @@ export async function askAuraHelper(input: AuraHelperInput): Promise<AuraHelperO
   // 2. FALLBACK PARA GEMINI (QUANDO NÃO HÁ RESPOSTA PRONTA)
   try {
     AuraLogger.info('AuraFlow', 'Consultando Gemini para resposta complexa...');
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-1.5-flash",
+      generationConfig: {
+        responseMimeType: "application/json",
+      }
+    });
     
-    const prompt = `Você é o AuraHelper, assistente do app de psicomotricidade UrbeLudo.
-      Responda de forma muito curta (máximo 2 frases), lúdica e acolhedora.
-      Use termos como "Explorador", "Aura" e "Movimento".
+    const prompt = `Você é o AuraHelper, o guia de inteligência do aplicativo de psicomotricidade UrbeLudo.
+      Sua missão é responder perguntas sobre movimento, saúde, o app ou qualquer dúvida do usuário de forma lúdica.
+      
+      Diretrizes:
+      - Responda em Português (Brasil).
+      - Seja muito curto (máximo 2 frases).
+      - Use um tom encorajador e amigável.
+      - Se a pergunta for totalmente fora de contexto, responda de forma criativa ligando ao tema de "exploração" ou "energia".
       
       Pergunta do Usuário: "${query}"
-      Contexto Atual: "${input.context || 'Exploração'}"
+      Contexto Atual: "${input.context || 'Exploração Livre'}"
       
-      Retorne OBRIGATORIAMENTE apenas um JSON puro, sem markdown, com os campos: 
-      {"answer": "sua resposta aqui", "suggestedAction": "uma ação curta"}`;
+      Retorne OBRIGATORIAMENTE apenas um JSON puro com este formato: 
+      {"answer": "sua resposta aqui", "suggestedAction": "uma ação curta de 2-3 palavras"}`;
 
     const result = await model.generateContent(prompt);
-    const responseText = result.response.text();
+    const response = await result.response;
+    const responseText = response.text();
     
-    // Limpeza de possíveis marcações de markdown do modelo
-    const jsonString = responseText.replace(/```json|```/g, "").trim();
-    const data = JSON.parse(jsonString) as AuraHelperOutput;
+    // Limpeza de segurança para garantir que o JSON seja parseado
+    const cleanJson = responseText.replace(/```json|```/g, "").trim();
+    const data = JSON.parse(cleanJson) as AuraHelperOutput;
     
     AuraLogger.info('AuraFlow', 'Resposta do Gemini processada com sucesso.');
     return data;
   } catch (error: any) {
     AuraLogger.error('AuraFlow', 'Falha no fallback Gemini', error.message);
+    
+    // Fallback amigável em caso de erro real de API/Rede
     return {
-      answer: "Minha sincronia com a rede lúdica oscilou um pouco. Que tal tentar uma das missões sugeridas abaixo?",
-      suggestedAction: "Ver Missões"
+      answer: "Minha conexão com a rede de dados oscilou. Que tal tentarmos um dos desafios de movimento agora?",
+      suggestedAction: "Ir para Missões"
     };
   }
 }
