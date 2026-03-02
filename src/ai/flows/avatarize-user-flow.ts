@@ -1,3 +1,4 @@
+
 'use client';
 /**
  * @fileOverview AvatarizeUser 2026 - Gemini 3 Flash Preview.
@@ -37,8 +38,8 @@ export async function avatarizeUser(input: { photoDataUri: string }): Promise<Av
     const [mimeType, base64Data] = input.photoDataUri.split(',');
     const pureMime = mimeType.match(/data:(.*?);/)?.[1] || "image/jpeg";
 
-    const prompt = `Designer UrbeLudo 2026: Analise a foto e identifique traços faciais para criar um avatar.
-    Retorne apenas JSON com: hair (style, color hex, texture), eyes (shape, color hex, eyebrowShape), face (shape, tone hex, undertone, noseShape, mouthShape), accessories (array), dominantColor (hex), accessoryType, avatarStyleDescription.`;
+    const prompt = `Designer UrbeLudo 2026: Analise a foto e identifique traços faciais para criar um avatar futurista.
+    Retorne apenas JSON puro: {"hair": {"style": "...", "color": "...", "texture": "..."}, "eyes": {"shape": "...", "color": "...", "eyebrowShape": "..."}, "face": {"shape": "...", "tone": "...", "undertone": "...", "noseShape": "...", "mouthShape": "..."}, "accessories": [], "dominantColor": "...", "accessoryType": "...", "avatarStyleDescription": "..."}`;
 
     const result = await model.generateContent([prompt, { inlineData: { data: base64Data, mimeType: pureMime } }]);
     const text = result.response.text().replace(/```json|```/g, "").trim();

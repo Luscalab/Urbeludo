@@ -1,10 +1,11 @@
+
 import type {Metadata, Viewport} from 'next';
 import './globals.css';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { AuthInitializer } from '@/components/AuthInitializer';
 import { Toaster } from '@/components/ui/toaster';
 import { I18nProvider } from '@/components/I18nProvider';
-import { FloatingAuraBot } from '@/components/FloatingAuraBot';
+import { AuraHelper } from '@/components/AuraHelper';
 
 export const metadata: Metadata = {
   title: 'UrbeLudo | Playground Urbano Digital',
@@ -42,7 +43,7 @@ export default function RootLayout({
         <FirebaseClientProvider>
           <I18nProvider>
             <AuthInitializer>
-              <FloatingAuraBot />
+              <AuraHelper />
               {children}
             </AuthInitializer>
             <Toaster />

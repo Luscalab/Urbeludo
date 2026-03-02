@@ -1,7 +1,8 @@
+
 'use client';
 /**
  * @fileOverview Serviço de IA AuraBot 2026 - SPSP.
- * Focado em relatórios clínicos e feedbacks lúdicos.
+ * Modelo: gemini-3-flash-preview.
  */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";

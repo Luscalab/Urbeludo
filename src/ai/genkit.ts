@@ -1,9 +1,10 @@
+
 import {genkit} from 'genkit';
 import {googleAI} from '@genkit-ai/google-genai';
 
 /**
  * Inicialização Genkit 2026 - UrbeLudo.
- * Atualizado para gemini-3-flash-preview.
+ * Modelo: gemini-3-flash-preview para máxima performance.
  */
 export const ai = genkit({
   plugins: [

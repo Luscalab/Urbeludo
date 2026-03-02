@@ -1,3 +1,4 @@
+
 'use client';
 /**
  * @fileOverview Identificação Urbana 2026 - Gemini 3 Flash Preview.
@@ -26,7 +27,7 @@ export async function identifyUrbanElements(input: { webcamFeedDataUri: string }
     const pureMime = mimeType.match(/data:(.*?);/)?.[1] || "image/jpeg";
 
     const prompt = `Analista Urbano 2026: Identifique elementos arquitetônicos na imagem para psicomotricidade.
-    Retorne um JSON puro: {"elements": [{"type": "...", "description": "...", "location": "..."}]}`;
+    Retorne um JSON puro: {"elements": [{"type": "line|step|wall|other", "description": "...", "location": "..."}]}`;
 
     const result = await model.generateContent([prompt, { inlineData: { data: base64Data, mimeType: pureMime } }]);
     const text = result.response.text().replace(/```json|```/g, "").trim();

@@ -1,8 +1,9 @@
+
 'use client';
 /**
- * @fileOverview AuraHelper - Fluxo de Resposta 2026 (SPSP).
- * Prioriza Borda Determinística + Gemini 3 Flash Preview.
- * 100% Client-Side para compatibilidade com build estático APK.
+ * @fileOverview AuraHelper - Fluxo de Resposta 2026.
+ * Modelo: gemini-3-flash-preview.
+ * 100% Client-Side.
  */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -38,7 +39,7 @@ export async function askAuraHelper(input: AuraHelperInput): Promise<AuraHelperO
   }
 
   // 2. SEGURANÇA DE API
-  if (!genAI) {
+  if (!genAI || !API_KEY) {
     AuraLogger.warn('AuraFlow', 'API Key ausente. Usando modo de segurança.');
     return {
       answer: "Minha conexão com a nuvem de 2026 está desativada. Tente perguntar sobre 'moedas' ou 'como jogar'.",
@@ -56,7 +57,7 @@ export async function askAuraHelper(input: AuraHelperInput): Promise<AuraHelperO
     });
     
     const prompt = `Você é o AuraHelper do UrbeLudo 2026.
-      Responda sobre psicomotricidade, ludo-coins ou o app.
+      Responda sobre psicomotricidade, ludo-coins ou o app de forma lúdica.
       
       Pergunta: "${query}"
       Contexto: "${input.context || 'Exploração Livre'}"

@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -119,10 +120,12 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
       {gameMode === 'select' ? (
         <div className="flex-1 p-8 flex flex-col items-center gap-10 overflow-y-auto no-scrollbar">
           <h2 className="text-4xl font-black uppercase italic text-white">Missões</h2>
-          <div className="grid gap-4 w-full max-w-sm">
+          <div className="grid gap-4 w-full max-w-sm pb-10">
             <GameModeCard icon={<Move />} title="Equilíbrio" desc="Mantenha a bolha estável." color="bg-blue-500" onClick={() => handleModeSelect('balance')} />
             <GameModeCard icon={<Volume2 />} title="Elevador de Voz" desc="Use sua voz para subir." color="bg-pink-500" onClick={() => handleModeSelect('voice')} />
             <GameModeCard icon={<Wind />} title="Nuvem de Sopro" desc="Sopre para girar o moinho." color="bg-teal-500" onClick={() => handleModeSelect('breath')} />
+            <GameModeCard icon={<Music />} title="Maestro de Fluxo" desc="Siga o ritmo da Aura." color="bg-purple-500" onClick={() => handleModeSelect('rhythm')} />
+            <GameModeCard icon={<Fingerprint />} title="Caminho de Luz" desc="Trace as linhas do amanhã." color="bg-orange-500" onClick={() => handleModeSelect('path')} />
           </div>
         </div>
       ) : (
@@ -155,6 +158,8 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
             )}
             {gameMode === 'balance' && <div className="flex-1 flex items-center justify-center text-white font-black uppercase pt-24">Modo Equilíbrio Ativo</div>}
             {gameMode === 'breath' && <div className="flex-1 flex items-center justify-center text-white font-black uppercase pt-24">Modo Sopro Ativo</div>}
+            {gameMode === 'rhythm' && <div className="flex-1 flex items-center justify-center text-white font-black uppercase pt-24">Modo Maestro Ativo</div>}
+            {gameMode === 'path' && <div className="flex-1 flex items-center justify-center text-white font-black uppercase pt-24">Modo Caminho Ativo</div>}
           </AnimatePresence>
         </div>
       )}
