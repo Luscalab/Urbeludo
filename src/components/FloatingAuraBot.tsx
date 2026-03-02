@@ -44,14 +44,12 @@ export function FloatingAuraBot() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const isSapient = profile?.email === 'sapientcontato@gmail.com';
 
-  // Função robusta de Scroll Automático
   const scrollToBottom = useCallback(() => {
     if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, []);
 
-  // Dispara o scroll sempre que a lista de mensagens mudar ou o estado de loading alterar
   useEffect(() => {
     if (isOpen) {
       const timer = setTimeout(scrollToBottom, 100);
@@ -63,19 +61,18 @@ export function FloatingAuraBot() {
     const trimmed = text.trim();
     if (!trimmed || isLoading) return;
 
-    // Adiciona mensagem do usuário
     setMessages(prev => [...prev, { role: 'user', text: trimmed }]);
     setIsLoading(true);
 
     try {
       const response = await askAuraHelper({
         question: trimmed,
-        context: `Navegando em: ${pathname}`
+        context: `Local: ${pathname}`
       });
       
       setMessages(prev => [...prev, { role: 'bot', text: response.answer }]);
     } catch (error) {
-      AuraLogger.error('AuraBot', 'Erro ao processar mensagem', error);
+      AuraLogger.error('AuraBot', 'Erro no processamento', error);
       setMessages(prev => [...prev, { role: 'bot', text: "Minha sincronia oscilou. Vamos tentar novamente?" }]);
     } finally {
       setIsLoading(false);
@@ -135,8 +132,8 @@ export function FloatingAuraBot() {
                     <Sparkles className="w-6 h-6" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-sm font-black uppercase italic tracking-tighter text-slate-900">Guia de Sensibilidade</h3>
-                    <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">IA Híbrida Ativa</p>
+                    <h3 className="text-sm font-black uppercase italic tracking-tighter text-slate-900">Guia Sensorial</h3>
+                    <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">IA Híbrida Direta</p>
                   </div>
                   {isSapient && (
                     <button onClick={() => setIsLogViewerOpen(true)} className="p-2.5 hover:bg-slate-100 rounded-xl text-slate-400">
@@ -161,8 +158,6 @@ export function FloatingAuraBot() {
                         <span className="text-[8px] font-black uppercase text-muted-foreground">Sintonizando...</span>
                       </div>
                     )}
-                    
-                    {/* Elemento de referência para o Scroll Automático */}
                     <div ref={messagesEndRef} className="h-1 w-full" />
                   </div>
                 </ScrollArea>
