@@ -1,6 +1,7 @@
+
 /**
  * Utilitário de Catálogo de Avatares Universal.
- * Mapeia nomes de arquivos para caminhos acessíveis pelo navegador com fallback robusto.
+ * Mapeia IDs para imagens do Picsum para evitar erros 404 no MVP Standalone.
  */
 
 export interface AvatarAsset {
@@ -9,48 +10,39 @@ export interface AvatarAsset {
   src: string;
 }
 
-// Lista estática de avatares disponíveis
+// IDs dos avatares disponíveis
 export const STATIC_AVATAR_LIST = [
-  "avatar1.png",
-  "avatar2.png",
-  "avatar3.png",
-  "hero_default.png"
+  "explorer-1",
+  "explorer-2",
+  "explorer-3",
+  "explorer-default"
 ];
 
-export const FALLBACK_AVATAR_SRC = "https://picsum.photos/seed/urbeludo/400/400";
-
 /**
- * Resolve o caminho da imagem baseando-se no diretório /assets/avatars/
- * Caso a imagem não exista (404), o componente deve lidar com o onError
- * ou usar o fallback definido aqui.
+ * Resolve o caminho da imagem usando Picsum para garantir que sempre haja uma imagem.
  */
-export const getAvatarById = (filename: string | null | undefined): AvatarAsset => {
-  if (!filename || filename === '') {
+export const getAvatarById = (id: string | null | undefined): AvatarAsset => {
+  if (!id || id === '') {
     return {
       id: 'placeholder',
       name: 'Explorador',
-      src: FALLBACK_AVATAR_SRC
+      src: "https://picsum.photos/seed/urbeludo-guest/400/600"
     };
   }
 
   // Se for uma URL externa ou gerada por IA
-  if (filename.startsWith('http') || filename.startsWith('data:')) {
+  if (id.startsWith('http') || id.startsWith('data:')) {
     return {
-      id: filename,
+      id: id,
       name: 'Identidade Especial',
-      src: filename
+      src: id
     };
   }
 
-  // Caminho padrão para ativos locais no APK.
-  // IMPORTANTE: Adicionamos um seed baseado no nome para que o fallback seja consistente
-  const fallback = `https://picsum.photos/seed/${filename}/400/400`;
-
+  // Usamos picsum com seed baseado no ID para consistência visual sem depender de arquivos locais no APK
   return {
-    id: filename,
-    name: filename.split('.')[0].replace(/[-_]/g, ' '),
-    src: `/assets/avatars/${filename}`,
-    // @ts-ignore - Propriedade extra para facilitar o uso de fallbacks em componentes
-    fallbackSrc: fallback
+    id: id,
+    name: id.replace(/[-_]/g, ' '),
+    src: `https://picsum.photos/seed/${id}/400/600`
   };
 };

@@ -37,8 +37,8 @@ import { saveToSheets } from '@/lib/sheets';
 type GameMode = 'select' | 'balance' | 'rhythm' | 'path' | 'breath' | 'voice';
 
 const VOICE_ASSETS = {
-  roboParado: "/games/elevador/2.png",
-  roboCantando: "/games/elevador/3.png",
+  roboParado: "https://picsum.photos/seed/robo1/200/200",
+  roboCantando: "https://picsum.photos/seed/robo2/200/200",
 };
 
 const GameModeCard = React.memo(({ icon, title, desc, color, onClick }: any) => {
@@ -116,11 +116,11 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
   }
 
   return (
-    <div className="flex-1 bg-slate-950 flex flex-col relative overflow-hidden">
+    <div className="flex-1 bg-slate-950 flex flex-col relative overflow-hidden min-h-screen">
       {gameMode === 'select' ? (
         <div className="flex-1 p-8 flex flex-col items-center gap-10 overflow-y-auto no-scrollbar">
-          <h2 className="text-4xl font-black uppercase italic text-white">Missões</h2>
-          <div className="grid gap-4 w-full max-w-sm pb-10">
+          <h2 className="text-4xl font-black uppercase italic text-white mt-4">Missões 2026</h2>
+          <div className="grid gap-4 w-full max-w-sm pb-24">
             <GameModeCard icon={<Move />} title="Equilíbrio" desc="Mantenha a bolha estável." color="bg-blue-500" onClick={() => handleModeSelect('balance')} />
             <GameModeCard icon={<Volume2 />} title="Elevador de Voz" desc="Use sua voz para subir." color="bg-pink-500" onClick={() => handleModeSelect('voice')} />
             <GameModeCard icon={<Wind />} title="Nuvem de Sopro" desc="Sopre para girar o moinho." color="bg-teal-500" onClick={() => handleModeSelect('breath')} />
@@ -129,7 +129,7 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
           </div>
         </div>
       ) : (
-        <div className="flex-1 relative flex flex-col">
+        <div className="flex-1 relative flex flex-col h-full">
           <header className="absolute top-0 inset-x-0 p-8 flex items-center justify-between z-50">
             <Button variant="ghost" size="icon" onClick={() => setGameMode('select')} className="text-white/40 bg-white/5 rounded-2xl">
               <ArrowLeft className="w-6 h-6" />
@@ -156,8 +156,26 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
                 onSuggestBreath={() => setGameMode('breath')}
               />
             )}
-            {gameMode === 'balance' && <div className="flex-1 flex items-center justify-center text-white font-black uppercase pt-24">Modo Equilíbrio Ativo</div>}
-            {gameMode === 'breath' && <div className="flex-1 flex items-center justify-center text-white font-black uppercase pt-24">Modo Sopro Ativo</div>}
+            {gameMode === 'balance' && (
+              <motion.div initial={{opacity:0}} animate={{opacity:1}} className="flex-1 flex flex-col items-center justify-center text-white p-10 text-center gap-6">
+                <div className="w-32 h-32 rounded-full border-4 border-blue-500 flex items-center justify-center animate-pulse">
+                  <Move className="w-16 h-16 text-blue-500" />
+                </div>
+                <h3 className="text-xl font-black uppercase">Equilíbrio Ativo</h3>
+                <p className="text-xs opacity-60">Mantenha a postura para estabilizar a Aura.</p>
+                <Button onClick={() => handleWin(40, 'Mestre do Equilíbrio')} className="bg-blue-600 rounded-full font-black uppercase">Finalizar Treino</Button>
+              </motion.div>
+            )}
+            {gameMode === 'breath' && (
+              <motion.div initial={{opacity:0}} animate={{opacity:1}} className="flex-1 flex flex-col items-center justify-center text-white p-10 text-center gap-6">
+                <div className="w-32 h-32 rounded-full border-4 border-teal-500 flex items-center justify-center animate-spin-slow">
+                  <Wind className="w-16 h-16 text-teal-500" />
+                </div>
+                <h3 className="text-xl font-black uppercase">Nuvem de Sopro</h3>
+                <p className="text-xs opacity-60">Controle sua respiração para limpar a tela.</p>
+                <Button onClick={() => handleWin(35, 'Mestre do Sopro')} className="bg-teal-600 rounded-full font-black uppercase">Finalizar Treino</Button>
+              </motion.div>
+            )}
             {gameMode === 'rhythm' && <div className="flex-1 flex items-center justify-center text-white font-black uppercase pt-24">Modo Maestro Ativo</div>}
             {gameMode === 'path' && <div className="flex-1 flex items-center justify-center text-white font-black uppercase pt-24">Modo Caminho Ativo</div>}
           </AnimatePresence>
@@ -235,7 +253,7 @@ function VoiceGame({ onWin, userName, highContrast, onSuggestBreath }: any) {
   }, [progress, userName, onWin]);
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-8 space-y-12">
+    <div className="flex-1 flex flex-col items-center justify-center p-8 space-y-12 h-full">
       <div className="relative w-full max-w-xs h-80 bg-slate-900 rounded-[3rem] border-4 border-white/10 overflow-hidden flex flex-col justify-end">
         
         <div className={cn(

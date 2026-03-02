@@ -30,11 +30,9 @@ const nextConfig: NextConfig = {
     };
     return config;
   },
-  experimental: {
-    turbo: {
-      resolveAlias: {
-        '@mediapipe/pose': './src/lib/mediapipe-shim.ts',
-      },
+  turbopack: {
+    resolveAlias: {
+      '@mediapipe/pose': './src/lib/mediapipe-shim.ts',
     },
   },
 };
