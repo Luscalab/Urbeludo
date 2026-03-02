@@ -181,7 +181,6 @@ function VoiceGame({ onWin, userName, highContrast, onSuggestBreath }: any) {
   const [isStable, setIsStable] = useState(false);
   const [showFailDialog, setShowFailDialog] = useState(false);
 
-  // Refs para evitar a recriação do intervalo toda vez que o volume muda
   const volumeRef = useRef(volume);
   const progressRef = useRef(progress);
 
@@ -202,7 +201,6 @@ function VoiceGame({ onWin, userName, highContrast, onSuggestBreath }: any) {
         setProgress(prev => Math.max(0, prev - 0.5));
       }
 
-      // Detecção de falha por silêncio durante o esforço
       if (v < 5 && p > 10 && p < 95) {
          setFails(f => {
            const newFails = f + 1;
@@ -214,7 +212,7 @@ function VoiceGame({ onWin, userName, highContrast, onSuggestBreath }: any) {
     }, 100);
 
     return () => clearInterval(timer);
-  }, []); // Monta uma única vez
+  }, []);
 
   useEffect(() => {
     if (progress >= 100) {
