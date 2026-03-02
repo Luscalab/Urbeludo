@@ -4,8 +4,9 @@
 import { useState, useEffect, useRef } from 'react';
 
 /**
- * Hook de Processamento de Áudio para o UrbeLudo.
+ * Hook de Processamento de Áudio para o UrbeLudo 2026.
  * Utiliza a Web Audio API nativa para análise de volume em tempo real (RMS).
+ * Otimizado para baixa latência em dispositivos móveis (Android/APK).
  */
 export const useAudioProcessor = (isActive: boolean) => {
   const [volume, setVolume] = useState(0);
@@ -19,9 +20,7 @@ export const useAudioProcessor = (isActive: boolean) => {
 
   useEffect(() => {
     if (!isActive) {
-      if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
-      streamRef.current?.getTracks().forEach(track => track.stop());
-      audioContextRef.current?.close().catch(() => {});
+      cleanup();
       return;
     }
 
@@ -36,8 +35,9 @@ export const useAudioProcessor = (isActive: boolean) => {
         const source = context.createMediaStreamSource(stream);
         const analyser = context.createAnalyser();
 
+        // Configuração para voz humana
         analyser.fftSize = 512; 
-        analyser.smoothingTimeConstant = 0.4; 
+        analyser.smoothingTimeConstant = 0.3; // Suavização equilibrada para biofeedback
         source.connect(analyser);
         
         audioContextRef.current = context;
@@ -51,7 +51,7 @@ export const useAudioProcessor = (isActive: boolean) => {
           
           analyserRef.current.getByteTimeDomainData(dataArray);
           
-          // Cálculo de RMS (Root Mean Square) para detecção precisa de amplitude vocal
+          // Cálculo de RMS (Root Mean Square) para detecção estável de amplitude vocal
           let sumSquares = 0.0;
           for (let i = 0; i < bufferLength; i++) {
             const normalized = (dataArray[i] - 128) / 128;
@@ -59,11 +59,12 @@ export const useAudioProcessor = (isActive: boolean) => {
           }
           const rms = Math.sqrt(sumSquares / bufferLength);
           
-          // Mapeamento logarítmico para escala 0-100 mais natural ao ouvido humano
-          const normalizedVol = Math.min(100, rms * 500);
+          // Mapeamento logarítmico para escala 0-100 intuitiva
+          const normalizedVol = Math.min(100, rms * 600);
           
-          setVolume(prev => (prev * 0.4) + (normalizedVol * 0.6)); 
-          setIsSinging(rms > 0.02); 
+          // Suavização exponencial para evitar trepidação no elevador
+          setVolume(prev => (prev * 0.3) + (normalizedVol * 0.7)); 
+          setIsSinging(rms > 0.015); 
 
           animationFrameRef.current = requestAnimationFrame(updateVolume);
         };
@@ -77,12 +78,18 @@ export const useAudioProcessor = (isActive: boolean) => {
 
     startAudio();
 
-    return () => {
-      if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
-      streamRef.current?.getTracks().forEach(track => track.stop());
-      audioContextRef.current?.close().catch(() => {});
-    };
+    return cleanup;
   }, [isActive]);
+
+  const cleanup = () => {
+    if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+    }
+    if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+      audioContextRef.current.close().catch(() => {});
+    }
+  };
 
   return { volume, isSinging, error };
 };
