@@ -1,22 +1,22 @@
 /**
- * @fileOverview AuraWorker - Motor Transformers.js otimizado.
- * Lida com fila de mensagens e carregamento assíncrono para não travar a UI.
+ * @fileOverview AuraWorker - Motor Transformers.js otimizado para não travar a UI.
+ * Implementa throttling de progresso para evitar inundar a thread principal.
  */
 
 import { pipeline, env } from '@xenova/transformers';
 
-// Configurações para ambiente mobile/APK
 try {
   env.allowLocalModels = true;
   env.allowRemoteModels = true; 
   env.useBrowserCache = true;
 } catch (e) {
-  console.error("Erro ao configurar Transformers Env", e);
+  console.error("Erro Transformers Env", e);
 }
 
 let extractor: any = null;
 let intentCache: Array<{ id: string, vectors: number[][] }> = [];
 let isInitializing = false;
+let lastReportedProgress = -1;
 
 self.onmessage = async (event) => {
   const { type, text, examples, requestId } = event.data;
@@ -28,11 +28,15 @@ self.onmessage = async (event) => {
 
       self.postMessage({ type: 'log', level: 'info', message: 'Iniciando download do modelo de linguagem...' });
       
-      // Carrega o modelo de extração de características (25MB aprox)
       extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', {
         progress_callback: (data: any) => {
           if (data.status === 'progress') {
-            self.postMessage({ type: 'progress', progress: Math.round(data.progress) });
+            const rounded = Math.floor(data.progress);
+            // Throttle: Só envia mensagem se o progresso mudar em pelo menos 1% inteiro
+            if (rounded > lastReportedProgress) {
+              lastReportedProgress = rounded;
+              self.postMessage({ type: 'progress', progress: rounded });
+            }
           }
         }
       });
@@ -66,7 +70,6 @@ self.onmessage = async (event) => {
 
       let bestMatch = { id: 'fallback', score: 0 };
 
-      // Comparação de Cosseno entre o input e a base de conhecimento
       for (const intent of intentCache) {
         for (const exVector of intent.vectors) {
           let dotProduct = 0;
@@ -79,7 +82,6 @@ self.onmessage = async (event) => {
         }
       }
 
-      // Threshold de 0.4 para aceitar a intenção local
       const finalIntentId = bestMatch.score >= 0.4 ? bestMatch.id : 'fallback';
 
       self.postMessage({ 
@@ -92,7 +94,7 @@ self.onmessage = async (event) => {
       self.postMessage({ 
         type: 'log', 
         level: 'debug', 
-        message: `Análise: "${text.substring(0, 20)}..." | Intenção: ${finalIntentId} | Score: ${bestMatch.score.toFixed(4)}` 
+        message: `Análise Local: Score ${bestMatch.score.toFixed(4)} para [${finalIntentId}]` 
       });
     }
   } catch (error: any) {

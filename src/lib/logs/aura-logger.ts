@@ -1,9 +1,9 @@
-
 'use client';
 
 /**
- * @fileOverview AuraLogger - Sistema de telemetria e logs persistentes de sistema.
- * Armazena logs no LocalStorage para serem recuperados mesmo após o fechamento do APK.
+ * @fileOverview AuraLogger - Sistema de telemetria otimizado para performance.
+ * Mantém logs em memória para evitar o gargalo de escrita no LocalStorage durante
+ * operações intensivas de IA (que causavam o travamento da interface).
  */
 
 export type LogLevel = 'info' | 'warn' | 'error' | 'debug';
@@ -16,12 +16,15 @@ export interface LogEntry {
   data?: any;
 }
 
+// Armazenamento em memória para evitar bloqueio de I/O
+let memoryLogs: LogEntry[] = [];
+const MAX_LOGS = 500;
+
 export const AuraLogger = {
   log(level: LogLevel, context: string, message: string, data?: any) {
     const timestamp = new Date().toISOString();
     const formattedMessage = `[${context.toUpperCase()}] ${message}`;
 
-    // Cores para o console do desenvolvedor (F12)
     const colors = {
       info: 'color: #9333ea; font-weight: bold;',
       warn: 'color: #f59e0b; font-weight: bold;',
@@ -39,28 +42,20 @@ export const AuraLogger = {
       console.log(`%c[${timestamp}] ${formattedMessage}`, colors[level], data || '');
     }
 
-    // Persistência para visualização no APK (Terminal In-App)
+    // Adiciona ao buffer de memória
+    memoryLogs.push({ 
+      timestamp, 
+      level, 
+      context: context.toUpperCase(), 
+      message, 
+      data: data ? (typeof data === 'string' ? data : JSON.stringify(data, null, 2)) : null 
+    });
+    
+    if (memoryLogs.length > MAX_LOGS) memoryLogs.shift();
+    
+    // Notifica o sistema apenas no navegador
     if (typeof window !== 'undefined') {
-      try {
-        const rawLogs = localStorage.getItem('aura_logs');
-        const logs: LogEntry[] = rawLogs ? JSON.parse(rawLogs) : [];
-        logs.push({ 
-          timestamp, 
-          level, 
-          context: context.toUpperCase(), 
-          message, 
-          data: data ? (typeof data === 'string' ? data : JSON.stringify(data, null, 2)) : null 
-        });
-        
-        // Limita a 500 logs para manter a performance do terminal
-        if (logs.length > 500) logs.shift();
-        localStorage.setItem('aura_logs', JSON.stringify(logs));
-        
-        // Emite evento global para o Terminal atualizar
-        window.dispatchEvent(new CustomEvent('aura-log-added'));
-      } catch (e) {
-        // Falha silenciosa se o armazenamento estiver cheio
-      }
+      window.dispatchEvent(new CustomEvent('aura-log-added'));
     }
   },
 
@@ -70,19 +65,14 @@ export const AuraLogger = {
   debug(context: string, message: string, data?: any) { this.log('debug', context, message, data); },
   
   getLogs(): LogEntry[] {
-    if (typeof window === 'undefined') return [];
-    try {
-      return JSON.parse(localStorage.getItem('aura_logs') || '[]');
-    } catch (e) {
-      return [];
-    }
+    return memoryLogs;
   },
   
   clearLogs() {
+    memoryLogs = [];
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('aura_logs');
       window.dispatchEvent(new CustomEvent('aura-log-added'));
-      this.info('SYSTEM', 'Histórico de telemetria limpo pelo administrador.');
+      this.info('SYSTEM', 'Histórico de telemetria limpo em memória.');
     }
   },
 
@@ -92,7 +82,7 @@ export const AuraLogger = {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `urbeludo_terminal_${new Date().getTime()}.json`;
+    a.download = `urbeludo_telemetria_${new Date().getTime()}.json`;
     a.click();
   }
 };
