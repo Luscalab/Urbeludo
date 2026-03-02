@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Preferences } from '@capacitor/preferences';
@@ -12,8 +11,8 @@ const STORAGE_KEYS = {
 };
 
 /**
- * Utilitário de persistência local absoluta para arquitetura Standalone.
- * Adicionado verificações defensivas para evitar travamentos de bridge nativa.
+ * Utilitário de persistência local absoluta.
+ * Tratamento robusto de tipos para evitar falhas de inicialização.
  */
 export const LocalPersistence = {
   async saveProgress(data: any) {
@@ -21,8 +20,6 @@ export const LocalPersistence = {
     try {
       const current = await this.getProgress() || {};
       const updated = { ...current, ...data };
-      
-      AuraLogger.debug('Persistence', 'Gravando progresso...', { keys: Object.keys(data) });
       
       await Preferences.set({
         key: STORAGE_KEYS.USER_PROGRESS,
@@ -39,7 +36,12 @@ export const LocalPersistence = {
     if (typeof window === 'undefined') return null;
     try {
       const { value } = await Preferences.get({ key: STORAGE_KEYS.USER_PROGRESS });
-      return value ? JSON.parse(value) : null;
+      if (!value) return null;
+      try {
+        return JSON.parse(value);
+      } catch {
+        return null;
+      }
     } catch (e) {
       return null;
     }
@@ -49,7 +51,14 @@ export const LocalPersistence = {
     if (typeof window === 'undefined' || !activity) return;
     try {
       const { value } = await Preferences.get({ key: STORAGE_KEYS.ACTIVITIES });
-      const activities = value ? JSON.parse(value) : [];
+      let activities = [];
+      if (value) {
+        try {
+          activities = JSON.parse(value);
+        } catch {
+          activities = [];
+        }
+      }
       
       const newActivity = {
         ...activity,
@@ -66,7 +75,6 @@ export const LocalPersistence = {
       });
       
       window.dispatchEvent(new Event('local-data-updated'));
-      AuraLogger.info('Persistence', 'Atividade registrada localmente.');
     } catch (e) {
       AuraLogger.error('Persistence', 'Erro ao salvar atividade', e);
     }
@@ -76,7 +84,12 @@ export const LocalPersistence = {
     if (typeof window === 'undefined') return [];
     try {
       const { value } = await Preferences.get({ key: STORAGE_KEYS.ACTIVITIES });
-      return value ? JSON.parse(value) : [];
+      if (!value) return [];
+      try {
+        return JSON.parse(value);
+      } catch {
+        return [];
+      }
     } catch (e) {
       return [];
     }
@@ -89,7 +102,7 @@ export const LocalPersistence = {
         key: STORAGE_KEYS.USER_ID,
         value: uid,
       });
-      AuraLogger.info('Persistence', `UID sincronizado: ${uid}`);
+      AuraLogger.info('Persistence', `UID sincronizado localmente.`);
     } catch (e) {}
   },
 
@@ -97,7 +110,7 @@ export const LocalPersistence = {
     if (typeof window === 'undefined') return null;
     try {
       const { value } = await Preferences.get({ key: STORAGE_KEYS.USER_ID });
-      return value;
+      return value; // UID é string pura
     } catch (e) {
       return null;
     }

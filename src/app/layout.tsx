@@ -1,4 +1,3 @@
-
 import type {Metadata, Viewport} from 'next';
 import './globals.css';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
@@ -29,7 +28,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: '#9333ea', // Purple primary
+  themeColor: '#9333ea',
 };
 
 export default function RootLayout({
@@ -39,7 +38,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
-      <body className="font-body antialiased overflow-x-hidden selection:bg-primary/30 selection:text-primary-foreground">
+      <body className="font-body antialiased overflow-x-hidden selection:bg-primary/30 selection:text-primary-foreground bg-background">
         <FirebaseClientProvider>
           <I18nProvider>
             <AuthInitializer>

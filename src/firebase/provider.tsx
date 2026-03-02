@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
@@ -25,16 +24,20 @@ export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({ children }
 
   useEffect(() => {
     const loadLocalUser = async () => {
-      const uid = await LocalPersistence.getUserId();
-      if (uid) {
-        setUser({ uid, isAnonymous: true });
+      try {
+        const uid = await LocalPersistence.getUserId();
+        if (uid) {
+          setUser({ uid, isAnonymous: true });
+        }
+      } catch (e) {
+        // Silencioso, deixa o AuthInitializer resolver
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
 
     loadLocalUser();
 
-    // Ouvir atualizações de dados locais
     const handleUpdate = () => loadLocalUser();
     window.addEventListener('local-data-updated', handleUpdate);
     return () => window.removeEventListener('local-data-updated', handleUpdate);
@@ -45,7 +48,7 @@ export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({ children }
     user,
     isUserLoading: isLoading,
     userError: null,
-    firestore: {}, // Mock
+    firestore: {},
     auth: { signOut: () => LocalPersistence.clear() },
   }), [user, isLoading]);
 
