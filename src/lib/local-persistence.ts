@@ -90,6 +90,7 @@ export const LocalPersistence = {
         key: STORAGE_KEYS.USER_ID,
         value: uid,
       });
+      AuraLogger.info('Persistence', `UID salvo: ${uid}`);
     } catch (e) {}
   },
 

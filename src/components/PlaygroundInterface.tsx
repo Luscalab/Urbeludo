@@ -98,6 +98,7 @@ export function PlaygroundInterface({ debugMode = false }: { debugMode?: boolean
         totalChallengesCompleted: completedCount + 1,
         history: newHistory
       });
+      AuraLogger.info('Playground', `Vitória detectada no modo ${type}. Recompensa: ${reward} LC`);
     }
   }, [isWin, userProgressRef, profile]);
 
@@ -180,37 +181,46 @@ function VoiceGame({ onWin, userName, highContrast, onSuggestBreath }: any) {
   const [isStable, setIsStable] = useState(false);
   const [showFailDialog, setShowFailDialog] = useState(false);
 
+  // Refs para evitar a recriação do intervalo toda vez que o volume muda
+  const volumeRef = useRef(volume);
+  const progressRef = useRef(progress);
+
+  useEffect(() => { volumeRef.current = volume; }, [volume]);
+  useEffect(() => { progressRef.current = progress; }, [progress]);
+
   useEffect(() => {
     const timer = setInterval(() => {
-      const stable = volume > 30 && volume < 70;
+      const v = volumeRef.current;
+      const p = progressRef.current;
+      
+      const stable = v > 30 && v < 70;
       setIsStable(stable);
 
       if (stable) {
-        setProgress(p => Math.min(100, p + 1.5));
-      } else if (volume > 5) {
-        setProgress(p => Math.max(0, p - 0.5));
+        setProgress(prev => Math.min(100, prev + 1.5));
+      } else if (v > 5) {
+        setProgress(prev => Math.max(0, prev - 0.5));
       }
 
-      if (volume < 5 && progress > 5 && progress < 95) {
-         setFails(f => f + 1);
+      // Detecção de falha por silêncio durante o esforço
+      if (v < 5 && p > 10 && p < 95) {
+         setFails(f => {
+           const newFails = f + 1;
+           if (newFails >= 3) setShowFailDialog(true);
+           return newFails;
+         });
          setProgress(0);
       }
     }, 100);
-    return () => clearInterval(timer);
-  }, [volume, progress]);
 
-  useEffect(() => {
-    if (fails >= 3) {
-      setShowFailDialog(true);
-      setFails(0);
-    }
-  }, [fails]);
+    return () => clearInterval(timer);
+  }, []); // Monta uma única vez
 
   useEffect(() => {
     if (progress >= 100) {
       saveToSheets({ 
         paciente: userName, 
-        volume: Math.round(volume), 
+        volume: Math.round(volumeRef.current), 
         sustentacao: 10, 
         tentativas: 1, 
         feedback: "Maestria Vocal!", 
@@ -219,7 +229,7 @@ function VoiceGame({ onWin, userName, highContrast, onSuggestBreath }: any) {
       });
       onWin(50, 'Mestre da Voz');
     }
-  }, [progress, userName, volume, onWin]);
+  }, [progress, userName, onWin]);
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-8 space-y-12">
@@ -243,7 +253,11 @@ function VoiceGame({ onWin, userName, highContrast, onSuggestBreath }: any) {
             highContrast ? "bg-white border-[6px] border-black" : "bg-pink-500 shadow-xl"
           )}
         >
-          <img src={volume > 30 ? VOICE_ASSETS.roboCantando : VOICE_ASSETS.roboParado} className="w-16 h-16 object-contain" />
+          <img 
+            src={volume > 30 ? VOICE_ASSETS.roboCantando : VOICE_ASSETS.roboParado} 
+            className="w-16 h-16 object-contain" 
+            alt="Robo"
+          />
         </motion.div>
       </div>
 
@@ -264,8 +278,8 @@ function VoiceGame({ onWin, userName, highContrast, onSuggestBreath }: any) {
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-3 mt-6">
-            <Button onClick={() => { onSuggestBreath(); setShowFailDialog(false); }} className="h-16 rounded-full bg-teal-500 font-black uppercase">Ir para Nuvem de Sopro</Button>
-            <Button variant="ghost" onClick={() => setShowFailDialog(false)} className="text-white/40 font-black uppercase text-[10px]">Tentar Novamente</Button>
+            <Button onClick={() => { onSuggestBreath(); setShowFailDialog(false); setFails(0); }} className="h-16 rounded-full bg-teal-500 font-black uppercase">Ir para Nuvem de Sopro</Button>
+            <Button variant="ghost" onClick={() => { setShowFailDialog(false); setFails(0); }} className="text-white/40 font-black uppercase text-[10px]">Tentar Novamente</Button>
           </div>
         </DialogContent>
       </Dialog>

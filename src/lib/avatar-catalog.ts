@@ -42,10 +42,15 @@ export const getAvatarById = (filename: string | null | undefined): AvatarAsset 
     };
   }
 
-  // Caminho padrão para ativos locais no APK
+  // Caminho padrão para ativos locais no APK.
+  // IMPORTANTE: Adicionamos um seed baseado no nome para que o fallback seja consistente
+  const fallback = `https://picsum.photos/seed/${filename}/400/400`;
+
   return {
     id: filename,
     name: filename.split('.')[0].replace(/[-_]/g, ' '),
-    src: `/assets/avatars/${filename}`
+    src: `/assets/avatars/${filename}`,
+    // @ts-ignore - Propriedade extra para facilitar o uso de fallbacks em componentes
+    fallbackSrc: fallback
   };
 };
