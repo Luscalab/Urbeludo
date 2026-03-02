@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Preferences } from '@capacitor/preferences';
@@ -7,12 +6,13 @@ import { AuraLogger } from '@/lib/logs/aura-logger';
 const STORAGE_KEYS = {
   USER_PROGRESS: 'urbeludo_progress',
   USER_ID: 'urbeludo_uid',
+  ACTIVITIES: 'urbeludo_activities',
   LANGUAGE: 'language'
 };
 
 /**
  * Utilitário de persistência local absoluta para arquitetura Standalone.
- * Versão Instrumentada com Telemetria de Sistema.
+ * Gerencia progresso do usuário e histórico de atividades offline.
  */
 export const LocalPersistence = {
   async saveProgress(data: any) {
@@ -21,7 +21,7 @@ export const LocalPersistence = {
       const current = await this.getProgress() || {};
       const updated = { ...current, ...data };
       
-      AuraLogger.debug('Persistence', 'Iniciando gravação de progresso...', { keys: Object.keys(data) });
+      AuraLogger.debug('Persistence', 'Gravando progresso...', { keys: Object.keys(data) });
       
       await Preferences.set({
         key: STORAGE_KEYS.USER_PROGRESS,
@@ -29,9 +29,8 @@ export const LocalPersistence = {
       });
       
       window.dispatchEvent(new Event('local-data-updated'));
-      AuraLogger.info('Persistence', 'Progresso salvo com sucesso no armazenamento local.');
     } catch (e) {
-      AuraLogger.error('Persistence', 'Falha crítica na gravação local', e);
+      AuraLogger.error('Persistence', 'Erro na gravação de progresso', e);
     }
   },
 
@@ -39,28 +38,59 @@ export const LocalPersistence = {
     if (typeof window === 'undefined') return null;
     try {
       const { value } = await Preferences.get({ key: STORAGE_KEYS.USER_PROGRESS });
-      if (value) {
-        AuraLogger.debug('Persistence', 'Dados recuperados do cache local.');
-        return JSON.parse(value);
-      }
-      return null;
+      return value ? JSON.parse(value) : null;
     } catch (e) {
-      AuraLogger.warn('Persistence', 'Falha ao ler progresso ou cache vazio.');
       return null;
+    }
+  },
+
+  async saveActivity(activity: any) {
+    if (typeof window === 'undefined') return;
+    try {
+      const { value } = await Preferences.get({ key: STORAGE_KEYS.ACTIVITIES });
+      const activities = value ? JSON.parse(value) : [];
+      
+      const newActivity = {
+        ...activity,
+        id: activity.id || `act-${Date.now()}`,
+        startTime: activity.startTime || new Date().toISOString()
+      };
+      
+      activities.unshift(newActivity);
+      
+      // Mantém apenas as últimas 50 atividades para não estourar o armazenamento
+      const limitedActivities = activities.slice(0, 50);
+      
+      await Preferences.set({
+        key: STORAGE_KEYS.ACTIVITIES,
+        value: JSON.stringify(limitedActivities),
+      });
+      
+      window.dispatchEvent(new Event('local-data-updated'));
+      AuraLogger.info('Persistence', 'Nova atividade registrada no histórico local.');
+    } catch (e) {
+      AuraLogger.error('Persistence', 'Erro ao salvar atividade', e);
+    }
+  },
+
+  async getActivities() {
+    if (typeof window === 'undefined') return [];
+    try {
+      const { value } = await Preferences.get({ key: STORAGE_KEYS.ACTIVITIES });
+      return value ? JSON.parse(value) : [];
+    } catch (e) {
+      return [];
     }
   },
 
   async saveUserId(uid: string) {
     if (typeof window === 'undefined') return;
     try {
-      AuraLogger.info('Persistence', `Registrando UID de Sistema: ${uid}`);
       await Preferences.set({
         key: STORAGE_KEYS.USER_ID,
         value: uid,
       });
-    } catch (e) {
-      AuraLogger.error('Persistence', 'Erro ao registrar UID', e);
-    }
+    } catch (e) {}
   },
 
   async getUserId() {
@@ -76,7 +106,6 @@ export const LocalPersistence = {
   async clear() {
     if (typeof window === 'undefined') return;
     try {
-      AuraLogger.warn('Persistence', 'Comando de limpeza total (PURGE) executado.');
       await Preferences.clear();
       window.location.reload();
     } catch (e) {}

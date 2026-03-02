@@ -1,8 +1,6 @@
-
 /**
  * Utilitário de Catálogo de Avatares Universal.
- * Mapeia nomes de arquivos para caminhos acessíveis pelo navegador.
- * Versão Estática: Lista os avatares disponíveis sem depender de API.
+ * Mapeia nomes de arquivos para caminhos acessíveis pelo navegador com fallback robusto.
  */
 
 export interface AvatarAsset {
@@ -11,8 +9,7 @@ export interface AvatarAsset {
   src: string;
 }
 
-// Lista estática de avatares disponíveis na pasta public/assets/avatars/
-// Adicione novos arquivos aqui conforme necessário para o APK.
+// Lista estática de avatares disponíveis
 export const STATIC_AVATAR_LIST = [
   "avatar1.png",
   "avatar2.png",
@@ -24,6 +21,8 @@ export const FALLBACK_AVATAR_SRC = "https://picsum.photos/seed/urbeludo/400/400"
 
 /**
  * Resolve o caminho da imagem baseando-se no diretório /assets/avatars/
+ * Caso a imagem não exista (404), o componente deve lidar com o onError
+ * ou usar o fallback definido aqui.
  */
 export const getAvatarById = (filename: string | null | undefined): AvatarAsset => {
   if (!filename || filename === '') {
@@ -34,7 +33,7 @@ export const getAvatarById = (filename: string | null | undefined): AvatarAsset 
     };
   }
 
-  // Se já for uma URL (externa ou IA), mantém
+  // Se for uma URL externa ou gerada por IA
   if (filename.startsWith('http') || filename.startsWith('data:')) {
     return {
       id: filename,
@@ -43,7 +42,7 @@ export const getAvatarById = (filename: string | null | undefined): AvatarAsset 
     };
   }
 
-  // No Next.js, a pasta public é servida na raiz /
+  // Caminho padrão para ativos locais no APK
   return {
     id: filename,
     name: filename.split('.')[0].replace(/[-_]/g, ' '),

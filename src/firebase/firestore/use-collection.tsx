@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -6,7 +5,7 @@ import { LocalPersistence } from '@/lib/local-persistence';
 
 /**
  * Hook de Coleção Offline.
- * Retorna o histórico de atividades salvo localmente.
+ * Retorna o histórico de atividades salvo localmente de forma reativa.
  */
 export function useCollection<T = any>(query: any): { data: T[] | null, isLoading: boolean, error: any } {
   const [data, setData] = useState<any[]>([]);
@@ -24,7 +23,7 @@ export function useCollection<T = any>(query: any): { data: T[] | null, isLoadin
 
     window.addEventListener('local-data-updated', fetchData);
     return () => window.removeEventListener('local-data-updated', fetchData);
-  }, []);
+  }, [JSON.stringify(query)]); // Reativo a mudanças na query
 
   return { data, isLoading, error: null };
 }

@@ -1,4 +1,3 @@
-
 'use client';
     
 import { LocalPersistence } from '@/lib/local-persistence';
@@ -12,6 +11,7 @@ export function setDocumentNonBlocking(docRef: any, data: any, options: any) {
 }
 
 export function addDocumentNonBlocking(colRef: any, data: any) {
+  // Salva tanto no histórico geral quanto no registro de atividades
   LocalPersistence.saveActivity(data);
 }
 
