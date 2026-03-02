@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Send, 
@@ -27,6 +27,10 @@ interface Message {
   text: string;
 }
 
+/**
+ * AuraBot - Interface de Chat com suporte a IA de Borda.
+ * Otimizado para evitar gargalos de renderização e perda de mensagens.
+ */
 export function FloatingAuraBot() {
   const pathname = usePathname();
   const { user } = useUser();
@@ -45,19 +49,18 @@ export function FloatingAuraBot() {
   
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Acesso administrativo baseado no email
   const isSapient = profile?.email === 'sapientcontato@gmail.com';
 
   useEffect(() => {
-    // Inicialização protegida
+    // Inicialização da IA de Borda
     const timer = setTimeout(() => {
-      initAuraBrain((p) => {
-        setLoadProgress(p);
-      });
-    }, 800);
+      initAuraBrain((p) => setLoadProgress(p));
+    }, 500);
     return () => clearTimeout(timer);
   }, []);
 
-  // Auto-scroll otimizado
+  // Auto-scroll robusto
   useEffect(() => {
     if (scrollRef.current) {
       const viewport = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
@@ -77,13 +80,13 @@ export function FloatingAuraBot() {
     try {
       const response = await askAuraHelper({
         question: trimmed,
-        context: `Tela: ${pathname}`
+        context: `Navegando em: ${pathname}`
       });
       
       setMessages(prev => [...prev, { role: 'bot', text: response.answer }]);
     } catch (error) {
       AuraLogger.error('AuraBot', 'Falha na resposta', error);
-      setMessages(prev => [...prev, { role: 'bot', text: "Minha conexão com a Grande Aura oscilou. Vamos tentar novamente?" }]);
+      setMessages(prev => [...prev, { role: 'bot', text: "Minha percepção oscilou. Vamos tentar novamente?" }]);
     } finally {
       setIsLoading(false);
     }
@@ -144,7 +147,7 @@ export function FloatingAuraBot() {
                   </div>
                   <div className="flex-1">
                     <h3 className="text-sm font-black uppercase italic tracking-tighter text-slate-900">Guia de Sensibilidade</h3>
-                    <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">Motor de Borda Ativo</p>
+                    <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">IA de Borda Ativa</p>
                   </div>
                   {isSapient && (
                     <button onClick={() => setIsLogViewerOpen(true)} className="p-2.5 hover:bg-slate-100 rounded-xl text-slate-400">
@@ -204,7 +207,7 @@ export function FloatingAuraBot() {
                       onChange={(e) => setInputValue(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                       disabled={isLoading || loadProgress < 100}
-                      placeholder={loadProgress < 100 ? "Aguardando cérebro..." : "Dúvidas técnicas ou lúdicas..."}
+                      placeholder={loadProgress < 100 ? "Aguardando sincronia..." : "Dúvida técnica ou clínica?"}
                       className="h-14 rounded-2xl pr-14 pl-6 border-transparent bg-slate-50 font-bold text-xs"
                     />
                     <Button

@@ -1,7 +1,7 @@
 'use client';
 /**
- * @fileOverview AuraHelper - Motor de Triagem Híbrida para APK.
- * Prioriza respostas locais antes de acionar o Gemini Cloud via NEXT_PUBLIC.
+ * @fileOverview AuraHelper - Fluxo de Triagem Híbrida.
+ * Prioriza a memória local (Borda) antes de gastar tokens no Gemini.
  */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -21,64 +21,66 @@ export interface AuraHelperOutput {
   suggestedAction?: string;
 }
 
-const RESPOSTAS_FIXAS: Record<string, { response: string, action: string }> = {
+const RESPOSTAS_LOCAIS: Record<string, { response: string, action: string }> = {
   jogar_elevador: {
-    response: "Use sua voz para subir! Mantenha um som constante e tente ficar dentro da Zona de Estabilidade para encher a barra até 100%.",
-    action: "Foque no som firme!"
+    response: "Para subir o Elevador, você deve manter um som vocal constante! Tente ficar dentro da Zona de Estabilidade (a área destacada) para encher a barra de progresso.",
+    action: "Foque na sustentação vocal!"
   },
   zona_estabilidade: {
-    response: "A Zona de Estabilidade é a área verde vibrante. Ela indica que sua voz está controlada, treinando sua musculatura vocal!",
-    action: "Busque o Verde!"
+    response: "A Zona de Estabilidade é a área de controle ideal. Ela treina seu equilíbrio respiratório e vocal. Se você mantiver o som lá, ganhará mais LudoCoins!",
+    action: "Busque o equilíbrio!"
   },
   clinico_psico: {
-    response: "No UrbeLudo, unimos mente e corpo. Ao controlar sua voz ou equilíbrio, seu cérebro aprende a coordenar melhor seus movimentos urbanos.",
+    response: "No UrbeLudo, usamos o jogo para treinar a consciência corporal e o controle motor. Ao dominar o elevador ou o equilíbrio, seu cérebro aprende a coordenar melhor os movimentos.",
     action: "Movimento Consciente!"
   },
   moedas: {
-    response: "As LudoCoins (LC) são prêmios pelo seu treino. Use-as na Loja para comprar novos itens e decorar seu Estúdio.",
+    response: "LudoCoins são recompensas pelo seu esforço! Você pode usá-las na Loja para comprar itens incríveis e decorar seu Estúdio no Painel.",
     action: "Visite a Loja!"
   },
   tecnico_ajuda: {
-    response: "Verifique se o microfone está ativo no seu dispositivo. Reduza o barulho ao redor para uma melhor experiência.",
-    action: "Calibrar Hardware"
+    response: "Se algo não estiver funcionando, verifique se deu permissão de microfone ao app. Tente também ir para um lugar mais silencioso para uma detecção melhor.",
+    action: "Verificar Hardware"
   }
 };
 
 export async function askAuraHelper(input: AuraHelperInput): Promise<AuraHelperOutput> {
-  const query = input.question.toLowerCase();
-  AuraLogger.info('AuraFlow', `Triagem para: "${query}"`);
+  const query = input.question.trim().toLowerCase();
+  AuraLogger.info('AuraFlow', `Triagem Híbrida para: "${query}"`);
   
   try {
+    // 1. TENTA CLASSIFICAÇÃO LOCAL (WEB WORKER)
     const intentId = await classifyIntent(query);
 
-    if (intentId !== 'fallback' && RESPOSTAS_FIXAS[intentId]) {
+    if (intentId !== 'fallback' && RESPOSTAS_LOCAIS[intentId]) {
       AuraLogger.info('AuraFlow', `Intenção Local Detectada: ${intentId}`);
       return {
-        answer: RESPOSTAS_FIXAS[intentId].response,
-        suggestedAction: RESPOSTAS_FIXAS[intentId].action
+        answer: RESPOSTAS_LOCAIS[intentId].response,
+        suggestedAction: RESPOSTAS_LOCAIS[intentId].action
       };
     }
   } catch (err) {
-    AuraLogger.error('AuraFlow', 'Falha na triagem local', err);
+    AuraLogger.error('AuraFlow', 'Erro na triagem local, tentando nuvem...', err);
   }
 
-  // Fallback para Cloud Gemini (Apenas se houver Internet)
+  // 2. FALLBACK PARA CLOUD GEMINI (PROCESSO ASSÍNCRONO)
   try {
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-    const prompt = `Você é o AuraHelper, assistente de Psicomotricidade.
-      Responda de forma lúdica em até 2 frases.
-      Pergunta: ${query}
-      Contexto: ${input.context || ''}
+    const prompt = `Você é o AuraHelper, assistente de Psicomotricidade e suporte do app UrbeLudo.
+      Responda de forma curta (máximo 2 frases), lúdica e acolhedora.
+      Pergunta do Aluno: ${query}
+      Contexto Atual: ${input.context || 'Exploração Livre'}
       Retorne APENAS um JSON: {"answer": "...", "suggestedAction": "..."}`;
 
     const result = await model.generateContent(prompt);
     const text = result.response.text().replace(/```json|```/g, "").trim();
+    AuraLogger.info('AuraFlow', 'Resposta obtida via Grande Aura (Cloud).');
     return JSON.parse(text) as AuraHelperOutput;
   } catch (error: any) {
-    AuraLogger.error('AuraFlow', 'Erro no Fallback Cloud', error.message);
+    AuraLogger.error('AuraFlow', 'Falha total na resposta', error.message);
     return {
-      answer: "Minha conexão com a Grande Aura oscilou. Vamos focar nos seus desafios atuais?",
-      suggestedAction: "Ver Painel"
+      answer: "Minha conexão com a rede lúdica oscilou um pouco. Que tal tentarmos focar no seu desafio atual?",
+      suggestedAction: "Ver Missão"
     };
   }
 }

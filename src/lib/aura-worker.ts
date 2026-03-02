@@ -28,6 +28,7 @@ self.onmessage = async (event) => {
 
       self.postMessage({ type: 'log', level: 'info', message: 'Iniciando download do modelo de linguagem...' });
       
+      // Carrega o modelo de extração de características (25MB aprox)
       extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', {
         progress_callback: (data: any) => {
           if (data.status === 'progress') {
@@ -65,6 +66,7 @@ self.onmessage = async (event) => {
 
       let bestMatch = { id: 'fallback', score: 0 };
 
+      // Comparação de Cosseno entre o input e a base de conhecimento
       for (const intent of intentCache) {
         for (const exVector of intent.vectors) {
           let dotProduct = 0;
@@ -77,7 +79,8 @@ self.onmessage = async (event) => {
         }
       }
 
-      const finalIntentId = bestMatch.score >= 0.45 ? bestMatch.id : 'fallback';
+      // Threshold de 0.4 para aceitar a intenção local
+      const finalIntentId = bestMatch.score >= 0.4 ? bestMatch.id : 'fallback';
 
       self.postMessage({ 
         type: 'result', 
@@ -89,7 +92,7 @@ self.onmessage = async (event) => {
       self.postMessage({ 
         type: 'log', 
         level: 'debug', 
-        message: `Análise: "${text.substring(0, 20)}..." | Score: ${bestMatch.score.toFixed(4)}` 
+        message: `Análise: "${text.substring(0, 20)}..." | Intenção: ${finalIntentId} | Score: ${bestMatch.score.toFixed(4)}` 
       });
     }
   } catch (error: any) {
