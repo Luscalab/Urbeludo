@@ -27,10 +27,6 @@ interface Message {
   text: string;
 }
 
-/**
- * AuraBot - Interface de Chat com suporte a IA de Borda.
- * Otimizado para evitar gargalos de renderização e perda de mensagens.
- */
 export function FloatingAuraBot() {
   const pathname = usePathname();
   const { user } = useUser();
@@ -41,7 +37,7 @@ export function FloatingAuraBot() {
   const [isLogViewerOpen, setIsLogViewerOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'bot', text: 'Olá, Explorador! Eu sou o AuraHelper. Como posso ajudar no seu treino hoje?' }
+    { role: 'bot', text: 'Olá, Explorador! Sou o AuraHelper. Estou carregando meus neurônios, mas já podemos conversar!' }
   ]);
   const [isLoading, setIsLoading] = useState(false);
   const [loadProgress, setLoadProgress] = useState(0);
@@ -49,18 +45,16 @@ export function FloatingAuraBot() {
   
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Acesso administrativo baseado no email
   const isSapient = profile?.email === 'sapientcontato@gmail.com';
 
   useEffect(() => {
-    // Inicialização da IA de Borda
+    // Inicialização da IA de Borda (Singleton)
     const timer = setTimeout(() => {
       initAuraBrain((p) => setLoadProgress(p));
-    }, 500);
+    }, 1000);
     return () => clearTimeout(timer);
   }, []);
 
-  // Auto-scroll robusto
   useEffect(() => {
     if (scrollRef.current) {
       const viewport = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
@@ -85,8 +79,8 @@ export function FloatingAuraBot() {
       
       setMessages(prev => [...prev, { role: 'bot', text: response.answer }]);
     } catch (error) {
-      AuraLogger.error('AuraBot', 'Falha na resposta', error);
-      setMessages(prev => [...prev, { role: 'bot', text: "Minha percepção oscilou. Vamos tentar novamente?" }]);
+      AuraLogger.error('AuraBot', 'Erro ao processar fala', error);
+      setMessages(prev => [...prev, { role: 'bot', text: "Minha sincronia oscilou. Vamos tentar novamente?" }]);
     } finally {
       setIsLoading(false);
     }
@@ -130,7 +124,7 @@ export function FloatingAuraBot() {
             <span className="text-[10px] font-black uppercase tracking-widest">
               {isOpen ? 'Fechar' : 'AuraHelper'}
             </span>
-            {!isOpen && loadProgress === 100 && <div className="w-2 h-2 rounded-full bg-green-500 border border-white" />}
+            {loadProgress === 100 && !isOpen && <div className="w-2 h-2 rounded-full bg-green-500 border border-white" />}
           </motion.button>
 
           <AnimatePresence>
@@ -147,7 +141,9 @@ export function FloatingAuraBot() {
                   </div>
                   <div className="flex-1">
                     <h3 className="text-sm font-black uppercase italic tracking-tighter text-slate-900">Guia de Sensibilidade</h3>
-                    <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">IA de Borda Ativa</p>
+                    <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">
+                      {loadProgress < 100 ? `Sincronizando: ${loadProgress}%` : 'IA de Borda Ativa'}
+                    </p>
                   </div>
                   {isSapient && (
                     <button onClick={() => setIsLogViewerOpen(true)} className="p-2.5 hover:bg-slate-100 rounded-xl text-slate-400">
@@ -158,11 +154,15 @@ export function FloatingAuraBot() {
 
                 <ScrollArea className="flex-1 p-6" ref={scrollRef}>
                   <div className="space-y-4 pb-4">
-                    {loadProgress < 100 && loadProgress > 0 && (
+                    {loadProgress < 100 && (
                       <div className="flex flex-col items-center justify-center p-8 bg-slate-50 rounded-[2.5rem] border-2 border-slate-100 space-y-4">
-                        <div className="text-primary text-[10px] font-black uppercase tracking-widest animate-pulse">Sincronizando Cérebro...</div>
+                        <div className="text-primary text-[10px] font-black uppercase tracking-widest animate-pulse">Iniciando Redes Neurais...</div>
                         <div className="w-full bg-white h-2.5 rounded-full overflow-hidden border">
-                          <motion.div className="bg-primary h-full" animate={{ width: `${loadProgress}%` }} />
+                          <motion.div 
+                            className="bg-primary h-full" 
+                            initial={{ width: 0 }}
+                            animate={{ width: `${loadProgress}%` }} 
+                          />
                         </div>
                         <span className="text-[8px] font-black text-primary uppercase">{loadProgress}%</span>
                       </div>
@@ -191,7 +191,7 @@ export function FloatingAuraBot() {
                       <button
                         key={sug.id}
                         onClick={() => processMessage(sug.label)}
-                        disabled={isLoading || loadProgress < 100}
+                        disabled={isLoading}
                         className="whitespace-nowrap px-4 py-2 rounded-full border bg-white border-primary/10 text-primary hover:bg-primary/5 text-[9px] font-black uppercase shadow-sm active:scale-95 transition-all disabled:opacity-50"
                       >
                         {sug.label}
@@ -206,14 +206,14 @@ export function FloatingAuraBot() {
                       value={inputValue}
                       onChange={(e) => setInputValue(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                      disabled={isLoading || loadProgress < 100}
-                      placeholder={loadProgress < 100 ? "Aguardando sincronia..." : "Dúvida técnica ou clínica?"}
+                      disabled={isLoading}
+                      placeholder="Dúvida técnica ou clínica?"
                       className="h-14 rounded-2xl pr-14 pl-6 border-transparent bg-slate-50 font-bold text-xs"
                     />
                     <Button
                       size="icon"
                       onClick={handleSend}
-                      disabled={isLoading || !inputValue.trim() || loadProgress < 100}
+                      disabled={isLoading || !inputValue.trim()}
                       className="absolute right-2 top-2 h-10 w-10 rounded-xl bg-primary text-white shadow-lg"
                     >
                       <Send className="w-4 h-4" />

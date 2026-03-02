@@ -1,16 +1,16 @@
 /**
  * @fileOverview AuraWorker - Motor Transformers.js otimizado para não travar a UI.
- * Implementa throttling de progresso para evitar inundar a thread principal.
+ * Implementa cache local via IndexedDB e throttling de progresso.
  */
 
 import { pipeline, env } from '@xenova/transformers';
 
+// Configuração de ambiente para cache agressivo no APK/Navegador
 try {
-  env.allowLocalModels = true;
-  env.allowRemoteModels = true; 
-  env.useBrowserCache = true;
+  env.allowLocalModels = false; // Força uso do repositório remoto ou cache
+  env.useBrowserCache = true;   // Vital para armazenar o modelo no IndexedDB
 } catch (e) {
-  console.error("Erro Transformers Env", e);
+  console.error("Erro na configuração do ambiente Transformers", e);
 }
 
 let extractor: any = null;
@@ -26,13 +26,14 @@ self.onmessage = async (event) => {
       if (isInitializing || extractor) return;
       isInitializing = true;
 
-      self.postMessage({ type: 'log', level: 'info', message: 'Iniciando download do modelo de linguagem...' });
+      self.postMessage({ type: 'log', level: 'info', message: 'Sincronizando modelo de linguagem semantic-mini...' });
       
+      // Carrega o modelo all-MiniLM-L6-v2 (leve e eficiente para mobile)
       extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', {
         progress_callback: (data: any) => {
           if (data.status === 'progress') {
             const rounded = Math.floor(data.progress);
-            // Throttle: Só envia mensagem se o progresso mudar em pelo menos 1% inteiro
+            // Evita inundar a UI com mensagens redundantes
             if (rounded > lastReportedProgress) {
               lastReportedProgress = rounded;
               self.postMessage({ type: 'progress', progress: rounded });
@@ -42,7 +43,7 @@ self.onmessage = async (event) => {
       });
 
       if (examples) {
-        self.postMessage({ type: 'log', level: 'info', message: 'Vetorizando base de conhecimento clínica...' });
+        self.postMessage({ type: 'log', level: 'info', message: 'Vetorizando base de conhecimento clínica local...' });
         intentCache = [];
         for (const intent of examples) {
           const vectors: number[][] = [];
@@ -56,7 +57,7 @@ self.onmessage = async (event) => {
       
       isInitializing = false;
       self.postMessage({ type: 'ready' });
-      self.postMessage({ type: 'log', level: 'info', message: 'MOTOR SÍNCRONO ATIVO' });
+      self.postMessage({ type: 'log', level: 'info', message: 'KERNEL DE IA LOCAL OPERACIONAL' });
     }
 
     if (type === 'classify') {
@@ -65,11 +66,13 @@ self.onmessage = async (event) => {
         return;
       }
 
+      // Converte entrada do usuário em vetor numérico
       const output = await extractor(text, { pooling: 'mean', normalize: true });
       const userVector = Array.from(output.data as Float32Array);
 
       let bestMatch = { id: 'fallback', score: 0 };
 
+      // Compara com as intenções clínicas salvas (Similaridade de Cosseno)
       for (const intent of intentCache) {
         for (const exVector of intent.vectors) {
           let dotProduct = 0;
@@ -82,7 +85,8 @@ self.onmessage = async (event) => {
         }
       }
 
-      const finalIntentId = bestMatch.score >= 0.4 ? bestMatch.id : 'fallback';
+      // Threshold de confiança clínica: 0.45
+      const finalIntentId = bestMatch.score >= 0.45 ? bestMatch.id : 'fallback';
 
       self.postMessage({ 
         type: 'result', 
@@ -94,10 +98,10 @@ self.onmessage = async (event) => {
       self.postMessage({ 
         type: 'log', 
         level: 'debug', 
-        message: `Análise Local: Score ${bestMatch.score.toFixed(4)} para [${finalIntentId}]` 
+        message: `Classificação Local: Score ${bestMatch.score.toFixed(4)} -> [${finalIntentId}]` 
       });
     }
   } catch (error: any) {
-    self.postMessage({ type: 'error', requestId, message: error.message || "Falha no Kernel" });
+    self.postMessage({ type: 'error', requestId, message: error.message || "Falha no motor Transformers" });
   }
 };
