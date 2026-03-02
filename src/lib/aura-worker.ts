@@ -1,67 +1,64 @@
 /**
- * @fileOverview AuraWorker - Web Worker otimizado para o UrbeLudo.
- * Gerencia o Transformers.js em uma thread isolada para manter 60 FPS na UI.
+ * @fileOverview AuraWorker - Motor Transformers.js otimizado.
+ * Lida com fila de mensagens e carregamento assíncrono para não travar a UI.
  */
 
 import { pipeline, env } from '@xenova/transformers';
 
-// Configuração robusta para ambiente APK/Mobile
+// Configurações para ambiente mobile/APK
 try {
-  if (env) {
-    env.allowLocalModels = true;
-    env.allowRemoteModels = true; 
-    env.useBrowserCache = true;
-    env.localModelPath = '/models/';
-  }
+  env.allowLocalModels = true;
+  env.allowRemoteModels = true; 
+  env.useBrowserCache = true;
 } catch (e) {
-  self.postMessage({ type: 'log', level: 'error', message: 'Falha ao configurar ambiente Transformers.js', data: e });
+  console.error("Erro ao configurar Transformers Env", e);
 }
 
 let extractor: any = null;
 let intentCache: Array<{ id: string, vectors: number[][] }> = [];
+let isInitializing = false;
 
 self.onmessage = async (event) => {
-  const { type, text, examples } = event.data;
+  const { type, text, examples, requestId } = event.data;
 
   try {
     if (type === 'init') {
-      if (!extractor) {
-        self.postMessage({ type: 'log', level: 'info', message: 'Iniciando pipeline Transformers: all-MiniLM-L6-v2' });
-        
-        try {
-          extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', {
-            progress_callback: (data: any) => {
-              if (data.status === 'progress') {
-                self.postMessage({ type: 'progress', progress: Math.round(data.progress) });
-              }
-            }
-          });
+      if (isInitializing || extractor) return;
+      isInitializing = true;
 
-          if (examples && Array.isArray(examples)) {
-            self.postMessage({ type: 'log', level: 'info', message: 'Vetorizando base de intenções (Pre-Embedding)...' });
-            intentCache = [];
-            for (const intent of examples) {
-              const vectors: number[][] = [];
-              for (const exampleText of intent.examples) {
-                const output = await extractor(exampleText, { pooling: 'mean', normalize: true });
-                vectors.push(Array.from(output.data as Float32Array));
-              }
-              intentCache.push({ id: intent.id, vectors });
-            }
+      self.postMessage({ type: 'log', level: 'info', message: 'Iniciando download do modelo de linguagem...' });
+      
+      extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', {
+        progress_callback: (data: any) => {
+          if (data.status === 'progress') {
+            self.postMessage({ type: 'progress', progress: Math.round(data.progress) });
           }
-          
-          self.postMessage({ type: 'ready' });
-          self.postMessage({ type: 'log', level: 'info', message: 'AuraWorker STATUS: ONLINE' });
-        } catch (pipeErr: any) {
-          self.postMessage({ type: 'error', message: `Erro no pipeline: ${pipeErr.message}` });
         }
-      } else {
-        self.postMessage({ type: 'ready' });
+      });
+
+      if (examples) {
+        self.postMessage({ type: 'log', level: 'info', message: 'Vetorizando base de conhecimento clínica...' });
+        intentCache = [];
+        for (const intent of examples) {
+          const vectors: number[][] = [];
+          for (const exampleText of intent.examples) {
+            const output = await extractor(exampleText, { pooling: 'mean', normalize: true });
+            vectors.push(Array.from(output.data as Float32Array));
+          }
+          intentCache.push({ id: intent.id, vectors });
+        }
       }
+      
+      isInitializing = false;
+      self.postMessage({ type: 'ready' });
+      self.postMessage({ type: 'log', level: 'info', message: 'MOTOR SÍNCRONO ATIVO' });
     }
 
-    if (type === 'classify' && extractor) {
-      if (!text) return;
+    if (type === 'classify') {
+      if (!extractor) {
+        self.postMessage({ type: 'result', requestId, intentId: 'fallback' });
+        return;
+      }
 
       const output = await extractor(text, { pooling: 'mean', normalize: true });
       const userVector = Array.from(output.data as Float32Array);
@@ -74,28 +71,28 @@ self.onmessage = async (event) => {
           for (let i = 0; i < userVector.length; i++) {
             dotProduct += userVector[i] * exVector[i];
           }
-          
           if (dotProduct > bestMatch.score) {
             bestMatch = { id: intent.id, score: dotProduct };
           }
         }
       }
 
-      const finalIntentId = bestMatch.score >= 0.4 ? bestMatch.id : 'fallback';
+      const finalIntentId = bestMatch.score >= 0.45 ? bestMatch.id : 'fallback';
 
       self.postMessage({ 
         type: 'result', 
+        requestId,
         intentId: finalIntentId, 
         score: bestMatch.score 
       });
       
       self.postMessage({ 
         type: 'log', 
-        level: 'info', 
-        message: `Classificação: ${finalIntentId} (Score: ${bestMatch.score.toFixed(4)})` 
+        level: 'debug', 
+        message: `Análise: "${text.substring(0, 20)}..." | Score: ${bestMatch.score.toFixed(4)}` 
       });
     }
   } catch (error: any) {
-    self.postMessage({ type: 'error', message: error.message || "Erro no Worker" });
+    self.postMessage({ type: 'error', requestId, message: error.message || "Falha no Kernel" });
   }
 };

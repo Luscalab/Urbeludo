@@ -1,6 +1,7 @@
 'use client';
 /**
- * @fileOverview AuraBrain - Interface de comunicação com o Web Worker instrumentada.
+ * @fileOverview AuraBrain - Interface de comunicação robusta com o Web Worker.
+ * Implementa sistema de ID de mensagem para evitar colisões e perdas de resposta.
  */
 
 import { AuraLogger } from "@/lib/logs/aura-logger";
@@ -19,7 +20,7 @@ const INTENCOES: IntentAnchor[] = [
 ];
 
 let worker: Worker | null = null;
-let resolveClassification: ((id: string) => void) | null = null;
+const pendingRequests = new Map<string, (id: string) => void>();
 
 export const initAuraBrain = (onProgress?: (p: number) => void) => {
   if (typeof window === 'undefined') return;
@@ -29,11 +30,10 @@ export const initAuraBrain = (onProgress?: (p: number) => void) => {
   }
 
   try {
-    // Inicialização robusta para Next.js 15
     worker = new Worker(new URL('./aura-worker.ts', import.meta.url), { type: 'module' });
 
     worker.onmessage = (event) => {
-      const { type, progress, intentId, message, level, data } = event.data;
+      const { type, requestId, progress, intentId, message, level, data } = event.data;
 
       switch (type) {
         case 'log':
@@ -43,34 +43,61 @@ export const initAuraBrain = (onProgress?: (p: number) => void) => {
           if (onProgress) onProgress(progress);
           break;
         case 'ready':
+          AuraLogger.info('AuraBrain', 'Worker pronto para inferência.');
           if (onProgress) onProgress(100);
           break;
         case 'result':
-          if (resolveClassification) resolveClassification(intentId);
+          if (requestId && pendingRequests.has(requestId)) {
+            const resolve = pendingRequests.get(requestId);
+            if (resolve) resolve(intentId);
+            pendingRequests.delete(requestId);
+          }
           break;
         case 'error':
-          AuraLogger.error('AuraBrain', `Erro fatal no Worker: ${message}`);
-          if (onProgress) onProgress(0);
-          if (resolveClassification) resolveClassification('fallback');
+          AuraLogger.error('AuraBrain', `Erro no Worker: ${message}`);
+          if (requestId && pendingRequests.has(requestId)) {
+            const resolve = pendingRequests.get(requestId);
+            if (resolve) resolve('fallback');
+            pendingRequests.delete(requestId);
+          }
           break;
       }
     };
 
     worker.postMessage({ type: 'init', examples: INTENCOES });
-    AuraLogger.info('AuraBrain', 'Worker instanciado. Iniciando sincronização térmica...');
+    AuraLogger.info('AuraBrain', 'Kernel de IA instanciado.');
   } catch (err) {
-    AuraLogger.error('AuraBrain', 'Falha ao instanciar Web Worker', err);
+    AuraLogger.error('AuraBrain', 'Falha crítica ao carregar motor de IA', err);
     onProgress?.(0);
   }
 };
 
 export const classifyIntent = async (userText: string): Promise<string> => {
-  if (!worker) return 'fallback';
+  if (!worker) {
+    AuraLogger.warn('AuraBrain', 'Tentativa de classificação com motor offline.');
+    return 'fallback';
+  }
+
+  const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
 
   return new Promise((resolve) => {
-    resolveClassification = resolve;
+    // Timeout de segurança de 3 segundos para o Worker local
+    const timeout = setTimeout(() => {
+      if (pendingRequests.has(requestId)) {
+        AuraLogger.warn('AuraBrain', `Timeout na classificação local para: "${userText}"`);
+        pendingRequests.delete(requestId);
+        resolve('fallback');
+      }
+    }, 3000);
+
+    pendingRequests.set(requestId, (id) => {
+      clearTimeout(timeout);
+      resolve(id);
+    });
+
     worker?.postMessage({ 
       type: 'classify', 
+      requestId,
       text: userText
     });
   });

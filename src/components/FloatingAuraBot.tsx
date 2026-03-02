@@ -45,53 +45,53 @@ export function FloatingAuraBot() {
   
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Privilégio administrativo exclusivo
   const isSapient = profile?.email === 'sapientcontato@gmail.com';
 
   useEffect(() => {
-    // Inicialização silenciosa para não travar a UI
+    // Inicialização protegida
     const timer = setTimeout(() => {
       initAuraBrain((p) => {
         setLoadProgress(p);
       });
-    }, 1000);
+    }, 800);
     return () => clearTimeout(timer);
   }, []);
 
+  // Auto-scroll otimizado
   useEffect(() => {
     if (scrollRef.current) {
-      const scrollContainer = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
-      if (scrollContainer) {
-        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+      const viewport = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (viewport) {
+        viewport.scrollTo({ top: viewport.scrollHeight, behavior: 'smooth' });
       }
     }
-  }, [messages, isLoading]);
+  }, [messages, isLoading, isOpen]);
 
   const processMessage = useCallback(async (text: string) => {
-    if (!text.trim() || isLoading) return;
+    const trimmed = text.trim();
+    if (!trimmed || isLoading) return;
 
-    setMessages(prev => [...prev, { role: 'user', text }]);
+    setMessages(prev => [...prev, { role: 'user', text: trimmed }]);
     setIsLoading(true);
 
     try {
       const response = await askAuraHelper({
-        question: text,
+        question: trimmed,
         context: `Tela: ${pathname}`
       });
       
       setMessages(prev => [...prev, { role: 'bot', text: response.answer }]);
     } catch (error) {
-      AuraLogger.error('AuraBot', 'Erro no processamento', error);
-      setMessages(prev => [...prev, { role: 'bot', text: "Tive uma pequena falha de percepção. Pode repetir?" }]);
+      AuraLogger.error('AuraBot', 'Falha na resposta', error);
+      setMessages(prev => [...prev, { role: 'bot', text: "Minha conexão com a Grande Aura oscilou. Vamos tentar novamente?" }]);
     } finally {
       setIsLoading(false);
     }
   }, [isLoading, pathname]);
 
   const handleSend = () => {
-    const text = inputValue.trim();
-    if (text) {
-      processMessage(text);
+    if (inputValue.trim()) {
+      processMessage(inputValue);
       setInputValue('');
     }
   };
@@ -107,8 +107,6 @@ export function FloatingAuraBot() {
     }
     setIsOpen(!isOpen);
   };
-
-  const isReady = useMemo(() => loadProgress === 100, [loadProgress]);
 
   return (
     <>
@@ -129,7 +127,7 @@ export function FloatingAuraBot() {
             <span className="text-[10px] font-black uppercase tracking-widest">
               {isOpen ? 'Fechar' : 'AuraHelper'}
             </span>
-            {!isOpen && isReady && <div className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse border-2 border-white" />}
+            {!isOpen && loadProgress === 100 && <div className="w-2 h-2 rounded-full bg-green-500 border border-white" />}
           </motion.button>
 
           <AnimatePresence>
@@ -138,15 +136,15 @@ export function FloatingAuraBot() {
                 initial={{ opacity: 0, y: -20, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -20, scale: 0.95 }}
-                className="pointer-events-auto mt-4 w-full bg-white rounded-[2.5rem] shadow-[0_40px_80px_rgba(0,0,0,0.2)] border-4 border-primary/5 flex flex-col overflow-hidden max-h-[520px]"
+                className="pointer-events-auto mt-4 w-full bg-white rounded-[2.5rem] shadow-2xl border-4 border-primary/5 flex flex-col overflow-hidden max-h-[520px]"
               >
                 <div className="p-6 bg-primary/5 border-b flex items-center gap-4">
                   <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-white shadow-lg">
                     <Sparkles className="w-6 h-6" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-sm font-black uppercase italic tracking-tighter">Guia de Sensibilidade</h3>
-                    <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">IA de Borda Ativa</p>
+                    <h3 className="text-sm font-black uppercase italic tracking-tighter text-slate-900">Guia de Sensibilidade</h3>
+                    <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">Motor de Borda Ativo</p>
                   </div>
                   {isSapient && (
                     <button onClick={() => setIsLogViewerOpen(true)} className="p-2.5 hover:bg-slate-100 rounded-xl text-slate-400">
@@ -160,7 +158,7 @@ export function FloatingAuraBot() {
                     {loadProgress < 100 && loadProgress > 0 && (
                       <div className="flex flex-col items-center justify-center p-8 bg-slate-50 rounded-[2.5rem] border-2 border-slate-100 space-y-4">
                         <div className="text-primary text-[10px] font-black uppercase tracking-widest animate-pulse">Sincronizando Cérebro...</div>
-                        <div className="w-full bg-white h-3 rounded-full overflow-hidden border">
+                        <div className="w-full bg-white h-2.5 rounded-full overflow-hidden border">
                           <motion.div className="bg-primary h-full" animate={{ width: `${loadProgress}%` }} />
                         </div>
                         <span className="text-[8px] font-black text-primary uppercase">{loadProgress}%</span>
@@ -168,7 +166,7 @@ export function FloatingAuraBot() {
                     )}
                     
                     {messages.map((msg, idx) => (
-                      <div key={idx} className={cn("flex flex-col max-w-[85%] mb-4", msg.role === 'bot' ? "items-start" : "items-end ml-auto")}>
+                      <div key={idx} className={cn("flex flex-col max-w-[85%]", msg.role === 'bot' ? "items-start" : "items-end ml-auto")}>
                         <div className={cn("p-4 rounded-[1.8rem] text-[11px] font-medium leading-relaxed shadow-sm", msg.role === 'bot' ? "bg-slate-100 text-slate-800 rounded-tl-none border-l-4 border-primary" : "bg-primary text-white rounded-tr-none")}>
                           {msg.text}
                         </div>
@@ -190,8 +188,8 @@ export function FloatingAuraBot() {
                       <button
                         key={sug.id}
                         onClick={() => processMessage(sug.label)}
-                        disabled={isLoading}
-                        className="whitespace-nowrap px-4 py-2 rounded-full border bg-white border-primary/10 text-primary hover:bg-primary/5 text-[9px] font-black uppercase shadow-sm active:scale-95 transition-all"
+                        disabled={isLoading || loadProgress < 100}
+                        className="whitespace-nowrap px-4 py-2 rounded-full border bg-white border-primary/10 text-primary hover:bg-primary/5 text-[9px] font-black uppercase shadow-sm active:scale-95 transition-all disabled:opacity-50"
                       >
                         {sug.label}
                       </button>
@@ -205,14 +203,14 @@ export function FloatingAuraBot() {
                       value={inputValue}
                       onChange={(e) => setInputValue(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                      disabled={isLoading}
-                      placeholder="Dúvidas técnicas ou lúdicas..."
+                      disabled={isLoading || loadProgress < 100}
+                      placeholder={loadProgress < 100 ? "Aguardando cérebro..." : "Dúvidas técnicas ou lúdicas..."}
                       className="h-14 rounded-2xl pr-14 pl-6 border-transparent bg-slate-50 font-bold text-xs"
                     />
                     <Button
                       size="icon"
                       onClick={handleSend}
-                      disabled={isLoading || !inputValue.trim()}
+                      disabled={isLoading || !inputValue.trim() || loadProgress < 100}
                       className="absolute right-2 top-2 h-10 w-10 rounded-xl bg-primary text-white shadow-lg"
                     >
                       <Send className="w-4 h-4" />
