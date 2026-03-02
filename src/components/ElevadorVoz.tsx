@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -17,7 +16,7 @@ const ASSETS_PATH = '/games/elevador/';
 
 /**
  * ElevadorVoz 2026 - Versão Transparência Total & Mobile-First.
- * Otimizado para APK Android com limpeza profunda de backgrounds e blending de segurança.
+ * Otimizado para APK Android com reset de background forçado e física de camadas.
  */
 export function ElevadorVoz({ onWin, userName, onSuggestBreath }: ElevadorVozProps) {
   const { volume, isSinging, error: audioError } = useAudioProcessor(true);
@@ -30,7 +29,6 @@ export function ElevadorVoz({ onWin, userName, onSuggestBreath }: ElevadorVozPro
 
   // Lógica de Movimento: Volume (0-100) -> Altura do Elevador (0-100%)
   useEffect(() => {
-    // Normalização para o movimento na torre de 60vh
     const targetPos = Math.min(100, volume * 1.5);
     setPosition(prev => (prev * 0.8) + (targetPos * 0.2)); 
 
@@ -68,151 +66,162 @@ export function ElevadorVoz({ onWin, userName, onSuggestBreath }: ElevadorVozPro
   }, [isStable, isSinging, onWin]);
 
   return (
-    <div className="flex-1 relative overflow-hidden flex flex-col items-center justify-center h-full w-full max-w-[430px] mx-auto !bg-transparent border-none shadow-none">
-      
-      {/* 1. CAMADA DE FUNDO (1.png) - 100% da Tela */}
-      <div className="absolute inset-0 z-0 !bg-transparent pointer-events-none border-none">
-        <Image 
-          src={`${ASSETS_PATH}1.png`} 
-          alt="Cenário"
-          fill
-          unoptimized
-          className="object-cover opacity-40 !bg-transparent border-none shadow-none" 
-        />
-      </div>
+    <div className="flex-1 relative overflow-hidden flex flex-col items-center justify-center h-[90vh] w-full max-w-[430px] mx-auto !bg-transparent">
+      {/* RESET DE BACKGROUND FORÇADO PARA ESSE COMPONENTE */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        .elevador-root div, .elevador-root img { 
+          background-color: transparent !important; 
+          background: none !important; 
+          border: none !important; 
+          box-shadow: none !important; 
+        }
+      `}} />
 
-      {/* 2. ESTRUTURA DA TORRE (4.png) - Centralizada em 60vh */}
-      <div className="relative h-[60vh] w-full z-10 flex items-center justify-center !bg-transparent border-none">
-        <div className="relative h-full w-auto aspect-[1/4] !bg-transparent border-none shadow-none">
+      <div className="elevador-root relative w-full h-full flex flex-col items-center justify-center">
+        
+        {/* 1. CAMADA DE FUNDO (1.png) */}
+        <div className="absolute inset-0 z-0 pointer-events-none">
           <Image 
-            src={`${ASSETS_PATH}4.png`} 
-            alt="Torre"
+            src={`${ASSETS_PATH}1.png`} 
+            alt="Cenário"
             fill
             unoptimized
-            className="object-contain !bg-transparent border-none shadow-none mix-blend-multiply" 
+            className="object-cover opacity-40 mix-blend-normal" 
           />
         </div>
-        
-        {/* INDICADOR DE ZONA ATIVA */}
-        <div className="absolute bottom-[30%] h-[20%] w-32 border-y-2 border-primary/30 bg-primary/5 pointer-events-none flex items-center justify-center rounded-xl">
-           <span className="text-[8px] font-black text-primary/60 uppercase tracking-[0.2em] animate-pulse">Meta</span>
-        </div>
 
-        {/* 3. CONTAINER DO ELEVADOR (Cabine 5.png + Robô 2/3.png) */}
-        <motion.div
-          animate={{ bottom: `${position}%` }}
-          transition={{ type: "spring", stiffness: 70, damping: 25 }}
-          className="absolute left-1/2 -translate-x-1/2 w-40 z-30 flex items-center justify-center !bg-transparent border-none"
-          style={{ bottom: 0 }}
-        >
-          <div className="relative w-full aspect-square !bg-transparent border-none">
-            
-            {/* CABINE (5.png) */}
-            <div className="absolute inset-0 z-10 !bg-transparent border-none shadow-none">
-              <Image 
-                src={`${ASSETS_PATH}5.png`} 
-                alt="Cabine"
-                fill
-                unoptimized
-                className="object-contain !bg-transparent border-none shadow-none mix-blend-multiply" 
-              />
-            </div>
-            
-            {/* ROBÔ (2.png ou 3.png) - Z-Index Superior e Absoluto */}
-            <div className="absolute inset-0 z-20 flex items-center justify-center pb-6 !bg-transparent border-none">
-              <div className="relative w-[40%] h-[40%] !bg-transparent border-none">
+        {/* 2. ESTRUTURA DA TORRE (4.png) */}
+        <div className="relative h-[70vh] w-full z-10 flex items-center justify-center">
+          <div className="relative h-full w-auto aspect-[1/4]">
+            <Image 
+              src={`${ASSETS_PATH}4.png`} 
+              alt="Torre"
+              fill
+              unoptimized
+              className="object-contain mix-blend-normal" 
+            />
+          </div>
+          
+          {/* INDICADOR DE ZONA ATIVA */}
+          <div className="absolute bottom-[30%] h-[20%] w-32 border-y-2 border-primary/20 bg-primary/5 pointer-events-none flex items-center justify-center rounded-xl">
+             <span className="text-[8px] font-black text-primary/40 uppercase tracking-[0.2em] animate-pulse">Zona Ativa</span>
+          </div>
+
+          {/* 3. CONTAINER DO ELEVADOR (Cabine 5.png + Robô 2/3.png) */}
+          <motion.div
+            animate={{ bottom: `${position}%` }}
+            transition={{ type: "spring", stiffness: 70, damping: 25 }}
+            className="absolute left-1/2 -translate-x-1/2 w-40 z-30 flex items-center justify-center"
+            style={{ bottom: 0 }}
+          >
+            <div className="relative w-full aspect-square">
+              
+              {/* CABINE (5.png) */}
+              <div className="absolute inset-0 z-10">
                 <Image 
-                  src={volume > 5 ? `${ASSETS_PATH}3.png` : `${ASSETS_PATH}2.png`} 
-                  alt="Robô"
+                  src={`${ASSETS_PATH}5.png`} 
+                  alt="Cabine"
                   fill
                   unoptimized
-                  className="object-contain !bg-transparent border-none shadow-none mix-blend-multiply"
+                  className="object-contain mix-blend-normal" 
                 />
               </div>
-            </div>
-
-            {/* FEEDBACK DE RECOMPENSA */}
-            <AnimatePresence>
-              {rewardId && (
-                <motion.div
-                  key={rewardId}
-                  initial={{ opacity: 0, scale: 0, y: 0 }}
-                  animate={{ opacity: 1, scale: 1, y: -100 }}
-                  exit={{ opacity: 0, scale: 1.5 }}
-                  className="absolute z-50 left-1/2 -translate-x-1/2 top-0 w-16 h-16 !bg-transparent"
-                >
+              
+              {/* ROBÔ (2.png ou 3.png) - Z-Index 50 (Prioridade Máxima) */}
+              <div className="absolute inset-0 z-50 flex items-center justify-center pb-6">
+                <div className="relative w-[40%] h-[40%]">
                   <Image 
-                    src={`${ASSETS_PATH}${rewardId}.png`}
-                    alt="Prêmio"
+                    src={volume > 10 ? `${ASSETS_PATH}3.png` : `${ASSETS_PATH}2.png`} 
+                    alt="Robô"
                     fill
                     unoptimized
-                    className="object-contain !bg-transparent drop-shadow-xl"
+                    className="object-contain mix-blend-normal"
                   />
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        </motion.div>
-      </div>
-
-      {/* 4. HUD DE TELEMETRIA (MOBILE-FIRST) */}
-      
-      {/* Esquerda: Medidor dB Reduzido */}
-      <div className="absolute left-4 top-1/3 z-40 flex flex-col items-center gap-2 !bg-transparent border-none">
-        <div className="relative w-10 h-32 !bg-transparent border-none">
-          <Image 
-            src={`${ASSETS_PATH}6.png`} 
-            alt="Medidor"
-            fill
-            unoptimized
-            className={cn(
-              "object-contain !bg-transparent shadow-none mix-blend-multiply",
-              isStable ? "brightness-125" : "opacity-50"
-            )} 
-          />
-          <motion.div 
-            animate={{ bottom: `${position}%` }}
-            className="absolute left-1/2 -translate-x-1/2 w-6 h-1 bg-accent shadow-[0_0_8px_#f43f5e] rounded-full z-50"
-          />
-        </div>
-        <p className="text-[7px] font-black text-white/40 uppercase tracking-widest">DB</p>
-      </div>
-
-      {/* Direita: Cronômetro Compacto */}
-      <div className="absolute right-4 top-10 z-40 !bg-transparent border-none">
-         <div className="bg-black/20 backdrop-blur-lg px-4 py-3 rounded-2xl border border-white/5 text-center shadow-none min-w-[90px] !bg-transparent">
-            <div className="text-[7px] font-black text-primary uppercase tracking-widest mb-0.5">Foco</div>
-            <div className="text-3xl font-black text-white italic tracking-tighter tabular-nums">{stableTime}s</div>
-            {isStable && (
-              <div className="mt-1 flex items-center justify-center gap-1.5">
-                <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-ping" />
-                <span className="text-[7px] font-bold text-green-400 uppercase">Estável</span>
+                </div>
               </div>
-            )}
-         </div>
+
+              {/* FEEDBACK DE RECOMPENSA */}
+              <AnimatePresence>
+                {rewardId && (
+                  <motion.div
+                    key={rewardId}
+                    initial={{ opacity: 0, scale: 0, y: 0 }}
+                    animate={{ opacity: 1, scale: 1, y: -100 }}
+                    exit={{ opacity: 0, scale: 1.5 }}
+                    className="absolute z-[60] left-1/2 -translate-x-1/2 top-0 w-16 h-16"
+                  >
+                    <Image 
+                      src={`${ASSETS_PATH}${rewardId}.png`}
+                      alt="Prêmio"
+                      fill
+                      unoptimized
+                      className="object-contain drop-shadow-2xl"
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </motion.div>
+        </div>
+
+        {/* 4. HUD DE TELEMETRIA */}
+        
+        {/* Esquerda: Medidor dB */}
+        <div className="absolute left-4 top-1/3 z-40 flex flex-col items-center gap-2">
+          <div className="relative w-10 h-32">
+            <Image 
+              src={`${ASSETS_PATH}6.png`} 
+              alt="Medidor"
+              fill
+              unoptimized
+              className={cn(
+                "object-contain mix-blend-normal transition-all duration-500",
+                isStable ? "brightness-150 drop-shadow-[0_0_10px_#9333ea]" : "opacity-40"
+              )} 
+            />
+            <motion.div 
+              animate={{ bottom: `${position}%` }}
+              className="absolute left-1/2 -translate-x-1/2 w-6 h-1 bg-accent shadow-[0_0_8px_#f43f5e] rounded-full z-50"
+            />
+          </div>
+          <p className="text-[7px] font-black text-white/40 uppercase tracking-widest">DB</p>
+        </div>
+
+        {/* Direita: Cronômetro */}
+        <div className="absolute right-4 top-10 z-40">
+           <div className="bg-black/40 backdrop-blur-xl px-4 py-3 rounded-2xl border border-white/10 text-center min-w-[90px]">
+              <div className="text-[7px] font-black text-primary uppercase tracking-widest mb-0.5">Foco</div>
+              <div className="text-3xl font-black text-white italic tracking-tighter tabular-nums">{stableTime}s</div>
+              {isStable && (
+                <div className="mt-1 flex items-center justify-center gap-1.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-ping" />
+                  <span className="text-[7px] font-bold text-green-400 uppercase">Estável</span>
+                </div>
+              )}
+           </div>
+        </div>
+
+        {/* Rodapé: Assinatura */}
+        <footer className="absolute bottom-6 z-40 flex flex-col items-center gap-3 w-full px-10">
+          <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden">
+             <motion.div 
+               className="h-full bg-primary shadow-[0_0_15px_rgba(147,51,234,0.6)]" 
+               animate={{ width: `${volume}%` }} 
+             />
+          </div>
+          <p className="text-[8px] font-black text-white/20 uppercase tracking-[0.4em]">CORE SYSTEM SPSP 2026</p>
+        </footer>
+
+        {/* Erro de Hardware */}
+        {audioError && (
+          <div className="absolute inset-0 z-[100] bg-slate-950/95 backdrop-blur-xl flex items-center justify-center p-10 text-center">
+            <p className="text-white font-black text-[10px] uppercase tracking-widest leading-relaxed">
+              {audioError}<br/><br/>
+              <span className="text-white/40">Permita o microfone no dispositivo.</span>
+            </p>
+          </div>
+        )}
       </div>
-
-      {/* Rodapé: Assinatura Técnica */}
-      <footer className="absolute bottom-10 z-40 flex flex-col items-center gap-3 !bg-transparent w-full px-10 border-none">
-        <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
-           <motion.div 
-             className="h-full bg-primary shadow-[0_0_15px_rgba(147,51,234,0.6)]" 
-             animate={{ width: `${volume}%` }} 
-           />
-        </div>
-        <p className="text-[8px] font-black text-white/20 uppercase tracking-[0.4em]">CORE SYSTEM SPSP 2026</p>
-      </footer>
-
-      {/* Tela de Erro de Áudio */}
-      {audioError && (
-        <div className="absolute inset-0 z-[100] bg-slate-950/95 backdrop-blur-xl flex items-center justify-center p-10 text-center">
-          <p className="text-white font-black text-[10px] uppercase tracking-widest leading-relaxed">
-            {audioError}<br/><br/>
-            <span className="text-white/40">Permita o microfone no Android.</span>
-          </p>
-        </div>
-      )}
-
     </div>
   );
 }
