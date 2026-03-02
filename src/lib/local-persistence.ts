@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Preferences } from '@capacitor/preferences';
@@ -12,11 +13,11 @@ const STORAGE_KEYS = {
 
 /**
  * Utilitário de persistência local absoluta para arquitetura Standalone.
- * Gerencia progresso do usuário e histórico de atividades offline.
+ * Adicionado verificações defensivas para evitar travamentos de bridge nativa.
  */
 export const LocalPersistence = {
   async saveProgress(data: any) {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || !data) return;
     try {
       const current = await this.getProgress() || {};
       const updated = { ...current, ...data };
@@ -45,7 +46,7 @@ export const LocalPersistence = {
   },
 
   async saveActivity(activity: any) {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || !activity) return;
     try {
       const { value } = await Preferences.get({ key: STORAGE_KEYS.ACTIVITIES });
       const activities = value ? JSON.parse(value) : [];
@@ -57,8 +58,6 @@ export const LocalPersistence = {
       };
       
       activities.unshift(newActivity);
-      
-      // Mantém apenas as últimas 50 atividades para não estourar o armazenamento
       const limitedActivities = activities.slice(0, 50);
       
       await Preferences.set({
@@ -67,7 +66,7 @@ export const LocalPersistence = {
       });
       
       window.dispatchEvent(new Event('local-data-updated'));
-      AuraLogger.info('Persistence', 'Nova atividade registrada no histórico local.');
+      AuraLogger.info('Persistence', 'Atividade registrada localmente.');
     } catch (e) {
       AuraLogger.error('Persistence', 'Erro ao salvar atividade', e);
     }
@@ -84,13 +83,13 @@ export const LocalPersistence = {
   },
 
   async saveUserId(uid: string) {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || !uid) return;
     try {
       await Preferences.set({
         key: STORAGE_KEYS.USER_ID,
         value: uid,
       });
-      AuraLogger.info('Persistence', `UID salvo: ${uid}`);
+      AuraLogger.info('Persistence', `UID sincronizado: ${uid}`);
     } catch (e) {}
   },
 
@@ -108,7 +107,7 @@ export const LocalPersistence = {
     if (typeof window === 'undefined') return;
     try {
       await Preferences.clear();
-      window.location.reload();
+      window.location.href = '/';
     } catch (e) {}
   }
 };

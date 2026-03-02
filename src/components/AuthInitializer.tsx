@@ -8,7 +8,7 @@ import { Loader2 } from 'lucide-react';
 
 /**
  * Componente que garante a inicialização correta do estado do usuário.
- * Versão Standalone - Gerenciamento Dinâmico de Identidade.
+ * Versão Standalone com timeout de segurança para evitar travamento na inicialização.
  */
 export function AuthInitializer({ children }: { children: React.ReactNode }) {
   const [isReady, setIsReady] = useState(false);
@@ -16,6 +16,15 @@ export function AuthInitializer({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setMounted(true);
+    
+    // Timeout de segurança: Se a persistência demorar mais de 2s, libera o app
+    const safetyTimeout = setTimeout(() => {
+      if (!isReady) {
+        console.warn("AuthInitializer: Timeout de segurança atingido. Liberando renderização.");
+        setIsReady(true);
+      }
+    }, 2000);
+
     const initLocalAuth = async () => {
       try {
         let uid = await LocalPersistence.getUserId();
@@ -28,7 +37,6 @@ export function AuthInitializer({ children }: { children: React.ReactNode }) {
             await LocalPersistence.saveUserId(uid);
           }
 
-          // Busca o primeiro avatar da lista estática (compatível com APK)
           const defaultAvatar = STATIC_AVATAR_LIST[0] || 'hero_default.png';
 
           const initialData = {
@@ -46,13 +54,17 @@ export function AuthInitializer({ children }: { children: React.ReactNode }) {
           await LocalPersistence.saveProgress(initialData);
         }
       } catch (error) {
-        console.error("Falha fatal na sincronização de identidade:", error);
+        console.error("Falha na sincronização de identidade:", error);
       } finally {
+        clearTimeout(safetyTimeout);
         setIsReady(true);
       }
     };
+
     initLocalAuth();
-  }, []);
+    
+    return () => clearTimeout(safetyTimeout);
+  }, [isReady]);
 
   if (!mounted || !isReady) {
     return (
