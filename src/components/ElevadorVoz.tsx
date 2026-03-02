@@ -17,7 +17,7 @@ interface ElevadorVozProps {
 const ASSETS_PATH = '/games/elevador/';
 
 export function ElevadorVoz({ onWin, userName, onSuggestBreath }: ElevadorVozProps) {
-  const { volume, isSinging } = useAudioProcessor(true);
+  const { volume, isSinging, error: audioError } = useAudioProcessor(true);
   const [position, setPosition] = useState(0); 
   const [stableTime, setStabilityTime] = useState(0);
   const [rewardId, setRewardId] = useState<number | null>(null);
@@ -29,22 +29,26 @@ export function ElevadorVoz({ onWin, userName, onSuggestBreath }: ElevadorVozPro
 
   // Lógica de Movimento: Volume (0-100) -> Altura (0-95%)
   useEffect(() => {
-    const targetPos = Math.min(95, volume * 1.3);
-    setPosition(prev => (prev * 0.7) + (targetPos * 0.3)); 
+    // Normalização do volume para o movimento da cabine
+    const targetPos = Math.min(95, volume * 1.2);
+    setPosition(prev => (prev * 0.8) + (targetPos * 0.2)); 
 
-    // Detecção de instabilidade para intervenção da Aura
+    // Detecção de instabilidade (Psicomotricidade)
     const diff = Math.abs(volume - lastVolumeRef.current);
-    if (diff > 25 && isSinging) {
+    if (diff > 30 && isSinging) {
       setOscillationCount(c => c + 1);
+      if (oscillationCount > 10) {
+        AuraLogger.warn('Elevador', 'Alta oscilação detectada. Possível fadiga vocal.');
+      }
     }
     lastVolumeRef.current = volume;
 
-    // Zona Alvo: 35% a 55% da torre
-    const inZone = position >= 35 && position <= 55;
+    // Zona de Estabilidade (Meta Clínica)
+    const inZone = position >= 30 && position <= 55;
     setIsStable(inZone);
-  }, [volume, isSinging, position]);
+  }, [volume, isSinging, position, oscillationCount]);
 
-  // Cronômetro de Estabilidade
+  // Cronômetro de Estabilidade e Recompensas
   useEffect(() => {
     if (isStable && isSinging) {
       if (!stabilityTimerRef.current) {
@@ -55,7 +59,7 @@ export function ElevadorVoz({ onWin, userName, onSuggestBreath }: ElevadorVozPro
             if (next === 10) setRewardId(8); 
             if (next >= 20) {
                setRewardId(10); 
-               onWin(50, 'Mestre da Torre');
+               onWin(50, 'Mestre da Fonação');
             }
             return next;
           });
@@ -66,71 +70,72 @@ export function ElevadorVoz({ onWin, userName, onSuggestBreath }: ElevadorVozPro
         clearInterval(stabilityTimerRef.current);
         stabilityTimerRef.current = null;
         setStabilityTime(0);
+        setRewardId(null);
       }
     }
     return () => { if (stabilityTimerRef.current) clearInterval(stabilityTimerRef.current); };
   }, [isStable, isSinging, onWin]);
 
   return (
-    <div className="flex-1 bg-slate-950 relative overflow-hidden flex flex-col items-center justify-center h-full w-full">
+    <div className="flex-1 bg-slate-950 relative overflow-hidden flex flex-col items-center justify-center h-full w-full max-w-md mx-auto shadow-2xl border-x border-white/5">
       
-      {/* CAMADA 0: FUNDO AMBIENTE */}
+      {/* CAMADA 0: FUNDO (1.png) */}
       <div className="absolute inset-0 z-0">
         <img 
           src={`${ASSETS_PATH}1.png`} 
-          className="w-full h-full object-cover opacity-30 mix-blend-screen" 
-          alt="Ambiente" 
+          className="w-full h-full object-cover opacity-40" 
+          alt="Cenário" 
         />
       </div>
 
-      {/* CAMADA 10: TRILHO DA TORRE (CENTRAL) */}
-      <div className="absolute left-1/2 -translate-x-1/2 h-[85vh] w-64 z-10 flex items-center justify-center">
+      {/* CAMADA 10: TORRE CENTRAL (4.png) */}
+      <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-full max-h-[90vh] z-10 flex items-center justify-center">
         <img 
           src={`${ASSETS_PATH}4.png`} 
-          className="h-full w-full object-contain mix-blend-screen opacity-80" 
-          alt="Torre Trilho" 
+          className="h-full w-auto object-contain mix-blend-multiply brightness-[1.2] contrast-[1.1]" 
+          alt="Torre" 
         />
         
-        {/* INDICADOR DE ZONA DE FOCO */}
-        <div className="absolute bottom-[35%] h-[20%] w-full bg-primary/10 border-y border-primary/30 pointer-events-none flex items-center justify-center">
-           <span className="text-[8px] font-black text-primary/60 uppercase tracking-[0.4em] animate-pulse">Zona de Foco</span>
+        {/* ZONA DE FOCO INDICADOR */}
+        <div className="absolute bottom-[30%] h-[25%] w-32 bg-primary/5 border-y-2 border-primary/20 pointer-events-none flex items-center justify-center">
+           <span className="text-[7px] font-black text-primary/40 uppercase tracking-[0.3em] animate-pulse">Zona Ativa</span>
         </div>
       </div>
 
-      {/* CAMADA 20: CONTAINER DO ELEVADOR (MÓVEL) */}
+      {/* CAMADA 20: CONTAINER DO ELEVADOR (CABINE + ROBÔ) */}
       <motion.div
         animate={{ bottom: `${position}%` }}
-        transition={{ type: "spring", stiffness: 45, damping: 15 }}
-        className="absolute left-1/2 -translate-x-1/2 w-48 z-20 flex items-center justify-center"
+        transition={{ type: "spring", stiffness: 50, damping: 20 }}
+        className="absolute left-1/2 -translate-x-1/2 w-40 z-20 flex items-center justify-center"
       >
         <div className="relative w-full aspect-square flex items-center justify-center">
           
-          {/* CABINE */}
+          {/* CABINE (5.png) */}
           <img 
             src={`${ASSETS_PATH}5.png`} 
-            className="w-full h-full object-contain mix-blend-screen drop-shadow-[0_0_30px_rgba(147,51,234,0.4)]" 
+            className="w-full h-full object-contain mix-blend-multiply brightness-[1.2] contrast-[1.1] drop-shadow-2xl" 
             alt="Cabine" 
           />
           
-          {/* ROBÔ (DENTRO DA CABINE) */}
-          <div className="absolute inset-0 flex items-center justify-center pb-4">
+          {/* ROBÔ (2.png ou 3.png) */}
+          <div className="absolute inset-0 flex items-center justify-center pb-6">
             <img 
-              src={volume > 10 ? `${ASSETS_PATH}3.png` : `${ASSETS_PATH}2.png`} 
-              className="w-24 h-24 object-contain mix-blend-screen transition-all duration-150"
+              src={volume > 5 ? `${ASSETS_PATH}3.png` : `${ASSETS_PATH}2.png`} 
+              className="w-[45%] h-auto object-contain mix-blend-multiply brightness-[1.3] contrast-[1.2] transition-transform duration-150"
               alt="Piloto"
             />
           </div>
 
-          {/* EFEITOS DE RECOMPENSA */}
+          {/* EFEITOS DE RECOMPENSA (7.png e outros) */}
           <AnimatePresence>
             {rewardId && (
               <motion.img
                 key={rewardId}
                 initial={{ opacity: 0, scale: 0, y: 0 }}
-                animate={{ opacity: 1, scale: 1.2, y: -120 }}
+                animate={{ opacity: 1, scale: 1.2, y: -80 }}
                 exit={{ opacity: 0, scale: 2 }}
                 src={`${ASSETS_PATH}${rewardId}.png`}
-                className="absolute z-50 w-16 mix-blend-screen"
+                className="absolute z-50 w-12 mix-blend-multiply brightness-125"
                 alt="Prêmio"
               />
             )}
@@ -138,51 +143,57 @@ export function ElevadorVoz({ onWin, userName, onSuggestBreath }: ElevadorVozPro
         </div>
       </motion.div>
 
-      {/* CAMADA 30: HUD (INTERFACE) */}
+      {/* CAMADA 30: HUD MOBILE */}
       
-      {/* MEDIDOR dB (ESQUERDA) */}
-      <div className="absolute left-8 top-1/2 -translate-y-1/2 z-30 flex flex-col items-center">
-        <div className="relative group">
+      {/* MEDIDOR DB ESQUERDA (6.png) */}
+      <div className="absolute left-4 top-1/4 z-30 flex flex-col items-center gap-2">
+        <div className="relative">
           <img 
             src={`${ASSETS_PATH}6.png`} 
             className={cn(
-              "w-32 h-auto transition-all duration-500 mix-blend-screen",
-              isStable ? "brightness-150 drop-shadow-[0_0_20px_#9333ea]" : "opacity-40 grayscale"
+              "w-10 h-auto transition-all duration-500",
+              isStable ? "brightness-150 drop-shadow-[0_0_10px_#9333ea]" : "opacity-30 grayscale"
             )} 
             alt="dB Meter" 
           />
           <motion.div 
             animate={{ bottom: `${position}%` }}
-            className="absolute left-1/2 -translate-x-1/2 w-8 h-1 bg-accent shadow-[0_0_15px_#f43f5e] rounded-full z-40"
+            className="absolute left-1/2 -translate-x-1/2 w-6 h-0.5 bg-accent shadow-[0_0_10px_#f43f5e] rounded-full z-40"
           />
         </div>
-        <p className="mt-4 text-[9px] font-black text-white/40 uppercase tracking-widest">DB Level</p>
+        <p className="text-[7px] font-black text-white/30 uppercase tracking-widest">DB Level</p>
       </div>
 
-      {/* PAINEL DE FOCO (DIREITA) */}
-      <div className="absolute right-8 top-1/2 -translate-y-1/2 z-30 space-y-4">
-         <div className="bg-white/5 backdrop-blur-3xl p-8 rounded-[3rem] border border-white/10 text-center shadow-2xl min-w-[140px] flex flex-col items-center gap-2">
-            <div className="text-[10px] font-black text-primary uppercase tracking-widest">Foco Ativo</div>
-            <div className="text-4xl font-black text-white italic tracking-tighter tabular-nums">{stableTime}s</div>
+      {/* PAINEL DE FOCO DIREITA (GLASSMORPHISM) */}
+      <div className="absolute right-4 top-10 z-30">
+         <div className="bg-white/5 backdrop-blur-xl p-4 rounded-[2rem] border border-white/10 text-center shadow-xl min-w-[100px]">
+            <div className="text-[8px] font-black text-primary uppercase tracking-widest mb-1">Foco Ativo</div>
+            <div className="text-3xl font-black text-white italic tracking-tighter tabular-nums">{stableTime}s</div>
             {isStable && (
-              <div className="mt-2 flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-green-400 animate-ping" />
-                <span className="text-[8px] font-bold text-green-400 uppercase">Sincronizado</span>
+              <div className="mt-1 flex items-center justify-center gap-1.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-ping" />
+                <span className="text-[7px] font-bold text-green-400 uppercase">Estável</span>
               </div>
             )}
          </div>
       </div>
 
       {/* RODAPÉ TÉCNICO */}
-      <footer className="absolute bottom-10 z-30 flex flex-col items-center gap-4">
-        <div className="h-1.5 w-48 bg-white/5 rounded-full overflow-hidden border border-white/5">
+      <footer className="absolute bottom-6 z-30 flex flex-col items-center gap-3">
+        <div className="h-1 w-32 bg-white/5 rounded-full overflow-hidden">
            <motion.div 
-             className="h-full bg-primary shadow-[0_0_15px_rgba(147,51,234,0.8)]" 
-             animate={{ width: `${position}%` }} 
+             className="h-full bg-primary shadow-[0_0_10px_rgba(147,51,234,0.8)]" 
+             animate={{ width: `${volume}%` }} 
            />
         </div>
-        <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.8em]">Core System SPSP 2026</p>
+        <p className="text-[8px] font-black text-white/10 uppercase tracking-[0.6em]">CORE SYSTEM SPSP 2026</p>
       </footer>
+
+      {audioError && (
+        <div className="absolute inset-0 z-[100] bg-red-950/90 backdrop-blur-md flex items-center justify-center p-8 text-center">
+          <p className="text-white font-bold text-xs uppercase tracking-widest">{audioError}</p>
+        </div>
+      )}
 
     </div>
   );
