@@ -1,7 +1,8 @@
 'use client';
 /**
- * @fileOverview AuraHelper - Fluxo de Resposta Otimizado para APK.
- * Triagem de Borda (Determinístico) + Fallback Gemini 1.5 Flash.
+ * @fileOverview AuraHelper - Fluxo de Resposta Otimizado para APK 2026.
+ * Implementa Triagem de Borda (Determinístico) + Fallback Gemini 1.5 Flash.
+ * 100% Client-Side para compatibilidade com build estático.
  */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -22,17 +23,16 @@ export interface AuraHelperOutput {
 }
 
 /**
- * Processa a pergunta do usuário. 
- * Implementa Filtro de Borda para latência zero e Gemini para complexidade.
+ * Processa a pergunta do usuário com prioridade para Borda (Latência Zero).
  */
 export async function askAuraHelper(input: AuraHelperInput): Promise<AuraHelperOutput> {
   const query = input.question.trim().toLowerCase();
-  AuraLogger.info('AuraFlow', `Iniciando triagem: "${query}"`);
+  AuraLogger.info('AuraFlow', `Iniciando triagem determinística: "${query}"`);
   
-  // 1. FILTRO DE BORDA (RESPOSTAS ESTÁTICAS)
+  // 1. CAMADA DE BORDA (Dicionário de Palavras-Chave)
   for (const item of STATIC_AURA_RESPONSES) {
     if (item.keywords.some(kw => query.includes(kw))) {
-      AuraLogger.info('AuraFlow', 'Resposta de Borda encontrada (Latência Zero).');
+      AuraLogger.info('AuraFlow', 'Resposta de Borda encontrada (Offline).');
       return {
         answer: item.answer,
         suggestedAction: item.suggestedAction
@@ -40,16 +40,16 @@ export async function askAuraHelper(input: AuraHelperInput): Promise<AuraHelperO
     }
   }
 
-  // 2. VERIFICAÇÃO DE API KEY
+  // 2. VERIFICAÇÃO DE SEGURANÇA (API KEY)
   if (!genAI) {
-    AuraLogger.warn('AuraFlow', 'NEXT_PUBLIC_GEMINI_API_KEY não configurada.');
+    AuraLogger.warn('AuraFlow', 'NEXT_PUBLIC_GEMINI_API_KEY ausente.');
     return {
-      answer: "Ops! Minha conexão com o servidor de inteligência está em manutenção. Verifique as configurações da API Key no seu ambiente.",
+      answer: "Ops! Minha sincronia com a nuvem de inteligência está desligada. Verifique as configurações de rede ou a chave de API.",
       suggestedAction: "Configurar API"
     };
   }
 
-  // 3. FALLBACK PARA GEMINI CLOUD (PARA COMPLEXIDADE)
+  // 3. FALLBACK CLOUD (Gemini 1.5 Flash)
   try {
     const model = genAI.getGenerativeModel({ 
       model: "gemini-1.5-flash",
@@ -58,7 +58,7 @@ export async function askAuraHelper(input: AuraHelperInput): Promise<AuraHelperO
       }
     });
     
-    const prompt = `Você é o AuraHelper, o guia de inteligência do aplicativo UrbeLudo.
+    const prompt = `Você é o AuraHelper, o guia de inteligência do aplicativo UrbeLudo 2026.
       Responda sobre movimento, psicomotricidade ou o app UrbeLudo.
       
       Diretrizes:
@@ -74,13 +74,14 @@ export async function askAuraHelper(input: AuraHelperInput): Promise<AuraHelperO
     const result = await model.generateContent(prompt);
     const text = result.response.text().replace(/```json|```/g, "").trim();
     
+    AuraLogger.info('AuraFlow', 'Resposta gerada via Gemini Cloud.');
     return JSON.parse(text) as AuraHelperOutput;
     
   } catch (error: any) {
     AuraLogger.error('AuraFlow', 'Erro no fallback Gemini', error.message || error);
     
     return {
-      answer: "Minha sincronia com a nuvem oscilou. Vamos focar no seu movimento agora? Tente me perguntar sobre 'como jogar' ou 'moedas'!",
+      answer: "Minha conexão com a nuvem oscilou, mas minha energia local diz: você está indo muito bem! Tente me perguntar sobre 'moedas' ou 'como jogar'.",
       suggestedAction: "Ver Sugestões"
     };
   }

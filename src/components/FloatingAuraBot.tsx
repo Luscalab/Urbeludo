@@ -73,7 +73,7 @@ export function FloatingAuraBot() {
       setMessages(prev => [...prev, { role: 'bot', text: response.answer }]);
     } catch (error) {
       AuraLogger.error('AuraBot', 'Erro ao processar mensagem', error);
-      setMessages(prev => [...prev, { role: 'bot', text: "Senti uma interferência na Aura. Pode repetir a pergunta?" }]);
+      setMessages(prev => [...prev, { role: 'bot', text: "Senti uma pequena interferência. Pode repetir a pergunta?" }]);
     } finally {
       setIsLoading(false);
     }
@@ -132,8 +132,8 @@ export function FloatingAuraBot() {
                     <Sparkles className="w-6 h-6" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-sm font-black uppercase italic tracking-tighter text-slate-900">Guia de Movimento</h3>
-                    <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">IA de Borda Híbrida Ativa</p>
+                    <h3 className="text-sm font-black uppercase italic tracking-tighter text-slate-900">Guia UrbeLudo</h3>
+                    <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">Sincronia de Borda Ativa</p>
                   </div>
                   {isSapient && (
                     <button onClick={() => setIsLogViewerOpen(true)} className="p-2.5 hover:bg-slate-100 rounded-xl text-slate-400">

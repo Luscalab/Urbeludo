@@ -1,6 +1,7 @@
 /**
  * @fileOverview Serviço de Inteligência Artificial AuraBot - 100% Client-Side para APK.
  * Gera relatórios biomecânicos e feedbacks lúdicos.
+ * Otimizado para 2026.
  */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -36,7 +37,7 @@ export async function generateAuraBotReport(data: {
   try {
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-    const prompt = `Você é o AuraBot, assistente inteligente de fonoaudiologia do app UrbeLudo.
+    const prompt = `Você é o AuraBot, assistente inteligente de fonoaudiologia do app UrbeLudo 2026.
       Analise os dados desta sessão de psicomotricidade vocal:
       - Nível: ${data.levelName}
       - Intensidade Média: ${data.avgVolume}%
