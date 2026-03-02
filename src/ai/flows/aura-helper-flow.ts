@@ -1,7 +1,7 @@
 'use client';
 /**
  * @fileOverview AuraHelper - Fluxo de Resposta com Filtro Semântico de Borda.
- * Removido Transformers.js para priorizar performance máxima no APK.
+ * Otimizado para evitar erros de 404 no Gemini e garantir estabilidade no APK.
  */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -43,6 +43,8 @@ export async function askAuraHelper(input: AuraHelperInput): Promise<AuraHelperO
   // 2. FALLBACK PARA GEMINI (QUANDO É COMPLEXO)
   try {
     AuraLogger.info('AuraFlow', 'Consultando Gemini Cloud...');
+    
+    // Usamos o identificador de modelo estável
     const model = genAI.getGenerativeModel({ 
       model: "gemini-1.5-flash",
       generationConfig: {
@@ -66,12 +68,14 @@ export async function askAuraHelper(input: AuraHelperInput): Promise<AuraHelperO
     const result = await model.generateContent(prompt);
     const responseText = result.response.text();
     
-    // Limpeza de segurança para o JSON
+    // Limpeza de segurança para o JSON (remove blocos de código se houver)
     const cleanJson = responseText.replace(/```json|```/g, "").trim();
     return JSON.parse(cleanJson) as AuraHelperOutput;
     
   } catch (error: any) {
-    AuraLogger.error('AuraFlow', 'Falha no fallback Cloud', error.message);
+    // Log detalhado para depuração sem travar a UI
+    AuraLogger.error('AuraFlow', 'Falha no fallback Cloud', error.message || error);
+    
     return {
       answer: "Minha conexão com a Grande Aura oscilou. Vamos focar no seu movimento agora?",
       suggestedAction: "Ir para Treino"
