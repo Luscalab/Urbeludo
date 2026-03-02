@@ -1,11 +1,10 @@
 'use client';
 /**
- * @fileOverview AuraHelper - Fluxo de Triagem Híbrida.
- * Prioriza a memória local (Borda) antes de gastar tokens no Gemini.
+ * @fileOverview AuraHelper - Fluxo de Resposta Direta e Simplificada.
+ * Prioriza performance no APK removendo IA de borda pesada.
  */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { classifyIntent } from "@/lib/aura-brain";
 import { AuraLogger } from "@/lib/logs/aura-logger";
 
 const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "AIzaSyCCwhUNlhnpxjDuZ8quod7MTnde1dZJj04";
@@ -21,66 +20,62 @@ export interface AuraHelperOutput {
   suggestedAction?: string;
 }
 
-const RESPOSTAS_LOCAIS: Record<string, { response: string, action: string }> = {
+const RESPOSTAS_FIXAS: Record<string, { response: string, action: string, keywords: string[] }> = {
   jogar_elevador: {
-    response: "Para subir o Elevador, você deve manter um som vocal constante! Tente ficar dentro da Zona de Estabilidade (a área destacada) para encher a barra de progresso.",
-    action: "Foque na sustentação vocal!"
-  },
-  zona_estabilidade: {
-    response: "A Zona de Estabilidade é a área de controle ideal. Ela treina seu equilíbrio respiratório e vocal. Se você mantiver o som lá, ganhará mais LudoCoins!",
-    action: "Busque o equilíbrio!"
-  },
-  clinico_psico: {
-    response: "No UrbeLudo, usamos o jogo para treinar a consciência corporal e o controle motor. Ao dominar o elevador ou o equilíbrio, seu cérebro aprende a coordenar melhor os movimentos.",
-    action: "Movimento Consciente!"
+    response: "Para subir o Elevador, mantenha um som vocal constante! Fique dentro da área verde para ganhar LudoCoins.",
+    action: "Foque na voz!",
+    keywords: ["elevador", "jogar", "como subir", "voz", "cantar"]
   },
   moedas: {
-    response: "LudoCoins são recompensas pelo seu esforço! Você pode usá-las na Loja para comprar itens incríveis e decorar seu Estúdio no Painel.",
-    action: "Visite a Loja!"
+    response: "LudoCoins são recompensas! Use-as na Lo_ja para comprar móveis e decorar seu Estúdio.",
+    action: "Visite a Loja!",
+    keywords: ["moedas", "ludocoins", "dinheiro", "comprar", "loja"]
   },
-  tecnico_ajuda: {
-    response: "Se algo não estiver funcionando, verifique se deu permissão de microfone ao app. Tente também ir para um lugar mais silencioso para uma detecção melhor.",
-    action: "Verificar Hardware"
+  psicomotricidade: {
+    response: "No UrbeLudo, treinamos a consciência corporal e o controle motor através de desafios lúdicos.",
+    action: "Movimento Consciente!",
+    keywords: ["psicomotricidade", "corpo", "ajuda", "exercício", "benefício"]
+  },
+  ajuda_tecnica: {
+    response: "Se o som não funcionar, verifique a permissão de microfone nas configurações do seu celular.",
+    action: "Verificar Permissões",
+    keywords: ["bug", "travou", "microfone", "erro", "não funciona"]
   }
 };
 
 export async function askAuraHelper(input: AuraHelperInput): Promise<AuraHelperOutput> {
   const query = input.question.trim().toLowerCase();
-  AuraLogger.info('AuraFlow', `Triagem Híbrida para: "${query}"`);
+  AuraLogger.info('AuraFlow', `Processando: "${query}"`);
   
-  try {
-    // 1. TENTA CLASSIFICAÇÃO LOCAL (WEB WORKER)
-    const intentId = await classifyIntent(query);
-
-    if (intentId !== 'fallback' && RESPOSTAS_LOCAIS[intentId]) {
-      AuraLogger.info('AuraFlow', `Intenção Local Detectada: ${intentId}`);
+  // 1. TRIAGEM DETERMINÍSTICA (BORDA ULTRA-RÁPIDA)
+  for (const key in RESPOSTAS_FIXAS) {
+    const item = RESPOSTAS_FIXAS[key];
+    if (item.keywords.some(kw => query.includes(kw))) {
+      AuraLogger.info('AuraFlow', `Resposta determinística encontrada: ${key}`);
       return {
-        answer: RESPOSTAS_LOCAIS[intentId].response,
-        suggestedAction: RESPOSTAS_LOCAIS[intentId].action
+        answer: item.response,
+        suggestedAction: item.action
       };
     }
-  } catch (err) {
-    AuraLogger.error('AuraFlow', 'Erro na triagem local, tentando nuvem...', err);
   }
 
-  // 2. FALLBACK PARA CLOUD GEMINI (PROCESSO ASSÍNCRONO)
+  // 2. FALLBACK DIRETO PARA CLOUD GEMINI
   try {
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-    const prompt = `Você é o AuraHelper, assistente de Psicomotricidade e suporte do app UrbeLudo.
+    const prompt = `Você é o AuraHelper, assistente do app de psicomotricidade UrbeLudo.
       Responda de forma curta (máximo 2 frases), lúdica e acolhedora.
-      Pergunta do Aluno: ${query}
-      Contexto Atual: ${input.context || 'Exploração Livre'}
+      Pergunta: ${query}
+      Contexto: ${input.context || 'Exploração'}
       Retorne APENAS um JSON: {"answer": "...", "suggestedAction": "..."}`;
 
     const result = await model.generateContent(prompt);
     const text = result.response.text().replace(/```json|```/g, "").trim();
-    AuraLogger.info('AuraFlow', 'Resposta obtida via Grande Aura (Cloud).');
     return JSON.parse(text) as AuraHelperOutput;
   } catch (error: any) {
-    AuraLogger.error('AuraFlow', 'Falha total na resposta', error.message);
+    AuraLogger.error('AuraFlow', 'Erro na API Gemini', error.message);
     return {
-      answer: "Minha conexão com a rede lúdica oscilou um pouco. Que tal tentarmos focar no seu desafio atual?",
-      suggestedAction: "Ver Missão"
+      answer: "Minha conexão com a rede lúdica oscilou. Que tal tentarmos novamente?",
+      suggestedAction: "Ver Missões"
     };
   }
 }

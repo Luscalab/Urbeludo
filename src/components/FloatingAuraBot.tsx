@@ -15,7 +15,6 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { usePathname } from 'next/navigation';
 import { askAuraHelper } from '@/ai/flows/aura-helper-flow';
-import { initAuraBrain } from '@/lib/aura-brain';
 import { AuraLogger } from '@/lib/logs/aura-logger';
 import { cn } from '@/lib/utils';
 import { SUGESTOES_AURA } from '@/lib/aura-suggestions';
@@ -37,23 +36,13 @@ export function FloatingAuraBot() {
   const [isLogViewerOpen, setIsLogViewerOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'bot', text: 'Olá, Explorador! Sou o AuraHelper. Estou carregando meus neurônios, mas já podemos conversar!' }
+    { role: 'bot', text: 'Olá, Explorador! Sou o AuraHelper. Como posso ajudar no seu treino hoje?' }
   ]);
   const [isLoading, setIsLoading] = useState(false);
-  const [loadProgress, setLoadProgress] = useState(0);
   const [clickCount, setClickCount] = useState(0);
   
   const scrollRef = useRef<HTMLDivElement>(null);
-
   const isSapient = profile?.email === 'sapientcontato@gmail.com';
-
-  useEffect(() => {
-    // Inicialização da IA de Borda (Singleton)
-    const timer = setTimeout(() => {
-      initAuraBrain((p) => setLoadProgress(p));
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, []);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -79,7 +68,7 @@ export function FloatingAuraBot() {
       
       setMessages(prev => [...prev, { role: 'bot', text: response.answer }]);
     } catch (error) {
-      AuraLogger.error('AuraBot', 'Erro ao processar fala', error);
+      AuraLogger.error('AuraBot', 'Erro ao processar', error);
       setMessages(prev => [...prev, { role: 'bot', text: "Minha sincronia oscilou. Vamos tentar novamente?" }]);
     } finally {
       setIsLoading(false);
@@ -124,7 +113,6 @@ export function FloatingAuraBot() {
             <span className="text-[10px] font-black uppercase tracking-widest">
               {isOpen ? 'Fechar' : 'AuraHelper'}
             </span>
-            {loadProgress === 100 && !isOpen && <div className="w-2 h-2 rounded-full bg-green-500 border border-white" />}
           </motion.button>
 
           <AnimatePresence>
@@ -141,9 +129,7 @@ export function FloatingAuraBot() {
                   </div>
                   <div className="flex-1">
                     <h3 className="text-sm font-black uppercase italic tracking-tighter text-slate-900">Guia de Sensibilidade</h3>
-                    <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">
-                      {loadProgress < 100 ? `Sincronizando: ${loadProgress}%` : 'IA de Borda Ativa'}
-                    </p>
+                    <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">IA Híbrida Ativa</p>
                   </div>
                   {isSapient && (
                     <button onClick={() => setIsLogViewerOpen(true)} className="p-2.5 hover:bg-slate-100 rounded-xl text-slate-400">
@@ -154,20 +140,6 @@ export function FloatingAuraBot() {
 
                 <ScrollArea className="flex-1 p-6" ref={scrollRef}>
                   <div className="space-y-4 pb-4">
-                    {loadProgress < 100 && (
-                      <div className="flex flex-col items-center justify-center p-8 bg-slate-50 rounded-[2.5rem] border-2 border-slate-100 space-y-4">
-                        <div className="text-primary text-[10px] font-black uppercase tracking-widest animate-pulse">Iniciando Redes Neurais...</div>
-                        <div className="w-full bg-white h-2.5 rounded-full overflow-hidden border">
-                          <motion.div 
-                            className="bg-primary h-full" 
-                            initial={{ width: 0 }}
-                            animate={{ width: `${loadProgress}%` }} 
-                          />
-                        </div>
-                        <span className="text-[8px] font-black text-primary uppercase">{loadProgress}%</span>
-                      </div>
-                    )}
-                    
                     {messages.map((msg, idx) => (
                       <div key={idx} className={cn("flex flex-col max-w-[85%]", msg.role === 'bot' ? "items-start" : "items-end ml-auto")}>
                         <div className={cn("p-4 rounded-[1.8rem] text-[11px] font-medium leading-relaxed shadow-sm", msg.role === 'bot' ? "bg-slate-100 text-slate-800 rounded-tl-none border-l-4 border-primary" : "bg-primary text-white rounded-tr-none")}>
@@ -179,7 +151,7 @@ export function FloatingAuraBot() {
                     {isLoading && (
                       <div className="flex items-center gap-2 p-4 bg-slate-50 rounded-2xl w-fit">
                         <Loader2 className="w-3 h-3 animate-spin text-primary" />
-                        <span className="text-[8px] font-black uppercase text-muted-foreground">Interpretando...</span>
+                        <span className="text-[8px] font-black uppercase text-muted-foreground">Sintonizando...</span>
                       </div>
                     )}
                   </div>
@@ -207,7 +179,7 @@ export function FloatingAuraBot() {
                       onChange={(e) => setInputValue(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && handleSend()}
                       disabled={isLoading}
-                      placeholder="Dúvida técnica ou clínica?"
+                      placeholder="Dúvida sobre o treino?"
                       className="h-14 rounded-2xl pr-14 pl-6 border-transparent bg-slate-50 font-bold text-xs"
                     />
                     <Button
