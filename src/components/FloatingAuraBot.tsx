@@ -42,16 +42,22 @@ export function FloatingAuraBot() {
   const [clickCount, setClickCount] = useState(0);
   
   const scrollRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const isSapient = profile?.email === 'sapientcontato@gmail.com';
 
-  useEffect(() => {
-    if (scrollRef.current) {
-      const viewport = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
-      if (viewport) {
-        viewport.scrollTo({ top: viewport.scrollHeight, behavior: 'smooth' });
-      }
+  // Função para rolar até o fim
+  const scrollToBottom = useCallback(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [messages, isLoading, isOpen]);
+  }, []);
+
+  // Rola sempre que mensagens mudam ou o bot carrega
+  useEffect(() => {
+    if (isOpen) {
+      setTimeout(scrollToBottom, 100);
+    }
+  }, [messages, isLoading, isOpen, scrollToBottom]);
 
   const processMessage = useCallback(async (text: string) => {
     const trimmed = text.trim();
@@ -154,6 +160,9 @@ export function FloatingAuraBot() {
                         <span className="text-[8px] font-black uppercase text-muted-foreground">Sintonizando...</span>
                       </div>
                     )}
+                    
+                    {/* Marcador para scroll automático */}
+                    <div ref={messagesEndRef} className="h-1 w-full" />
                   </div>
                 </ScrollArea>
 
