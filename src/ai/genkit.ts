@@ -2,14 +2,14 @@ import {genkit} from 'genkit';
 import {googleAI} from '@genkit-ai/google-genai';
 
 /**
- * Inicialização centralizada do Genkit para UrbeLudo.
- * Sincronizado com a chave de API NEXT_PUBLIC para garantir funcionamento no APK.
+ * Inicialização Genkit 2026 - UrbeLudo.
+ * Atualizado para gemini-3-flash-preview.
  */
 export const ai = genkit({
   plugins: [
     googleAI({
-      apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY || "AIzaSyCCwhUNlhnpxjDuZ8quod7MTnde1dZJj04"
+      apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY || ""
     })
   ],
-  model: 'googleai/gemini-1.5-flash',
+  model: 'googleai/gemini-3-flash-preview',
 });

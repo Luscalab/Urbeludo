@@ -1,87 +1,50 @@
 'use client';
 /**
- * @fileOverview AvatarizeUser - Transforma foto real em estilo de avatar seguro.
- * Versão Client-Side direta via NEXT_PUBLIC_GEMINI_API_KEY.
+ * @fileOverview AvatarizeUser 2026 - Gemini 3 Flash Preview.
  */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { AuraLogger } from "@/lib/logs/aura-logger";
 
-const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "AIzaSyCCwhUNlhnpxjDuZ8quod7MTnde1dZJj04";
-const genAI = new GoogleGenerativeAI(API_KEY);
-
-export interface AvatarizeUserInput {
-  photoDataUri: string;
-}
+const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
+const genAI = API_KEY ? new GoogleGenerativeAI(API_KEY) : null;
 
 export interface AvatarizeUserOutput {
-  hair: {
-    style: string;
-    color: string;
-    texture: string;
-  };
-  eyes: {
-    shape: string;
-    color: string;
-    eyebrowShape: string;
-  };
-  face: {
-    shape: string;
-    tone: string;
-    undertone: string;
-    noseShape: string;
-    mouthShape: string;
-  };
+  hair: { style: string; color: string; texture: string; };
+  eyes: { shape: string; color: string; eyebrowShape: string; };
+  face: { shape: string; tone: string; undertone: string; noseShape: string; mouthShape: string; };
   accessories: string[];
   dominantColor: string;
   accessoryType: string;
   avatarStyleDescription: string;
 }
 
-export async function avatarizeUser(input: AvatarizeUserInput): Promise<AvatarizeUserOutput> {
+export async function avatarizeUser(input: { photoDataUri: string }): Promise<AvatarizeUserOutput> {
   const fallback: AvatarizeUserOutput = {
     hair: { style: 'curto', color: '#333333', texture: 'Liso' },
     eyes: { shape: 'Amendoado', color: '#33993D', eyebrowShape: 'Natural' },
     face: { shape: 'Oval', tone: '#e0ac69', undertone: 'Quente', noseShape: 'Natural', mouthShape: 'Natural' },
     accessories: [],
     dominantColor: "#9333ea",
-    accessoryType: "Visor de Neon Pulse",
-    avatarStyleDescription: "Explorador Padrão do UrbeLudo"
+    accessoryType: "Explorador Padrão",
+    avatarStyleDescription: "Identidade Ludo Ativa"
   };
 
-  if (!API_KEY) {
-    AuraLogger.warn('AvatarFlow', 'Chave de API ausente para avatarização. Usando fallback.');
-    return fallback;
-  }
+  if (!genAI) return fallback;
 
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-    
+    const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
     const [mimeType, base64Data] = input.photoDataUri.split(',');
     const pureMime = mimeType.match(/data:(.*?);/)?.[1] || "image/jpeg";
 
-    AuraLogger.info('AvatarFlow', 'Iniciando análise facial via Gemini...');
+    const prompt = `Designer UrbeLudo 2026: Analise a foto e identifique traços faciais para criar um avatar.
+    Retorne apenas JSON com: hair (style, color hex, texture), eyes (shape, color hex, eyebrowShape), face (shape, tone hex, undertone, noseShape, mouthShape), accessories (array), dominantColor (hex), accessoryType, avatarStyleDescription.`;
 
-    const prompt = `Você é o Designer de Identidades do UrbeLudo. 
-    Analise a foto fornecida e identifique detalhadamente as características faciais para criar um avatar artístico e futurista.
-    Retorne um JSON puro com os campos: hair (style, color hex, texture), eyes (shape, color hex, eyebrowShape), face (shape, tone hex, undertone, noseShape, mouthShape), accessories (array), dominantColor (hex), accessoryType, avatarStyleDescription.`;
-
-    const result = await model.generateContent([
-      prompt,
-      {
-        inlineData: {
-          data: base64Data,
-          mimeType: pureMime
-        }
-      }
-    ]);
-
-    const response = await result.response;
-    const text = response.text().replace(/```json|```/g, "").trim();
-    AuraLogger.info('AvatarFlow', 'Avatarização concluída com sucesso.');
+    const result = await model.generateContent([prompt, { inlineData: { data: base64Data, mimeType: pureMime } }]);
+    const text = result.response.text().replace(/```json|```/g, "").trim();
     return JSON.parse(text) as AvatarizeUserOutput;
-  } catch (error: any) {
-    AuraLogger.error("AvatarFlow", "Erro na Avatarização", error.message || error);
+  } catch (error) {
+    AuraLogger.error("AvatarFlow", "Erro na análise Gemini 3", error);
     return fallback;
   }
 }

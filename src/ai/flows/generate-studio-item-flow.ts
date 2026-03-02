@@ -1,51 +1,39 @@
 'use client';
 /**
- * @fileOverview Motor de Arquitetura Ludo - NEXT_PUBLIC.
+ * @fileOverview Gerador de Itens 2026 - Gemini 3 Flash Preview.
  */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { StudioItem } from '@/lib/types';
 import { AuraLogger } from "@/lib/logs/aura-logger";
 
-const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "AIzaSyCCwhUNlhnpxjDuZ8quod7MTnde1dZJj04";
-const genAI = new GoogleGenerativeAI(API_KEY);
+const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
+const genAI = API_KEY ? new GoogleGenerativeAI(API_KEY) : null;
 
-export interface GenerateItemInput {
-  prompt: string;
-  category: 'Essencial' | 'Ativo' | 'Estético' | 'Especial';
-}
-
-export async function generateStudioItem(input: GenerateItemInput): Promise<{ item: StudioItem }> {
+export async function generateStudioItem(input: { prompt: string; category: any }): Promise<{ item: StudioItem }> {
   try {
-    AuraLogger.info('StudioAI', `Gerando item: "${input.prompt}"`);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-    
-    const architectPrompt = `Você é o Arquiteto Master do UrbeLudo. 
-    Crie um item para um jogo isométrico futurista baseado em: "${input.prompt}".
-    Retorne um JSON puro com: name, description, suggestedWidth, suggestedHeight.`;
+    const model = genAI!.getGenerativeModel({ model: "gemini-3-flash-preview" });
+    const architectPrompt = `Arquiteto Ludo 2026: Crie um item para estúdio baseado em: "${input.prompt}".
+    Retorne JSON: {"name": "...", "description": "...", "suggestedWidth": 0, "suggestedHeight": 0}`;
 
     const result = await model.generateContent(architectPrompt);
     const meta = JSON.parse(result.response.text().replace(/```json|```/g, "").trim());
 
-    const generatedItem: StudioItem = {
+    const item: StudioItem = {
       id: `ai-item-${Date.now()}`,
       name: meta.name || "Item Futurista",
-      description: meta.description || "Gerado pela IA do Estúdio",
+      description: meta.description || "Gerado pela IA 2026",
       category: input.category,
       price: 0,
       assetPath: `https://picsum.photos/seed/${Date.now()}/400/300`,
-      dimensions: { 
-        width: meta.suggestedWidth || 160, 
-        height: meta.suggestedHeight || 140 
-      },
+      dimensions: { width: meta.suggestedWidth || 160, height: meta.suggestedHeight || 140 },
       gridSize: { w: 2, h: 2 },
       isAiGenerated: true,
     };
 
-    AuraLogger.info('StudioAI', 'Materialização lúdica concluída.');
-    return { item: generatedItem };
-  } catch (error: any) {
-    AuraLogger.error("StudioAI", "Erro na geração de item", error.message || error);
+    return { item };
+  } catch (error) {
+    AuraLogger.error("StudioAI", "Falha na materialização Gemini 3", error);
     throw error;
   }
 }

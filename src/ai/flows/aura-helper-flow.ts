@@ -1,8 +1,8 @@
 'use client';
 /**
- * @fileOverview AuraHelper - Fluxo de Resposta Otimizado para APK 2026.
- * Implementa Triagem de Borda (Determinístico) + Fallback Gemini 1.5 Flash.
- * 100% Client-Side para compatibilidade com build estático.
+ * @fileOverview AuraHelper - Fluxo de Resposta 2026 (SPSP).
+ * Prioriza Borda Determinística + Gemini 3 Flash Preview.
+ * 100% Client-Side para compatibilidade com build estático APK.
  */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -22,17 +22,14 @@ export interface AuraHelperOutput {
   suggestedAction?: string;
 }
 
-/**
- * Processa a pergunta do usuário com prioridade para Borda (Latência Zero).
- */
 export async function askAuraHelper(input: AuraHelperInput): Promise<AuraHelperOutput> {
   const query = input.question.trim().toLowerCase();
-  AuraLogger.info('AuraFlow', `Iniciando triagem determinística: "${query}"`);
+  AuraLogger.info('AuraFlow', `Triagem 2026: "${query}"`);
   
-  // 1. CAMADA DE BORDA (Dicionário de Palavras-Chave)
+  // 1. CAMADA DE BORDA (Dicionário Estático - Latência Zero)
   for (const item of STATIC_AURA_RESPONSES) {
     if (item.keywords.some(kw => query.includes(kw))) {
-      AuraLogger.info('AuraFlow', 'Resposta de Borda encontrada (Offline).');
+      AuraLogger.info('AuraFlow', 'Resposta de Borda (Offline) encontrada.');
       return {
         answer: item.answer,
         suggestedAction: item.suggestedAction
@@ -40,49 +37,43 @@ export async function askAuraHelper(input: AuraHelperInput): Promise<AuraHelperO
     }
   }
 
-  // 2. VERIFICAÇÃO DE SEGURANÇA (API KEY)
+  // 2. SEGURANÇA DE API
   if (!genAI) {
-    AuraLogger.warn('AuraFlow', 'NEXT_PUBLIC_GEMINI_API_KEY ausente.');
+    AuraLogger.warn('AuraFlow', 'API Key ausente. Usando modo de segurança.');
     return {
-      answer: "Ops! Minha sincronia com a nuvem de inteligência está desligada. Verifique as configurações de rede ou a chave de API.",
+      answer: "Minha conexão com a nuvem de 2026 está desativada. Tente perguntar sobre 'moedas' ou 'como jogar'.",
       suggestedAction: "Configurar API"
     };
   }
 
-  // 3. FALLBACK CLOUD (Gemini 1.5 Flash)
+  // 3. FALLBACK CLOUD (Gemini 3 Flash Preview)
   try {
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
+      model: "gemini-3-flash-preview",
       generationConfig: {
         responseMimeType: "application/json",
       }
     });
     
-    const prompt = `Você é o AuraHelper, o guia de inteligência do aplicativo UrbeLudo 2026.
-      Responda sobre movimento, psicomotricidade ou o app UrbeLudo.
-      
-      Diretrizes:
-      - Resposta em Português (Brasil).
-      - Tom encorajador, amigável e focado em psicomotricidade.
-      - Se o usuário parecer cansado ou com dificuldades no 'Elevador de Voz', sugira a 'Nuvem de Sopro'.
+    const prompt = `Você é o AuraHelper do UrbeLudo 2026.
+      Responda sobre psicomotricidade, ludo-coins ou o app.
       
       Pergunta: "${query}"
-      Contexto Atual: "${input.context || 'Exploração Livre'}"
+      Contexto: "${input.context || 'Exploração Livre'}"
       
-      Retorne APENAS um JSON: {"answer": "...", "suggestedAction": "..."}`;
+      Retorne um JSON puro: {"answer": "...", "suggestedAction": "..."}`;
 
     const result = await model.generateContent(prompt);
     const text = result.response.text().replace(/```json|```/g, "").trim();
     
-    AuraLogger.info('AuraFlow', 'Resposta gerada via Gemini Cloud.');
+    AuraLogger.info('AuraFlow', 'Resposta Gemini 3 Cloud obtida.');
     return JSON.parse(text) as AuraHelperOutput;
     
   } catch (error: any) {
-    AuraLogger.error('AuraFlow', 'Erro no fallback Gemini', error.message || error);
-    
+    AuraLogger.error('AuraFlow', 'Erro no fallback Gemini 3', error.message);
     return {
-      answer: "Minha conexão com a nuvem oscilou, mas minha energia local diz: você está indo muito bem! Tente me perguntar sobre 'moedas' ou 'como jogar'.",
-      suggestedAction: "Ver Sugestões"
+      answer: "O sinal de 2026 oscilou. Mas você está indo bem! Continue se movendo!",
+      suggestedAction: "Continuar"
     };
   }
 }
