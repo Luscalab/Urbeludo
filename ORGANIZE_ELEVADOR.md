@@ -68,11 +68,11 @@ for ($i = 1; $i -le 7; $i++) {
 Copy-Item "$origem\cabine.png" "$destino\cabine.png" -Force
 Write-Host "✓ Copiado: cabine.png"
 
-Copy-Item "$origem\tela inical.png" "$destino\tela inical.png" -Force
-Write-Host "✓ Copiado: tela inical.png"
+Copy-Item "$origem\tela-inicial.png" "$destino\tela-inicial.png" -Force
+Write-Host "✓ Copiado: tela-inicial.png"
 
-Copy-Item "$origem\spreedsheet.png" "$destino\spreedsheet.png" -Force
-Write-Host "✓ Copiado: spreedsheet.png"
+Copy-Item "$origem\spritesheet.png" "$destino\spritesheet.png" -Force
+Write-Host "✓ Copiado: spritesheet.png"
 
 Write-Host "`n✅ Arquivos organizados com sucesso!"
 Get-ChildItem $destino | Select-Object Name
@@ -93,11 +93,11 @@ done
 cp "$origen/cabine.png" "$destino/cabine.png"
 echo "✓ Copiado: cabine.png"
 
-cp "$origen/tela inical.png" "$destino/tela inical.png"
-echo "✓ Copiado: tela inical.png"
+cp "$origen/tela-inicial.png" "$destino/tela-inicial.png"
+echo "✓ Copiado: tela-inicial.png"
 
-cp "$origen/spreedsheet.png" "$destino/spreedsheet.png"
-echo "✓ Copiado: spreedsheet.png"
+cp "$origen/spritesheet.png" "$destino/spritesheet.png"
+echo "✓ Copiado: spritesheet.png"
 
 echo "✅ Arquivos organizados com sucesso!"
 ls -lh "$destino"
@@ -149,8 +149,6 @@ Se todos os arquivo estão lá, o jogo Elevador funcionará corretamente! ✅
 
 ## Dicas
 
-- ⚠️ **NÃO mude o nome "spreedsheet.png"** (mesmo que pareça typo, está assim no código)
-- ⚠️ **Mantenha o espaço em "tela inical.png"** (mesmo que pareça errado)
 - Os arquivos 8.png, 9.png e 10.png em `/public/games/elevador/` não são usados pelo Elevador 2026
 - Se precisar limpar depois, pode deletar o conteúdo de `/public/games/elevador/`
 
