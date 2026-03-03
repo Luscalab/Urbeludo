@@ -32,6 +32,49 @@ const BACKGROUND_IMAGES = [
   "/assets/elevador/7.png",
 ]
 
+// ====== AUDIO SYSTEM (Synthetic SFX) ======
+const playSynthSound = (type: "coin" | "levelUp" | "thud") => {
+  if (typeof window === "undefined") return
+  const AudioContext = window.AudioContext || (window as any).webkitAudioContext
+  if (!AudioContext) return
+
+  const ctx = new AudioContext()
+  const osc = ctx.createOscillator()
+  const gain = ctx.createGain()
+
+  osc.connect(gain)
+  gain.connect(ctx.destination)
+
+  const now = ctx.currentTime
+
+  if (type === "coin") {
+    osc.type = "sine"
+    osc.frequency.setValueAtTime(1200, now)
+    osc.frequency.exponentialRampToValueAtTime(2000, now + 0.1)
+    gain.gain.setValueAtTime(0.15, now)
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1)
+    osc.start(now)
+    osc.stop(now + 0.1)
+  } else if (type === "levelUp") {
+    osc.type = "triangle"
+    osc.frequency.setValueAtTime(440, now) // A4
+    osc.frequency.setValueAtTime(554, now + 0.1) // C#5
+    osc.frequency.setValueAtTime(659, now + 0.2) // E5
+    gain.gain.setValueAtTime(0.15, now)
+    gain.gain.linearRampToValueAtTime(0, now + 0.6)
+    osc.start(now)
+    osc.stop(now + 0.6)
+  } else if (type === "thud") {
+    osc.type = "sawtooth"
+    osc.frequency.setValueAtTime(100, now)
+    osc.frequency.exponentialRampToValueAtTime(20, now + 0.2)
+    gain.gain.setValueAtTime(0.2, now)
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2)
+    osc.start(now)
+    osc.stop(now + 0.2)
+  }
+}
+
 type GamePhase = "start" | "bioscan" | "playing" | "report"
 
 export function ElevatorGame() {
@@ -60,6 +103,7 @@ export function ElevatorGame() {
   const [levelCoinsReward, setLevelCoinsReward] = useState(0)
   const [gamePaused, setGamePaused] = useState(false)
   const [fadeOpacity, setFadeOpacity] = useState(1)
+  const [isStable, setIsStable] = useState(true)
 
   // ====== PHYSICS REFS ======
   const velocityRef = useRef(0)
@@ -100,6 +144,7 @@ export function ElevatorGame() {
   }, [stopListening])
 
   const handleCollectChest = useCallback((chestCoins: number) => {
+    playSynthSound("coin")
     setCoins((prev) => prev + chestCoins)
     setCollectedChests((prev) => {
       const next = new Set(prev)
@@ -109,6 +154,7 @@ export function ElevatorGame() {
 
     const newLevel = Math.floor(floor / CHEST_INTERVAL)
     if (newLevel > lastLevelRef.current && newLevel > 0) {
+      playSynthSound("levelUp")
       lastLevelRef.current = newLevel
       setCurrentLevel(newLevel)
       setLevelCoinsReward(chestCoins)
@@ -150,6 +196,9 @@ export function ElevatorGame() {
       elevatorYRef.current += velocityRef.current
 
       if (elevatorYRef.current < 0) {
+        if (velocityRef.current < -5) {
+          playSynthSound("thud")
+        }
         elevatorYRef.current = 0
         velocityRef.current = 0
       }
@@ -159,6 +208,11 @@ export function ElevatorGame() {
       const currentFloor = Math.floor(elevatorYRef.current / FLOOR_HEIGHT)
       setFloor(currentFloor)
       setMaxFloor((prev) => Math.max(prev, currentFloor))
+
+      // Stability check for chest collection
+      // Player must be moving slowly (< 3.5) to "materialize" the chest
+      const stable = Math.abs(velocityRef.current) < 3.5
+      if (stable !== isStable) setIsStable(stable)
 
       // Background level detection
       const newLevel = getCurrentLevel(elevatorYRef.current)
@@ -177,7 +231,7 @@ export function ElevatorGame() {
     return () => {
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current)
     }
-  }, [phase, smoothVolume, gamePaused])
+  }, [phase, smoothVolume, gamePaused, isStable])
 
   const isBlowing = smoothVolume > BLOW_THRESHOLD
   const currentBackgroundLevel = getCurrentLevel(elevatorY)
@@ -299,7 +353,7 @@ export function ElevatorGame() {
       )}
 
       {/* Cyber Chest Collectible */}
-      {phase === "playing" && isNearChest && !chestAlreadyCollected && (
+      {phase === "playing" && isNearChest && !chestAlreadyCollected && isStable && (
         <div
           className="fixed left-1/2 -translate-x-1/2 z-35"
           style={{
@@ -309,7 +363,7 @@ export function ElevatorGame() {
         >
           <CyberChest
             floor={nearestChestFloor}
-            isVisible={isNearChest && !chestAlreadyCollected}
+            isVisible={isNearChest && !chestAlreadyCollected && isStable}
             onCollect={handleCollectChest}
           />
         </div>
