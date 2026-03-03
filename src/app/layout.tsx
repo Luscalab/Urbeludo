@@ -38,6 +38,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
+    <html lang="pt-BR" className="dark">
     <html lang="pt-BR">
       <body className="font-body antialiased overflow-x-hidden selection:bg-primary/30 selection:text-primary-foreground bg-background">
         <FirebaseClientProvider>
