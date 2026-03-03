@@ -15,7 +15,8 @@
     "mobile:build": "npm run static-export && npx cap sync",
     "cap-add-android": "npx cap add android",
     "cap-sync": "npx cap sync",
-    "cap-open-android": "npx cap open android"
+    "cap-open-android": "npx cap open android",
+    "organize:elevador": "node organize-elevador-assets.js"
   },
   "dependencies": {
     "@capacitor/android": "^7.0.0",
