@@ -37,6 +37,7 @@ export interface StudioItem {
   assetPath: string;
   dimensions: { width: number; height: number };
   gridSize: { w: number; h: number };
+  isAiGenerated?: boolean;
 }
 
 /**
