@@ -1,14 +1,13 @@
 "use client"
 
-import { Mic } from "lucide-react"
+import { Play } from "lucide-react"
 import Image from "next/image"
 
 interface StartScreenProps {
   onStart: () => void
-  error: string | null
 }
 
-export function StartScreen({ onStart, error }: StartScreenProps) {
+export function StartScreen({ onStart }: StartScreenProps) {
   return (
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-center w-full h-screen">
       <Image
@@ -24,16 +23,16 @@ export function StartScreen({ onStart, error }: StartScreenProps) {
       <div
         className="absolute inset-0 -z-10"
         style={{
-          background: "rgba(0, 0, 0, 0.3)",
+          background: "rgba(0, 0, 0, 0.4)",
         }}
       />
 
       {/* Aura Logo */}
       <div
-        className="relative w-24 h-24 mb-6 animate-bounce"
+        className="relative w-32 h-32 mb-8 animate-bounce"
         style={{
-          animationDuration: "2.5s",
-          filter: "drop-shadow(0 0 20px oklch(0.78 0.18 195 / 0.4))",
+          animationDuration: "3s",
+          filter: "drop-shadow(0 0 30px oklch(0.78 0.18 195 / 0.5))",
         }}
       >
         <div
@@ -49,65 +48,35 @@ export function StartScreen({ onStart, error }: StartScreenProps) {
         />
       </div>
 
-      {/* Title */}
-      <h1
-        className="text-5xl font-bold tracking-tight mb-1 text-foreground"
-        style={{
-          textShadow: "0 0 30px oklch(0.78 0.18 195 / 0.3), 0 0 60px oklch(0.50 0.25 295 / 0.2)",
-        }}
-      >
-        Elevador
-      </h1>
-      <p className="text-muted-foreground text-sm mb-10 text-center max-w-[280px] leading-relaxed text-balance">
-        Sopre no microfone para elevar o Aura pela torre cibernetica infinita!
-      </p>
-
       {/* Start button */}
       <button
         onClick={onStart}
-        className="flex items-center gap-3 px-8 py-4 rounded-xl font-semibold text-lg active:scale-95 transition-all"
+        className="flex items-center gap-3 px-10 py-5 rounded-2xl font-black text-xl uppercase tracking-widest active:scale-95 transition-all"
         style={{
-          background: "linear-gradient(135deg, oklch(0.78 0.18 195), oklch(0.60 0.20 210))",
-          color: "oklch(0.10 0.04 285)",
-          boxShadow: "0 0 30px oklch(0.78 0.18 195 / 0.4), 0 0 60px oklch(0.78 0.18 195 / 0.15)",
-          border: "1px solid oklch(0.78 0.18 195 / 0.5)",
+          background: "linear-gradient(135deg, oklch(0.95 0.05 200), oklch(0.9 0.05 200))",
+          color: "oklch(0.20 0.04 285)",
+          textShadow: "0 1px 1px oklch(1 0 0 / 0.2)",
+          boxShadow:
+            "0 0 50px oklch(0.78 0.18 195 / 0.5), 0 0 80px oklch(0.78 0.18 195 / 0.2), inset 0 2px 0 oklch(1 0 0 / 0.1)",
+          border: "2px solid oklch(0.8 0.05 200 / 0.8)",
         }}
       >
-        <Mic className="w-5 h-5" />
-        Iniciar Microfone
+        <Play className="w-6 h-6" />
+        Começar
       </button>
 
-      {/* Error message */}
-      {error && (
-        <div className="mt-4 px-4 py-3 rounded-lg bg-destructive/10 border border-destructive/20 max-w-[300px]">
-          <p className="text-destructive text-xs text-center leading-relaxed">{error}</p>
-        </div>
-      )}
-
-      {/* Keyboard control hint */}
-      <p className="text-xs text-muted-foreground mt-4">
-        Ou use a <kbd className="px-2 py-1.5 text-xs font-semibold text-gray-800 bg-gray-100 border border-gray-200 rounded-lg">Barra de Espaço</kbd>
-      </p>
-
       {/* Instructions */}
-      <div className="mt-10 flex flex-col items-center gap-3">
+      <div className="absolute bottom-8 flex flex-col items-center gap-3 opacity-60">
         <div className="flex items-center gap-2 text-muted-foreground text-xs">
           <div className="w-2 h-2 rounded-full bg-cyber-cyan animate-pulse" />
-          Sopre forte = sobe
+          Sopre forte ou segure Espaço = sobe
         </div>
         <div className="flex items-center gap-2 text-muted-foreground text-xs">
           <div className="w-2 h-2 rounded-full bg-cyber-purple" />
-          {'Silencio = desce (gravidade)'}
-        </div>
-        <div className="flex items-center gap-2 text-muted-foreground text-xs">
-          <div className="w-2 h-2 rounded-full bg-cyber-gold animate-pulse" style={{ animationDelay: "0.5s" }} />
-          A cada 10 andares = bau com moedas
-        </div>
-        <div className="flex items-center gap-2 text-muted-foreground text-xs">
-          <div className="w-2 h-2 rounded-full bg-accent animate-pulse" style={{ animationDelay: "1s" }} />
-          Aprenda sobre fonoaudiologia a cada fase
+          {'Silêncio = desce (gravidade)'}
         </div>
       </div>
     </div>
   )
 }
+
