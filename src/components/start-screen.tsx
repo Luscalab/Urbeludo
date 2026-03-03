@@ -10,17 +10,19 @@ interface StartScreenProps {
 
 export function StartScreen({ onStart, error }: StartScreenProps) {
   return (
-    <div
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center w-full h-screen"
-      style={{
-        backgroundImage: "url(/assets/elevador/tela-inicial.png)",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-      }}
-    >
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center w-full h-screen">
+      <Image
+        src="/assets/elevador/tela-inicial.png"
+        layout="fill"
+        objectFit="cover"
+        alt="Tela inicial do jogo Elevador com uma torre cibernética ao fundo."
+        className="-z-10"
+        priority
+        unoptimized
+      />
       {/* Dark overlay for better text visibility */}
       <div
-        className="absolute inset-0"
+        className="absolute inset-0 -z-10"
         style={{
           background: "rgba(0, 0, 0, 0.3)",
         }}
@@ -32,7 +34,6 @@ export function StartScreen({ onStart, error }: StartScreenProps) {
         style={{
           animationDuration: "2.5s",
           filter: "drop-shadow(0 0 20px oklch(0.78 0.18 195 / 0.4))",
-          zIndex: 10,
         }}
       >
         <div
@@ -50,21 +51,21 @@ export function StartScreen({ onStart, error }: StartScreenProps) {
 
       {/* Title */}
       <h1
-        className="text-5xl font-bold tracking-tight mb-1 text-foreground relative z-10"
+        className="text-5xl font-bold tracking-tight mb-1 text-foreground"
         style={{
           textShadow: "0 0 30px oklch(0.78 0.18 195 / 0.3), 0 0 60px oklch(0.50 0.25 295 / 0.2)",
         }}
       >
         Elevador
       </h1>
-      <p className="text-muted-foreground text-sm mb-10 text-center max-w-[280px] leading-relaxed text-balance relative z-10">
+      <p className="text-muted-foreground text-sm mb-10 text-center max-w-[280px] leading-relaxed text-balance">
         Sopre no microfone para elevar o Aura pela torre cibernetica infinita!
       </p>
 
       {/* Start button */}
       <button
         onClick={onStart}
-        className="flex items-center gap-3 px-8 py-4 rounded-xl font-semibold text-lg active:scale-95 transition-all relative z-10"
+        className="flex items-center gap-3 px-8 py-4 rounded-xl font-semibold text-lg active:scale-95 transition-all"
         style={{
           background: "linear-gradient(135deg, oklch(0.78 0.18 195), oklch(0.60 0.20 210))",
           color: "oklch(0.10 0.04 285)",
@@ -78,18 +79,18 @@ export function StartScreen({ onStart, error }: StartScreenProps) {
 
       {/* Error message */}
       {error && (
-        <div className="mt-4 px-4 py-3 rounded-lg bg-destructive/10 border border-destructive/20 max-w-[300px] relative z-10">
+        <div className="mt-4 px-4 py-3 rounded-lg bg-destructive/10 border border-destructive/20 max-w-[300px]">
           <p className="text-destructive text-xs text-center leading-relaxed">{error}</p>
         </div>
       )}
 
       {/* Keyboard control hint */}
-      <p className="text-xs text-muted-foreground mt-4 relative z-10">
+      <p className="text-xs text-muted-foreground mt-4">
         Ou use a <kbd className="px-2 py-1.5 text-xs font-semibold text-gray-800 bg-gray-100 border border-gray-200 rounded-lg">Barra de Espaço</kbd>
       </p>
 
       {/* Instructions */}
-      <div className="mt-10 flex flex-col items-center gap-3 relative z-10">
+      <div className="mt-10 flex flex-col items-center gap-3">
         <div className="flex items-center gap-2 text-muted-foreground text-xs">
           <div className="w-2 h-2 rounded-full bg-cyber-cyan animate-pulse" />
           Sopre forte = sobe

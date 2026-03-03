@@ -467,7 +467,7 @@ export function ElevatorGame() {
 
       {/* Start Screen overlay */}
       {phase === "start" && (
-        <div className="fixed inset-0 z-50" style={{ border: "10px solid red" }}>
+        <div className="fixed inset-0 z-50">
           <StartScreen onStart={handleStart} error={error} />
         </div>
       )}
