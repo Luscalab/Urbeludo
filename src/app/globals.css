@@ -121,13 +121,12 @@
   --color-cyber-gold: var(--cyber-gold);
 }
 
-@layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
+* {
+  @apply border-border outline-ring/50;
+}
+
+body {
+  @apply bg-background text-foreground;
 }
 
 @keyframes circuit-pulse {
