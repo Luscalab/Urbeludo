@@ -150,7 +150,8 @@ export function ElevatorCabin({ isBlowing, blowIntensity }: ElevatorCabinProps) 
             <Image
               src="/assets/elevador/spreedsheet.png"
               alt="Aura, o robo do elevador"
-              fill
+              width={32}
+              height={32}
               className="object-contain"
               priority
               unoptimized
@@ -196,7 +197,8 @@ export function ElevatorCabin({ isBlowing, blowIntensity }: ElevatorCabinProps) 
               <Image
                 src="/assets/elevador/spreedsheet.png"
                 alt=""
-                fill
+                width={32}
+                height={32}
                 className="object-contain"
                 aria-hidden="true"
                 unoptimized

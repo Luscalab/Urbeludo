@@ -97,9 +97,11 @@ export function BioScanScreen({
         <Image
           src="/assets/elevador/spreedsheet.png"
           alt="Aura"
-          fill
+          width={32}
+          height={32}
           className={`object-contain ${phase === "intro" ? "animate-float-gentle" : ""}`}
           priority
+          unoptimized
         />
       </div>
 

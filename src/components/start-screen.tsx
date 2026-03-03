@@ -13,7 +13,7 @@ export function StartScreen({ onStart, error }: StartScreenProps) {
     <div
       className="fixed inset-0 z-50 flex flex-col items-center justify-center w-full h-screen"
       style={{
-        backgroundImage: "url(/assets/elevador/tela\\ inical.png)",
+        backgroundImage: "url(/assets/elevador/tela%20inical.png)",
         backgroundSize: "cover",
         backgroundPosition: "center",
       }}

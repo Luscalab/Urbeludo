@@ -117,8 +117,10 @@ export function PerformanceReport({
                 <Image
                   src="/assets/elevador/spreedsheet.png"
                   alt="Aura"
-                  fill
+                  width={32}
+                  height={32}
                   className="object-contain animate-float-gentle"
+                  unoptimized
                 />
               </div>
               <div>
@@ -221,8 +223,10 @@ export function PerformanceReport({
                 <Image
                   src="/assets/elevador/spreedsheet.png"
                   alt="Aura"
-                  fill
+                  width={32}
+                  height={32}
                   className="object-contain"
+                  unoptimized
                 />
               </div>
               <p className="text-xs text-muted-foreground italic leading-relaxed">
