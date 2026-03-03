@@ -147,14 +147,16 @@ export function ElevatorCabin({ isBlowing, blowIntensity }: ElevatorCabinProps) 
                 : "drop-shadow(0 4px 12px oklch(0.50 0.25 295 / 0.3))",
             }}
           >
-            <Image
-              src="/assets/elevador/spritesheet.png"
-              alt="Aura, o robo do elevador"
-              width={32}
-              height={32}
-              className="object-contain"
-              priority
-              unoptimized
+            <div
+              role="img"
+              aria-label="Aura, o robo do elevador"
+              className="w-full h-full"
+              style={{
+                backgroundImage: "url(/assets/elevador/spritesheet.png)",
+                backgroundSize: "800% 100%",
+                backgroundPosition: "0 0",
+                backgroundRepeat: "no-repeat",
+              }}
             />
           </div>
         </div>
@@ -194,14 +196,14 @@ export function ElevatorCabin({ isBlowing, blowIntensity }: ElevatorCabinProps) 
                 transition: "transform 0.12s ease-out",
               }}
             >
-              <Image
-                src="/assets/elevador/spritesheet.png"
-                alt=""
-                width={32}
-                height={32}
-                className="object-contain"
-                aria-hidden="true"
-                unoptimized
+              <div
+                className="w-full h-full"
+                style={{
+                  backgroundImage: "url(/assets/elevador/spritesheet.png)",
+                  backgroundSize: "800% 100%",
+                  backgroundPosition: "0 0",
+                  backgroundRepeat: "no-repeat",
+                }}
               />
             </div>
           </div>

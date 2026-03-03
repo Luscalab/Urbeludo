@@ -94,14 +94,16 @@ export function BioScanScreen({
           transition: "filter 0.12s ease",
         }}
       >
-        <Image
-          src="/assets/elevador/spritesheet.png"
-          alt="Aura"
-          width={32}
-          height={32}
-          className={`object-contain ${phase === "intro" ? "animate-float-gentle" : ""}`}
-          priority
-          unoptimized
+        <div
+          role="img"
+          aria-label="Aura"
+          className={`w-full h-full ${phase === "intro" ? "animate-float-gentle" : ""}`}
+          style={{
+            backgroundImage: "url(/assets/elevador/spritesheet.png)",
+            backgroundSize: "800% 100%",
+            backgroundPosition: "0 0",
+            backgroundRepeat: "no-repeat",
+          }}
         />
       </div>
 

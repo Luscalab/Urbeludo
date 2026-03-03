@@ -35,14 +35,16 @@ export function StartScreen({ onStart, error }: StartScreenProps) {
           zIndex: 10,
         }}
       >
-        <Image
-          src="/assets/elevador/spritesheet.png"
-          alt="Aura, o robo"
-          width={32}
-          height={32}
-          className="object-contain"
-          priority
-          unoptimized
+        <div
+          role="img"
+          aria-label="Aura, o robo"
+          className="w-full h-full"
+          style={{
+            backgroundImage: "url(/assets/elevador/spritesheet.png)",
+            backgroundSize: "800% 100%",
+            backgroundPosition: "0 0",
+            backgroundRepeat: "no-repeat",
+          }}
         />
       </div>
 

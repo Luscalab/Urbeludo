@@ -237,13 +237,16 @@ export function LevelCompleteModal({ level, coins, isVisible, onContinue }: Leve
             {/* Aura encouragement */}
             <div className="flex items-center gap-3 mt-4 mb-3">
               <div className="relative w-10 h-10 shrink-0">
-                <Image
-                  src="/assets/elevador/spritesheet.png"
-                  alt="Aura"
-                  width={32}
-                  height={32}
-                  className="object-contain animate-float-gentle"
-                  unoptimized
+                <div
+                  role="img"
+                  aria-label="Aura"
+                  className="w-full h-full animate-float-gentle"
+                  style={{
+                    backgroundImage: "url(/assets/elevador/spritesheet.png)",
+                    backgroundSize: "800% 100%",
+                    backgroundPosition: "0 0",
+                    backgroundRepeat: "no-repeat",
+                  }}
                 />
               </div>
               <p className="text-xs text-muted-foreground italic leading-relaxed">

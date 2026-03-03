@@ -114,13 +114,16 @@ export function PerformanceReport({
             {/* Header */}
             <div className="flex items-center gap-3 mb-5">
               <div className="relative w-12 h-12 shrink-0">
-                <Image
-                  src="/assets/elevador/spritesheet.png"
-                  alt="Aura"
-                  width={32}
-                  height={32}
-                  className="object-contain animate-float-gentle"
-                  unoptimized
+                <div
+                  role="img"
+                  aria-label="Aura"
+                  className="w-full h-full animate-float-gentle"
+                  style={{
+                    backgroundImage: "url(/assets/elevador/spritesheet.png)",
+                    backgroundSize: "800% 100%",
+                    backgroundPosition: "0 0",
+                    backgroundRepeat: "no-repeat",
+                  }}
                 />
               </div>
               <div>
@@ -220,13 +223,16 @@ export function PerformanceReport({
             {/* Aura message */}
             <div className="flex items-center gap-3 mb-5">
               <div className="relative w-9 h-9 shrink-0">
-                <Image
-                  src="/assets/elevador/spritesheet.png"
-                  alt="Aura"
-                  width={32}
-                  height={32}
-                  className="object-contain"
-                  unoptimized
+                <div
+                  role="img"
+                  aria-label="Aura"
+                  className="w-full h-full"
+                  style={{
+                    backgroundImage: "url(/assets/elevador/spritesheet.png)",
+                    backgroundSize: "800% 100%",
+                    backgroundPosition: "0 0",
+                    backgroundRepeat: "no-repeat",
+                  }}
                 />
               </div>
               <p className="text-xs text-muted-foreground italic leading-relaxed">
