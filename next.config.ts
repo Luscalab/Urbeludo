@@ -6,12 +6,6 @@ import path from 'path';
 const nextConfig: NextConfig = {
   output: 'export', // OBRIGATÓRIO para gerar arquivos estáticos para o APK (Capacitor)
   distDir: 'out',
-  // TypeScript: Enable strict checking to catch errors before deployment
-  typescript: {
-    // Only ignore specific build errors if absolutely necessary
-    // Remove: ignoreBuildErrors: true
-    strict: true,
-  },
   // ESLint: Enable linting during builds
   eslint: {
     // Remove: ignoreDuringBuilds: true
