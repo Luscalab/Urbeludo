@@ -1,4 +1,7 @@
-
+:root {
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
   --background: oklch(0.15 0.04 285);
