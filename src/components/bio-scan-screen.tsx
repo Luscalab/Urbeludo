@@ -95,7 +95,7 @@ export function BioScanScreen({
         }}
       >
         <Image
-          src="/assets/elevador/spreedsheet.png"
+          src="/assets/elevador/spritesheet.png"
           alt="Aura"
           width={32}
           height={32}

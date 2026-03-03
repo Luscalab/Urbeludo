@@ -148,7 +148,7 @@ export function ElevatorCabin({ isBlowing, blowIntensity }: ElevatorCabinProps) 
             }}
           >
             <Image
-              src="/assets/elevador/spreedsheet.png"
+              src="/assets/elevador/spritesheet.png"
               alt="Aura, o robo do elevador"
               width={32}
               height={32}
@@ -195,7 +195,7 @@ export function ElevatorCabin({ isBlowing, blowIntensity }: ElevatorCabinProps) 
               }}
             >
               <Image
-                src="/assets/elevador/spreedsheet.png"
+                src="/assets/elevador/spritesheet.png"
                 alt=""
                 width={32}
                 height={32}

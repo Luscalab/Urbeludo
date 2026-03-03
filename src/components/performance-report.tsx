@@ -115,7 +115,7 @@ export function PerformanceReport({
             <div className="flex items-center gap-3 mb-5">
               <div className="relative w-12 h-12 shrink-0">
                 <Image
-                  src="/assets/elevador/spreedsheet.png"
+                  src="/assets/elevador/spritesheet.png"
                   alt="Aura"
                   width={32}
                   height={32}
@@ -221,7 +221,7 @@ export function PerformanceReport({
             <div className="flex items-center gap-3 mb-5">
               <div className="relative w-9 h-9 shrink-0">
                 <Image
-                  src="/assets/elevador/spreedsheet.png"
+                  src="/assets/elevador/spritesheet.png"
                   alt="Aura"
                   width={32}
                   height={32}

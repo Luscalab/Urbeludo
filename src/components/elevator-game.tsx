@@ -259,7 +259,7 @@ export function ElevatorGame() {
           className="relative"
           style={{
             // Sprite animation: 8 frames, each frame is 1/8 of width
-            backgroundImage: "url(/assets/elevador/spreedsheet.png)",
+            backgroundImage: "url(/assets/elevador/spritesheet.png)",
             backgroundPosition: `${spriteFrameIndex * -32}px 0`,
             backgroundSize: "256px 32px",
             backgroundRepeat: "no-repeat",

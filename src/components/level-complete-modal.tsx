@@ -238,7 +238,7 @@ export function LevelCompleteModal({ level, coins, isVisible, onContinue }: Leve
             <div className="flex items-center gap-3 mt-4 mb-3">
               <div className="relative w-10 h-10 shrink-0">
                 <Image
-                  src="/assets/elevador/spreedsheet.png"
+                  src="/assets/elevador/spritesheet.png"
                   alt="Aura"
                   width={32}
                   height={32}

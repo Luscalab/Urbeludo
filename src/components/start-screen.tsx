@@ -13,7 +13,7 @@ export function StartScreen({ onStart, error }: StartScreenProps) {
     <div
       className="fixed inset-0 z-50 flex flex-col items-center justify-center w-full h-screen"
       style={{
-        backgroundImage: "url(/assets/elevador/tela%20inical.png)",
+        backgroundImage: "url(/assets/elevador/tela-inicial.png)",
         backgroundSize: "cover",
         backgroundPosition: "center",
       }}
@@ -36,7 +36,7 @@ export function StartScreen({ onStart, error }: StartScreenProps) {
         }}
       >
         <Image
-          src="/assets/elevador/spreedsheet.png"
+          src="/assets/elevador/spritesheet.png"
           alt="Aura, o robo"
           width={32}
           height={32}

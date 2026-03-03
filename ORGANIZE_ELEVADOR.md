@@ -19,8 +19,8 @@ O jogo **Elevador** usa as seguintes imagens:
 ├── 6.png              # Estágio 6
 ├── 7.png              # Estágio 7
 ├── cabine.png         # Imagem da cabine do elevador
-├── spreedsheet.png    # Sprite do robô Aura (IMPORTANTE: usar exatamente este nome com typo)
-└── tela inical.png    # Tela inicial (IMPORTANTE: com espaço no nome)
+├── spritesheet.png    # Sprite do robô Aura (Corrigido de spreedsheet)
+└── tela-inicial.png   # Tela inicial (Corrigido de tela inical e removido espaço)
 ```
 
 ## Referências nos Componentes
@@ -28,20 +28,19 @@ O jogo **Elevador** usa as seguintes imagens:
 ### elevator-game.tsx
 - Referencia os 7 fundos (1.png a 7.png) em: `BACKGROUND_IMAGES[]`
 - Referencia cabine: `src="/assets/elevador/cabine.png"`
-- Referencia spreedsheet: `style={{ backgroundImage: "url(/assets/elevador/spreedsheet.png)" }}`
+- Referencia spritesheet: `style={{ backgroundImage: "url(/assets/elevador/spritesheet.png)" }}`
 
 ### start-screen.tsx
-- Referencia tela inicial: `backgroundImage: "url(/assets/elevador/tela%20inical.png)"`
-- (Note: espaço é encoded como %20 na URL, mas o arquivo deve ser "tela inical.png")
+- Referencia tela inicial: `backgroundImage: "url(/assets/elevador/tela-inicial.png)"`
 
 ### elevator-cabin.tsx e outros
-- Referencia spreedsheet para animação do Aura
+- Referencia spritesheet para animação do Aura
 
 ### bio-scan-screen.tsx
-- Referencia spreedsheet
+- Referencia spritesheet
 
 ### level-complete-modal.tsx, performance-report.tsx
-- Referenciam spreedsheet
+- Referenciam spritesheet
 
 ## Instruções de Organização
 
@@ -126,7 +125,7 @@ Se tiver um terminal Bash/Zsh disponível no VS Code:
 cd "$(pwd)"
 
 # Execute este comando de uma linha
-mkdir -p ./public/assets/elevador && for i in {1..7}; do cp "./ENTRADA/$i.png" "./public/assets/elevador/$i.png"; done && cp "./ENTRADA/"{cabine.png,spreedsheet.png,"tela inical.png"} "./public/assets/elevador/" && ls -lh ./public/assets/elevador/
+mkdir -p ./public/assets/elevador && for i in {1..7}; do cp "./ENTRADA/$i.png" "./public/assets/elevador/$i.png"; done && cp "./ENTRADA/"{cabine.png,spritesheet.png,"tela-inicial.png"} "./public/assets/elevador/" && ls -lh ./public/assets/elevador/
 ```
 
 ## Verificação
