@@ -1,15 +1,13 @@
 
 'use client';
 /**
- * @fileOverview Serviço de IA AuraBot 2026 - SPSP.
- * Modelo: gemini-3-flash-preview.
+ * @fileOverview Serviço de IA AuraBot 2026 - SPSP (Seguro).
+ * Modelo: gemini-1.5-flash (estável e recomendado).
+ * API Key nunca é exposta ao cliente.
  */
 
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { AuraLogger } from "@/lib/logs/aura-logger";
-
-const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || "";
-const genAI = API_KEY ? new GoogleGenerativeAI(API_KEY) : null;
+import { callGeminiAPI } from "@/lib/gemini-client";
 
 export interface AuraBotReport {
   childFeedback: string;
@@ -22,21 +20,16 @@ export async function generateAuraBotReport(data: {
   attempts: number;
   levelName: string;
 }): Promise<AuraBotReport> {
-  if (!genAI) {
-    return {
-      childFeedback: "Incrível! Sua voz brilhou como uma estrela!",
-      therapistFeedback: `Relatório Offline: Volume ${data.avgVolume}%, Sustentação ${data.sustainTime}s.`
-    };
-  }
-
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
     const prompt = `Analise biomecanicamente (Tom Clínico para Terapeuta) e de forma lúdica (Tom para Criança) estes dados:
       Nível: ${data.levelName}, Volume: ${data.avgVolume}%, Tempo: ${data.sustainTime}s.
       Retorne um JSON puro: {"childFeedback": "...", "therapistFeedback": "..."}`;
 
-    const result = await model.generateContent(prompt);
-    const text = result.response.text().replace(/```json|```/g, "").trim();
+    const responseText = await callGeminiAPI(prompt, {
+      responseMimeType: "application/json",
+    });
+
+    const text = responseText.replace(/```json|```/g, "").trim();
     return JSON.parse(text) as AuraBotReport;
   } catch (error: any) {
     AuraLogger.error("GeminiService", "Erro na geração do relatório 2026", error.message);

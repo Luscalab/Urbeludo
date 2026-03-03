@@ -5,24 +5,33 @@ service cloud.firestore {
     function isSignedIn() {
       return request.auth != null;
     }
+    
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
+    
+    function hasValidEmail(expectedEmail) {
+      return isSignedIn() && request.auth.token.email == expectedEmail;
+    }
 
     match /user_progress/{userId} {
-      allow get: if true; // Public profiles
-      allow list: if true;
-      allow create, update: if isOwner(userId);
+      // Public profiles: can only read own profile or explicitly shared profiles
+      allow get: if resource.data.isPublic == true || isOwner(userId);
+      allow list: if false; // Prevent listing all user profiles
+      allow create: if isOwner(userId) && request.resource.data.keys().hasAll(['displayName', 'ludoCoins']);
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
 
       match /challenge_activities/{activityId} {
-        allow read, write: if isOwner(userId);
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId);
       }
     }
 
     match /public_gallery/{activityId} {
-      allow read: if true;
-      allow create: if isSignedIn() && request.resource.data.userProgressId == request.auth.uid;
-      allow update: if isSignedIn(); // Allow likes
+      allow read: if true; // Public gallery
+      allow create: if isSignedIn() && resource.data.userProgressId == request.auth.uid;
+      allow update: if isSignedIn() && (resource.data.userProgressId == request.auth.uid || request.resource.data.keys().hasOnly(['likeCount', 'commentCount']));
       allow delete: if isSignedIn() && resource.data.userProgressId == request.auth.uid;
     }
   }

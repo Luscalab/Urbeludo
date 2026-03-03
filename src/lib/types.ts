@@ -16,6 +16,48 @@ export interface ChallengeActivity {
 }
 
 /**
+ * Item colocado no estúdio com posição e propriedades.
+ */
+export interface PlacedItem {
+  instanceId: string;
+  itemId: string;
+  position: { x: number; y: number };
+  zIndex: number;
+}
+
+/**
+ * Item do catálogo de estúdio.
+ */
+export interface StudioItem {
+  id: string;
+  name: string;
+  category: string;
+  price: number;
+  description: string;
+  assetPath: string;
+  dimensions: { width: number; height: number };
+  gridSize: { w: number; h: number };
+}
+
+/**
+ * Estado completo do estúdio do usuário.
+ */
+export interface StudioState {
+  unlockedItemIds: string[];
+  placedItems: PlacedItem[];
+  wallpaperId: string;
+  floorId: string;
+  worldConfig: {
+    width: number;
+    height: number;
+    theme: string;
+  };
+  avatar: {
+    lastPosition: { x: number; y: number };
+  };
+}
+
+/**
  * Esquema de progresso do usuário persistido localmente no APK.
  */
 export interface UserProgress {
@@ -42,5 +84,6 @@ export interface UserProgress {
     };
   };
   history: ChallengeActivity[];
-  studioState?: any;
+  studioState?: StudioState;
+  isPublic?: boolean;
 }

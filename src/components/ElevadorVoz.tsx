@@ -1,20 +1,37 @@
 'use client';
 
 import { ElevatorGame } from '@/components/elevator-game';
+import { useCallback, useRef } from 'react';
 
-interface ElevadorVozProps {
+export interface ElevadorVozProps {
   onWin?: (points: number, achievement: string) => void;
   userName?: string;
   onSuggestBreath?: () => void;
 }
 
 /**
- * ElevadorVoz - Wrapper compatível com legado do novo componente ElevatorGame 2026.
- * Props legadas são opcionais e mantidas para compatibilidade.
+ * ElevadorVoz - Wrapper que conecta props legadas a ElevatorGame.
+ * Mantém compatibilidade com código antigo enquanto usa a nova implementação.
  */
 export function ElevadorVoz(props: ElevadorVozProps) {
-  // O novo ElevatorGame gerencia seu próprio estado e lógica
-  // As props legadas são aceitas para compatibilidade com código existente
-  // mas não são necessárias para o funcionamento do novo componente
-  return <ElevatorGame />;
+  // Usa ref para manter a callback estável entre re-renders
+  const onWinRef = useRef(props.onWin);
+  
+  // Atualiza ref quando prop muda
+  onWinRef.current = props.onWin;
+
+  // Cria wrapper que passa props corretas
+  const handleWinWrapper = useCallback((points: number, achievement: string) => {
+    if (onWinRef.current) {
+      onWinRef.current(points, achievement);
+    }
+  }, []);
+
+  return (
+    <ElevatorGame 
+      onWin={handleWinWrapper}
+      userName={props.userName}
+      onSuggestBreath={props.onSuggestBreath}
+    />
+  );
 }

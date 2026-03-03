@@ -8,16 +8,25 @@ import { GameHud } from "@/components/game-hud"
 import { CyberChest } from "@/components/cyber-chest"
 import { LevelCompleteModal } from "@/components/level-complete-modal"
 import { PerformanceReport } from "@/components/performance-report"
+import { useEffect } from "react"
 import {
   AURA_SPRITE_WIDTH,
   AURA_SPRITE_HEIGHT,
   AURA_SPRITE_FRAMES,
   AURA_SPRITESHEET_WIDTH,
   BACKGROUND_IMAGES,
+  BLOW_THRESHOLD,
+  CHEST_INTERVAL,
 } from "@/lib/game-constants"
 import { useElevatorGame } from "@/hooks/use-elevator-game"
 
-export function ElevatorGame() {
+interface ElevatorGameProps {
+  onWin?: (points: number, achievement: string) => void;
+  userName?: string;
+  onSuggestBreath?: () => void;
+}
+
+export function ElevatorGame(props?: ElevatorGameProps) {
   const {
     // Microphone
     volume,
@@ -50,7 +59,18 @@ export function ElevatorGame() {
     handleContinueAfterLevel,
     // Level
     getCurrentLevel,
-    } = useElevatorGame()
+  } = useElevatorGame()
+
+  // Call onWin callback when game ends
+  useEffect(() => {
+    if (phase === "report" && props?.onWin) {
+      // Use requestAnimationFrame to ensure state is updated
+      const timer = requestAnimationFrame(() => {
+        props.onWin?.(coins, `Elevador - Nível ${currentLevel + 1}`);
+      });
+      return () => cancelAnimationFrame(timer);
+    }
+  }, [phase, coins, currentLevel, props]);
   
     const isBlowing = smoothVolume > BLOW_THRESHOLD
     const currentBackgroundLevel = getCurrentLevel(elevatorY)
