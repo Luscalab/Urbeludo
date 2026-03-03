@@ -12,13 +12,20 @@ import { LevelCompleteModal } from "@/components/level-complete-modal"
 import { PerformanceReport } from "@/components/performance-report"
 
 // ====== GAME CONSTANTS ======
-const GRAVITY = 0.8
-const BLOW_FORCE = 6.0
+const BASE_GRAVITY = 0.8
+const BASE_BLOW_FORCE = 6.0
 const MAX_VELOCITY = 8
 const FRICTION = 0.96
 const FLOOR_HEIGHT = 120
 const BLOW_THRESHOLD = 0.10
 const CHEST_INTERVAL = 10
+
+// ====== AURA SPRITE CONSTANTS ======
+const AURA_SPRITE_WIDTH = 32
+const AURA_SPRITE_HEIGHT = 32
+const AURA_SPRITE_FRAMES = 8
+const AURA_SPRITESHEET_WIDTH = AURA_SPRITE_WIDTH * AURA_SPRITE_FRAMES // 256
+
 
 // ====== LEVEL SYSTEM ======
 const LEVEL_HEIGHTS = [0, 600, 1200, 1800, 2400, 3000, 3600, 4200]
@@ -33,12 +40,25 @@ const BACKGROUND_IMAGES = [
 ]
 
 // ====== AUDIO SYSTEM (Synthetic SFX) ======
-const playSynthSound = (type: "coin" | "levelUp" | "thud") => {
-  if (typeof window === "undefined") return
-  const AudioContext = window.AudioContext || (window as any).webkitAudioContext
-  if (!AudioContext) return
+// Create a single, reusable AudioContext to improve performance.
+let audioCtx: AudioContext | null = null
 
-  const ctx = new AudioContext()
+const getAudioContext = () => {
+  if (audioCtx) return audioCtx
+  if (typeof window !== "undefined") {
+    const AudioContext = window.AudioContext || (window as any).webkitAudioContext
+    if (AudioContext) {
+      audioCtx = new AudioContext()
+      return audioCtx
+    }
+  }
+  return null
+}
+
+const playSynthSound = (type: "coin" | "levelUp" | "thud") => {
+  const ctx = getAudioContext()
+  if (!ctx) return
+
   const osc = ctx.createOscillator()
   const gain = ctx.createGain()
 
@@ -104,6 +124,28 @@ export function ElevatorGame() {
   const [gamePaused, setGamePaused] = useState(false)
   const [fadeOpacity, setFadeOpacity] = useState(1)
   const [isStable, setIsStable] = useState(true)
+  const [isKeyboardBlowing, setIsKeyboardBlowing] = useState(false)
+
+  // ====== KEYBOARD CONTROLS ======
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        e.preventDefault() // Prevents scrolling when space is pressed
+        setIsKeyboardBlowing(true)
+      }
+    }
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        setIsKeyboardBlowing(false)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('keyup', handleKeyUp)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('keyup', handleKeyUp)
+    }
+  }, [])
 
   // ====== PHYSICS REFS ======
   const velocityRef = useRef(0)
@@ -180,14 +222,20 @@ export function ElevatorGame() {
   useEffect(() => {
     if (phase !== "playing" || gamePaused) return
 
+    // Progressive difficulty: Gravity increases by 5% each level
+    const difficultyMultiplier = 1 + (currentLevel * 0.05)
+    const currentGravity = BASE_GRAVITY * difficultyMultiplier
+
     const gameLoop = () => {
-      const isBlowing = smoothVolume > BLOW_THRESHOLD
+      const isMicBlowing = smoothVolume > BLOW_THRESHOLD
+      const isBlowing = isMicBlowing || isKeyboardBlowing
 
       if (isBlowing) {
-        const force = smoothVolume * BLOW_FORCE
+        // Use a fixed force for keyboard, and variable for mic
+        const force = isKeyboardBlowing ? BASE_BLOW_FORCE * 0.5 : smoothVolume * BASE_BLOW_FORCE
         velocityRef.current += force
       } else {
-        velocityRef.current -= GRAVITY
+        velocityRef.current -= currentGravity
       }
 
       velocityRef.current *= FRICTION
@@ -231,9 +279,9 @@ export function ElevatorGame() {
     return () => {
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current)
     }
-  }, [phase, smoothVolume, gamePaused, isStable])
+  }, [phase, smoothVolume, gamePaused, isStable, isKeyboardBlowing, currentLevel])
 
-  const isBlowing = smoothVolume > BLOW_THRESHOLD
+  const isBlowing = smoothVolume > BLOW_THRESHOLD || isKeyboardBlowing
   const currentBackgroundLevel = getCurrentLevel(elevatorY)
   const nextBackgroundLevel = Math.min(currentBackgroundLevel + 1, BACKGROUND_IMAGES.length - 1)
 
@@ -242,7 +290,9 @@ export function ElevatorGame() {
   const chestAlreadyCollected = collectedChests.has(nearestChestFloor)
 
   // ====== AURA SPRITE ANIMATION ======
-  const spriteFrameIndex = Math.floor((isBlowing ? smoothVolume * 8 : 2) % 8)
+  const spriteFrameIndex = Math.floor(
+    (isBlowing ? smoothVolume * AURA_SPRITE_FRAMES : 2) % AURA_SPRITE_FRAMES
+  )
 
   return (
     <div className="relative w-full h-screen max-w-[430px] mx-auto overflow-hidden bg-black select-none touch-none">
@@ -312,13 +362,12 @@ export function ElevatorGame() {
         <div
           className="relative"
           style={{
-            // Sprite animation: 8 frames, each frame is 1/8 of width
             backgroundImage: "url(/assets/elevador/spritesheet.png)",
-            backgroundPosition: `${spriteFrameIndex * -32}px 0`,
-            backgroundSize: "256px 32px",
+            backgroundPosition: `${spriteFrameIndex * -AURA_SPRITE_WIDTH}px 0`,
+            backgroundSize: `${AURA_SPRITESHEET_WIDTH}px ${AURA_SPRITE_HEIGHT}px`,
             backgroundRepeat: "no-repeat",
-            width: "32px",
-            height: "32px",
+            width: `${AURA_SPRITE_WIDTH}px`,
+            height: `${AURA_SPRITE_HEIGHT}px`,
             animation: "float-gentle 3s ease-in-out infinite",
           }}
         />
@@ -366,6 +415,22 @@ export function ElevatorGame() {
             isVisible={isNearChest && !chestAlreadyCollected && isStable}
             onCollect={handleCollectChest}
           />
+        </div>
+      )}
+
+      {/* "Too Fast" Warning for Chest */}
+      {phase === "playing" && isNearChest && !chestAlreadyCollected && !isStable && (
+        <div
+          className="fixed left-1/2 -translate-x-1/2 z-35"
+          style={{
+            top: `${20 + smoothVolume * 50}%`,
+            transition: "top 0.1s ease-out",
+          }}
+        >
+          <div className="flex flex-col items-center gap-1 text-center font-black uppercase">
+            <p className="text-sm text-yellow-300 tracking-widest -mb-1">Muito Rápido</p>
+            <p className="text-[9px] text-white/60 tracking-wider">Desacelere para coletar</p>
+          </div>
         </div>
       )}
 

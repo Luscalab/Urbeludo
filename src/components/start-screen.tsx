@@ -83,6 +83,11 @@ export function StartScreen({ onStart, error }: StartScreenProps) {
         </div>
       )}
 
+      {/* Keyboard control hint */}
+      <p className="text-xs text-muted-foreground mt-4 relative z-10">
+        Ou use a <kbd className="px-2 py-1.5 text-xs font-semibold text-gray-800 bg-gray-100 border border-gray-200 rounded-lg">Barra de Espaço</kbd>
+      </p>
+
       {/* Instructions */}
       <div className="mt-10 flex flex-col items-center gap-3 relative z-10">
         <div className="flex items-center gap-2 text-muted-foreground text-xs">
