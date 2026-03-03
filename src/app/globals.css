@@ -1,8 +1,6 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
-@custom-variant dark (&:is(.dark *));
-
 :root {
   --background: oklch(0.15 0.04 285);
   --foreground: oklch(0.95 0.02 200);
@@ -78,7 +76,7 @@
   --sidebar-ring: oklch(0.439 0 0);
 }
 
-@theme inline {
+@theme {
   --font-sans: var(--font-sans, 'Space Grotesk', sans-serif);
   --font-mono: 'Geist Mono', 'Geist Mono Fallback';
   --color-background: var(--background);
